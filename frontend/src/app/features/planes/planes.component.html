@@ -1,0 +1,630 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M4 17 10.5 7l3.1 4.8L16 8l4 9" />
+          <path d="M7 17h10" />
+        </svg>
+      </span>
+      <span class="brand-copy"><strong>Multiservicios</strong><small>Tale</small></span>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Navegación principal">
+      <a class="nav-item" routerLink="/inicio">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m4 11 8-7 8 7" />
+          <path d="M6.5 10.5V20h11v-9.5M10 20v-5h4v5" />
+        </svg>
+        <span>Inicio</span>
+      </a>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="4" y="4" width="6" height="6" />
+          <rect x="14" y="4" width="6" height="6" />
+          <rect x="4" y="14" width="6" height="6" />
+          <rect x="14" y="14" width="6" height="6" />
+        </svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="8" r="3" />
+          <circle cx="17" cy="9" r="2.5" />
+          <path d="M3.5 19c.5-3.2 2.4-5 5.5-5s5 1.8 5.5 5M14 15c2.8-.7 5.4.6 6.5 3.6" />
+        </svg>
+        <span>Clientes</span>
+      </button>
+      <a class="nav-item active" routerLink="/planes" aria-current="page">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M3.5 9.5c4.8-4.8 12.2-4.8 17 0M6.5 12.5c3.1-3.1 7.9-3.1 11 0M9.5 15.5c1.4-1.4 3.6-1.4 5 0"
+          />
+          <circle cx="12" cy="18.5" r="1" fill="currentColor" stroke="none" />
+        </svg>
+        <span>Planes</span>
+      </a>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="4" y="10" width="16" height="9" rx="1.5" />
+          <path d="M8 10V7h8v3M2.5 16h3M18.5 16h3" />
+          <circle cx="9" cy="14.5" r="1" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="14.5" r="1" fill="currentColor" stroke="none" />
+        </svg>
+        <span>Servicios</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6 3.5h8l4 4V20H6zM14 3.5V8h4M9 12h6M9 15.5h6" />
+        </svg>
+        <span>Cotizaciones / Proformas</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="3.5" y="6.5" width="17" height="11" rx="1.5" />
+          <circle cx="12" cy="12" r="2.5" />
+          <path d="M6 9h1M17 15h1" />
+        </svg>
+        <span>Pagos</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M5 7.5h13.5A1.5 1.5 0 0 1 20 9v9a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18V7.5z"
+          />
+          <path d="M5 7.5V5.8A1.3 1.3 0 0 1 6.3 4.5H17M15 13h5" />
+          <circle cx="15" cy="13" r="1" />
+        </svg>
+        <span>Caja</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M3 16h13V7H3zM16 10h3l2 3v3h-5zM6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+          />
+          <path d="M3 16h2M20 16h1" />
+        </svg>
+        <span>Proveedores</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M5 5.5h14v13H5zM8 9h8M8 12h5M8 15h3" />
+          <path d="m17 5.5 2.5 2.5" />
+        </svg>
+        <span>Tickets</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4 19V5M4 19h17" />
+          <path d="m7 15 4-4 3 2 5-6" />
+          <path d="M16 7h3v3" />
+        </svg>
+        <span>Reportes</span>
+      </button>
+      <a class="nav-item" routerLink="/usuarios">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="10" cy="8" r="3" />
+          <path d="M4 19c.5-3.2 2.5-5 6-5 2.2 0 3.9.8 5 2.3" />
+          <path d="m17.5 14.5.7 1.1 1.3.2-.9 1 .2 1.3-1.2-.6-1.2.6.2-1.3-.9-1 1.3-.2z" />
+        </svg>
+        <span>Usuarios</span>
+      </a>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M12 3.5 13.3 5l1.9.4.7 1.8 1.7 1 .1 1.9 1.3 1.4-1.3 1.5-.1 1.9-1.7 1-.7 1.8-1.9.4L12 20.5l-1.3-1.4-1.9-.4-.7-1.8-1.7-1-.1-1.9L5 12.5l1.3-1.4.1-1.9 1.7-1 .7-1.8 1.9-.4z"
+          />
+          <circle cx="12" cy="12" r="2.5" />
+        </svg>
+        <span>Configuración</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          {{ auth.currentUser()?.nombre?.charAt(0) || 'U'
+          }}{{ auth.currentUser()?.apellido?.charAt(0) || '' }}
+        </div>
+        <div class="sidebar-user-copy">
+          <strong
+            >{{ auth.currentUser()?.nombre || 'Usuario' }}
+            {{ auth.currentUser()?.apellido || '' }}</strong
+          >
+          <span>&#64;{{ auth.currentUser()?.username || 'sesion-activa' }}</span>
+        </div>
+        <button
+          class="logout-button"
+          type="button"
+          aria-label="Cerrar sesión"
+          (click)="auth.logout()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M14 5h5v14h-5M10 12h9M15.5 8.5 19 12l-3.5 3.5" />
+            <path d="M5 12h10" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">GESTIÓN <span>/</span> PLANES</p>
+        <h1>{{ view() === 'overview' ? 'Módulo de planes' : managementTitle() }}</h1>
+        <p class="page-description">
+          {{
+            view() === 'overview'
+              ? 'Seleccione una opción para gestionar los planes de servicio.'
+              : managementDescription()
+          }}
+        </p>
+      </div>
+      <div class="header-user">
+        <div class="avatar">{{ auth.currentUser()?.nombre?.charAt(0) || 'U' }}</div>
+        <div class="header-user-copy">
+          <strong>{{ auth.currentUser()?.nombre || 'Usuario' }}</strong>
+          <span>{{ auth.currentUser()?.rol?.nombre || 'Sesión activa' }}</span>
+        </div>
+      </div>
+    </header>
+
+    @if (view() === 'overview') {
+      <section class="page-content overview-content" aria-labelledby="plans-options-title">
+        <div class="overview-heading">
+          <p class="eyebrow">GESTIÓN DE SERVICIOS</p>
+          <h2 id="plans-options-title">¿Qué tipo de plan deseas administrar?</h2>
+        </div>
+        <div class="module-choices">
+          <button class="module-choice" type="button" (click)="openManagement('ESTANDAR')">
+            <span class="module-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+                focusable="false"
+              >
+                <path d="M3.5 8.8c4.7-4.7 12.3-4.7 17 0" />
+                <path d="M6.7 12.2c2.9-2.9 7.7-2.9 10.6 0" />
+                <path d="M9.9 15.5c1.2-1.2 3-1.2 4.2 0" />
+                <circle cx="12" cy="19" r="1.2" fill="currentColor" stroke="none" />
+              </svg>
+            </span>
+            <strong>Planes</strong>
+          </button>
+          <button class="module-choice" type="button" (click)="openManagement('PERSONALIZADO')">
+            <span class="module-icon custom-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+                focusable="false"
+              >
+                <path d="M4 7h16M4 12h16M4 17h16" />
+                <circle cx="9" cy="7" r="2" />
+                <circle cx="15" cy="12" r="2" />
+                <circle cx="10" cy="17" r="2" />
+              </svg>
+            </span>
+            <strong>Planes Personalizados</strong>
+          </button>
+        </div>
+      </section>
+    } @else {
+      <section class="page-content management-content">
+        <button class="back-link" type="button" (click)="goToOverview()">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M19 12H5M11 18l-6-6 6-6" />
+          </svg>
+          <span>Volver al módulo de planes</span>
+        </button>
+
+        @if (errorMessage() && !isModalOpen()) {
+          <div class="inline-error" role="alert">
+            <span>{{ errorMessage() }}</span>
+            <button type="button" (click)="loadPlans()">Reintentar</button>
+          </div>
+        }
+
+        <div class="toolbar">
+          <div class="list-heading">
+            <h2>Lista de planes</h2>
+            <span class="count-badge">{{ filteredPlans().length }}</span>
+          </div>
+          <div class="toolbar-actions">
+            <label class="search-box" for="plan-search">
+              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="10.8" cy="10.8" r="6.3" />
+                <path d="m16 16 4.2 4.2" />
+              </svg>
+              <input
+                id="plan-search"
+                type="search"
+                [value]="searchTerm()"
+                (input)="onSearch($event)"
+                placeholder="Buscar plan..."
+                autocomplete="off"
+              />
+            </label>
+            @if (canManage()) {
+              <button class="primary-button plans-new-button" type="button" (click)="openCreate()">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span>{{
+                  selectedType() === 'ESTANDAR' ? 'Nuevo plan' : 'Nuevo plan personalizado'
+                }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="filter-bar" aria-label="Filtrar planes">
+          <span class="filter-label">Mostrar:</span>
+          <button
+            type="button"
+            class="filter-chip"
+            [class.selected]="activeFilter() === 'all'"
+            (click)="setFilter('all')"
+          >
+            Todos
+          </button>
+          <button
+            type="button"
+            class="filter-chip"
+            [class.selected]="activeFilter() === 'active'"
+            (click)="setFilter('active')"
+          >
+            Activos
+          </button>
+          <button
+            type="button"
+            class="filter-chip"
+            [class.selected]="activeFilter() === 'inactive'"
+            (click)="setFilter('inactive')"
+          >
+            Inactivos
+          </button>
+        </div>
+
+        <div class="table-card">
+          @if (isLoading()) {
+            <div class="loading-state" role="status">
+              <span class="large-spinner" aria-hidden="true"></span>
+              <span>Cargando planes...</span>
+            </div>
+          } @else if (!plans().length && !errorMessage()) {
+            <div class="empty-state">
+              <div class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false"><path d="M5 5h14v14H5zM8 12h8" /></svg>
+              </div>
+              <h3>Aún no hay planes</h3>
+              <p>Registra el primer plan para comenzar a administrar tu catálogo.</p>
+              @if (canManage()) {
+                <button class="secondary-button" type="button" (click)="openCreate()">
+                  Crear plan
+                </button>
+              }
+            </div>
+          } @else if (!filteredPlans().length) {
+            <div class="empty-state search-empty">
+              <div class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <circle cx="10.8" cy="10.8" r="6.3" />
+                  <path d="m16 16 4.2 4.2" />
+                </svg>
+              </div>
+              <h3>No se encontraron planes.</h3>
+              <p>Prueba con otro término para buscar por nombre, velocidad o estado.</p>
+              <button class="secondary-button" type="button" (click)="searchTerm.set('')">
+                Limpiar búsqueda
+              </button>
+            </div>
+          } @else {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Velocidad</th>
+                    <th>Precio mensual</th>
+                    <th>Estado</th>
+                    @if (canManage()) {
+                      <th class="actions-heading">Acciones</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (plan of filteredPlans(); track plan.id) {
+                    <tr>
+                      <td data-label="Nombre">
+                        <div class="plan-cell">
+                          <span class="plan-mark" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                              <path
+                                d="M3.5 9.5c4.8-4.8 12.2-4.8 17 0M6.5 12.5c3.1-3.1 7.9-3.1 11 0M9.5 15.5c1.4-1.4 3.6-1.4 5 0"
+                              />
+                              <circle cx="12" cy="18.5" r="1" fill="currentColor" stroke="none" />
+                            </svg>
+                          </span>
+                          <div>
+                            <strong>{{ plan.nombre }}</strong>
+                            <span>ID #{{ plan.id }}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Velocidad">
+                        <span class="speed-label">{{ plan.velocidad }}</span>
+                      </td>
+                      <td data-label="Precio mensual">
+                        <strong class="price-label"
+                          >Q{{ plan.precio_mensual | number: '1.2-2' }}</strong
+                        >
+                      </td>
+                      <td data-label="Estado">
+                        <span
+                          class="status-pill"
+                          [class.status-inactive]="plan.estado === 'Inactivo'"
+                        >
+                          <span></span>{{ plan.estado }}
+                        </span>
+                      </td>
+                      @if (canManage()) {
+                        <td data-label="Acciones">
+                          <div class="row-actions">
+                            <button
+                              class="icon-action edit-action"
+                              type="button"
+                              title="Editar plan"
+                              aria-label="Editar plan"
+                              [disabled]="isLoadingEdit() === plan.id || deletingId() === plan.id"
+                              (click)="openEdit(plan)"
+                            >
+                              @if (isLoadingEdit() === plan.id) {
+                                <span class="action-spinner" aria-hidden="true"></span>
+                              } @else {
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="1.7"
+                                  aria-hidden="true"
+                                  focusable="false"
+                                >
+                                  <path
+                                    d="m5 16-.8 4 4-.8L19 8.4a2.1 2.1 0 0 0-3-3zM14.5 7.5l2 2"
+                                  />
+                                </svg>
+                              }
+                            </button>
+                            <button
+                              class="icon-action delete-action"
+                              type="button"
+                              title="Eliminar plan"
+                              aria-label="Eliminar plan"
+                              [disabled]="deletingId() === plan.id || isLoadingEdit() === plan.id"
+                              (click)="requestDelete(plan)"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                aria-hidden="true"
+                                focusable="false"
+                              >
+                                <path d="M5 7h14M10 11v6M14 11v6M7 7l1 13h8l1-13M9 7V4h6v3" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  </main>
+</div>
+
+@if (isModalOpen()) {
+  <div class="modal-backdrop" role="presentation" (click)="closeModal()">
+    <section
+      class="modal-card form-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <div>
+          <p class="breadcrumb">
+            {{ selectedType() === 'ESTANDAR' ? 'PLANES' : 'PLANES PERSONALIZADOS' }}
+          </p>
+          <h2 id="modal-title">
+            {{
+              editingId() === null
+                ? selectedType() === 'ESTANDAR'
+                  ? 'Nuevo plan'
+                  : 'Nuevo plan personalizado'
+                : selectedType() === 'ESTANDAR'
+                  ? 'Editar plan'
+                  : 'Editar plan personalizado'
+            }}
+          </h2>
+        </div>
+        <button
+          class="close-button"
+          type="button"
+          aria-label="Cerrar formulario"
+          (click)="closeModal()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+      <p class="modal-description">
+        Completa los datos del plan. El tipo se asigna automáticamente según la gestión actual.
+      </p>
+
+      @if (errorMessage()) {
+        <div class="inline-error modal-error" role="alert">
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="plan-name">Nombre del plan <span>*</span></label>
+            <input
+              id="plan-name"
+              type="text"
+              formControlName="nombre"
+              placeholder="Ej. Intermedio"
+            />
+            @if (form.controls.nombre.invalid && (form.controls.nombre.touched || submitted())) {
+              <small>Ingresa un nombre para el plan.</small>
+            }
+          </div>
+          <div class="form-field">
+            <label for="plan-speed">Velocidad <span>*</span></label>
+            <input
+              id="plan-speed"
+              type="text"
+              formControlName="velocidad"
+              placeholder="Ej. 15 Mbps"
+              list="standard-speed-options"
+            />
+            <datalist id="standard-speed-options">
+              @for (speed of standardSpeeds; track speed) {
+                <option [value]="speed"></option>
+              }
+            </datalist>
+            @if (
+              form.controls.velocidad.invalid && (form.controls.velocidad.touched || submitted())
+            ) {
+              <small>Ingresa la velocidad del plan.</small>
+            }
+          </div>
+          <div class="form-field price-field">
+            <label for="plan-price">Precio mensual <span>*</span></label>
+            <div class="currency-input">
+              <span>Q</span>
+              <input
+                id="plan-price"
+                type="number"
+                formControlName="precio_mensual"
+                placeholder="200.00"
+                min="0.01"
+                step="0.01"
+              />
+            </div>
+            @if (
+              form.controls.precio_mensual.invalid &&
+              (form.controls.precio_mensual.touched || submitted())
+            ) {
+              <small>Ingresa un precio mayor que cero, con máximo 2 decimales.</small>
+            }
+          </div>
+          <div class="form-field">
+            <label for="plan-status">Estado <span>*</span></label>
+            <select id="plan-status" formControlName="estado">
+              <option value="Activo">Activo</option>
+              <option value="Inactivo">Inactivo</option>
+            </select>
+          </div>
+          <div class="form-field description-field">
+            <label for="plan-description">Descripción</label>
+            <textarea
+              id="plan-description"
+              formControlName="descripcion"
+              rows="3"
+              placeholder="Configuración del plan..."
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            [disabled]="isSaving()"
+            (click)="closeModal()"
+          >
+            Cancelar
+          </button>
+          <button class="primary-button" type="submit" [disabled]="isSaving() || form.invalid">
+            @if (isSaving()) {
+              <span class="spinner" aria-hidden="true"></span><span>Guardando...</span>
+            } @else {
+              <span>{{ editingId() === null ? 'Guardar plan' : 'Guardar cambios' }}</span>
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (deleteConfirmation(); as planToDelete) {
+  <div class="modal-backdrop" role="presentation" (click)="cancelDelete()">
+    <section
+      class="modal-card confirmation-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-icon warning-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M5 7h14M10 11v6M14 11v6M7 7l1 13h8l1-13M9 7V4h6v3" />
+        </svg>
+      </div>
+      <h2 id="delete-title">¿Eliminar plan?</h2>
+      <p>
+        ¿Está seguro de que desea eliminar el plan <strong>“{{ planToDelete.nombre }}”?</strong>
+      </p>
+      <p class="warning-copy">Esta acción eliminará permanentemente el plan.</p>
+      <div class="modal-actions">
+        <button class="secondary-button" type="button" (click)="cancelDelete()">Cancelar</button>
+        <button class="danger-button" type="button" (click)="confirmDelete()">Eliminar</button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (notice(); as currentNotice) {
+  <div class="modal-backdrop" role="presentation">
+    <section
+      class="modal-card confirmation-modal success-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="success-title"
+    >
+      <div class="modal-icon success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false"><path d="m5 12 4.5 4.5L19 7" /></svg>
+      </div>
+      <h2 id="success-title">{{ currentNotice.title }}</h2>
+      <p>{{ currentNotice.message }}</p>
+      <button class="primary-button continue-button" type="button" (click)="clearNotice()">
+        Continuar
+      </button>
+    </section>
+  </div>
+}

@@ -1,0 +1,283 @@
+<!-- ==========================================
+     ESTRUCTURA PRINCIPAL DE INICIO
+=========================================== -->
+<div class="inicio-shell">
+  <!-- ==========================================
+       SIDEBAR APROBADO
+  =========================================== -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M4 17 10.5 7l3.1 4.8L16 8l4 9" />
+          <path d="M7 17h10" />
+        </svg>
+      </span>
+      <span class="brand-copy">
+        <strong>Multiservicios</strong>
+        <small>Tale</small>
+      </span>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Navegación principal">
+      <!-- ==========================================
+           NAVEGACION PRINCIPAL
+      =========================================== -->
+      <a class="nav-item active" routerLink="/inicio" aria-current="page">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m4 11 8-7 8 7" />
+          <path d="M6.5 10.5V20h11v-9.5M10 20v-5h4v5" />
+        </svg>
+        <span>Inicio</span>
+      </a>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="4" y="4" width="6" height="6" />
+          <rect x="14" y="4" width="6" height="6" />
+          <rect x="4" y="14" width="6" height="6" />
+          <rect x="14" y="14" width="6" height="6" />
+        </svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="8" r="3" />
+          <circle cx="17" cy="9" r="2.5" />
+          <path d="M3.5 19c.5-3.2 2.4-5 5.5-5s5 1.8 5.5 5M14 15c2.8-.7 5.4.6 6.5 3.6" />
+        </svg>
+        <span>Clientes</span>
+      </button>
+      <a class="nav-item" routerLink="/planes">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M3.5 9.5c4.8-4.8 12.2-4.8 17 0M6.5 12.5c3.1-3.1 7.9-3.1 11 0M9.5 15.5c1.4-1.4 3.6-1.4 5 0"
+          />
+          <circle cx="12" cy="18.5" r="1" fill="currentColor" stroke="none" />
+        </svg>
+        <span>Planes</span>
+      </a>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="4" y="10" width="16" height="9" rx="1.5" />
+          <path d="M8 10V7h8v3M2.5 16h3M18.5 16h3" />
+          <circle cx="9" cy="14.5" r="1" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="14.5" r="1" fill="currentColor" stroke="none" />
+        </svg>
+        <span>Servicios</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6 3.5h8l4 4V20H6zM14 3.5V8h4M9 12h6M9 15.5h6" />
+        </svg>
+        <span>Cotizaciones / Proformas</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="3.5" y="6.5" width="17" height="11" rx="1.5" />
+          <circle cx="12" cy="12" r="2.5" />
+          <path d="M6 9h1M17 15h1" />
+        </svg>
+        <span>Pagos</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M5 7.5h13.5A1.5 1.5 0 0 1 20 9v9a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18V7.5z"
+          />
+          <path d="M5 7.5V5.8A1.3 1.3 0 0 1 6.3 4.5H17M15 13h5" />
+          <circle cx="15" cy="13" r="1" />
+        </svg>
+        <span>Caja</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M3 16h13V7H3zM16 10h3l2 3v3h-5zM6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+          />
+          <path d="M3 16h2M20 16h1" />
+        </svg>
+        <span>Proveedores</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M5 5.5h14v13H5zM8 9h8M8 12h5M8 15h3" />
+          <path d="m17 5.5 2.5 2.5" />
+        </svg>
+        <span>Tickets</span>
+      </button>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4 19V5M4 19h17" />
+          <path d="m7 15 4-4 3 2 5-6" />
+          <path d="M16 7h3v3" />
+        </svg>
+        <span>Reportes</span>
+      </button>
+      <a class="nav-item" routerLink="/usuarios">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="10" cy="8" r="3" />
+          <path d="M4 19c.5-3.2 2.5-5 6-5 2.2 0 3.9.8 5 2.3" />
+          <path d="m17.5 14.5.7 1.1 1.3.2-.9 1 .2 1.3-1.2-.6-1.2.6.2-1.3-.9-1 1.3-.2z" />
+        </svg>
+        <span>Usuarios</span>
+      </a>
+      <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M12 3.5 13.3 5l1.9.4.7 1.8 1.7 1 .1 1.9 1.3 1.4-1.3 1.5-.1 1.9-1.7 1-.7 1.8-1.9.4L12 20.5l-1.3-1.4-1.9-.4-.7-1.8-1.7-1-.1-1.9L5 12.5l1.3-1.4.1-1.9 1.7-1 .7-1.8 1.9-.4z"
+          />
+          <circle cx="12" cy="12" r="2.5" />
+        </svg>
+        <span>Configuración</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <!-- ==========================================
+           USUARIO AUTENTICADO Y CIERRE DE SESION
+      =========================================== -->
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">{{ initials() }}</div>
+        <div class="sidebar-user-copy">
+          <strong>{{ displayName() }}</strong>
+          <span>&#64;{{ auth.currentUser()?.username || 'sesion-activa' }}</span>
+        </div>
+        <button
+          class="logout-button"
+          type="button"
+          aria-label="Cerrar sesión"
+          (click)="auth.logout()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M14 5h5v14h-5M10 12h9M15.5 8.5 19 12l-3.5 3.5" />
+            <path d="M5 12h10" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==========================================
+       FONDO TECNOLOGICO
+  =========================================== -->
+  <main class="inicio-content">
+    <div class="blueprint-grid" aria-hidden="true"></div>
+    <div class="ambient-glow ambient-glow-top" aria-hidden="true"></div>
+    <div class="ambient-glow ambient-glow-bottom" aria-hidden="true"></div>
+    <svg class="blueprint-art" viewBox="0 0 1100 800" preserveAspectRatio="none" aria-hidden="true">
+      <g class="circuit-lines">
+        <path d="M0 92h135l28-28h155l31-31h154" />
+        <path d="M1100 116H946l-27 27H784l-33 33H635" />
+        <path d="M0 664h112l30-30h127l34-34h118" />
+        <path d="M1100 628H960l-31 31H800l-28 28H648" />
+        <path d="M0 228h77l24 24h92l25-25h82" />
+        <path d="M1100 260h-85l-26-26H886l-24 24h-92" />
+        <circle cx="135" cy="92" r="4" />
+        <circle cx="946" cy="116" r="4" />
+        <circle cx="112" cy="664" r="4" />
+        <circle cx="960" cy="628" r="4" />
+      </g>
+
+      <g class="signal-tower">
+        <path d="M171 360 219 153l48 207M190 279h58M198 244h40M207 209h22" />
+        <path d="M193 355h52M204 324h30M213 292h13" />
+        <path d="M219 153v-44M219 109h39" />
+        <path d="M255 109v52" />
+        <path
+          class="signal-wave"
+          d="M179 192c-29 29-29 75 0 104M159 169c-52 51-52 132 0 183M138 145c-75 74-75 194 0 268"
+        />
+        <path
+          class="signal-wave signal-wave-right"
+          d="M259 192c29 29 29 75 0 104M279 169c52 51 52 132 0 183M300 145c75 74 75 194 0 268"
+        />
+      </g>
+
+      <g class="network-map">
+        <path d="M216 600 389 503l164 91-174 104z" />
+        <path d="m389 503 1-68 164 89v70M553 594l165-96 162 94-171 105z" />
+        <path d="m718 498 1-66 161 89v71" />
+        <path d="m302 553 89 49 78-43M553 594l80 46 85-49M718 498l85 49 76-45" />
+        <circle class="network-node" cx="389" cy="503" r="9" />
+        <circle class="network-node" cx="553" cy="594" r="9" />
+        <circle class="network-node" cx="718" cy="498" r="9" />
+        <circle class="network-node" cx="808" cy="654" r="9" />
+      </g>
+
+      <g class="buildings">
+        <path
+          d="M430 604v-70l49-29 49 29v70M446 592v-43h20v43M492 592v-43h20v43M464 505v-35l29-17 29 17v35"
+        />
+        <path
+          d="M548 621v-91l58-35 58 35v91M568 606v-58h22v58M622 606v-58h22v58M592 525v-24h22v24"
+        />
+        <path
+          d="M711 589V452l69-40 69 40v137M734 574v-83h25v83M801 574v-83h25v83M759 438v-32h25v32"
+        />
+      </g>
+
+      <g class="art-nodes">
+        <circle class="network-node" cx="102" cy="392" r="4" />
+        <circle class="network-node" cx="1007" cy="206" r="4" />
+        <circle class="network-node" cx="937" cy="700" r="4" />
+        <path d="M102 392h91M1007 206h-80M937 700h-89" />
+      </g>
+    </svg>
+    <span class="art-label art-label-top">WISP NETWORK<br /><strong>BLUEPRINT</strong></span>
+    <span class="art-label art-label-left">WIRELESS<br />SIGNAL</span>
+
+    <!-- ==========================================
+         BIENVENIDA
+    =========================================== -->
+    <section class="inicio-stage" aria-labelledby="welcome-title">
+      <article class="welcome-card">
+        <div class="welcome-card-content">
+          <p class="welcome-eyebrow"><span></span> RED OPERATIVA / ACCESO PRINCIPAL</p>
+          <h1 id="welcome-title">
+            ¡Bienvenido a <span>Multiservicios <em>Tale!</em></span>
+          </h1>
+          <p class="welcome-greeting">
+            Hola, <strong>{{ displayName() }}</strong> <span aria-hidden="true">&#128075;</span>
+          </p>
+          <p class="welcome-description">
+            Gestiona clientes, planes, servicios y operaciones de red desde una plataforma diseñada
+            para centralizar y optimizar la administración de Multiservicios Tale.
+          </p>
+
+          <!-- ==========================================
+               INFORMACION GENERAL
+          =========================================== -->
+          <div class="welcome-highlights">
+            <div class="highlight-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 10a11 11 0 0 1 16 0M7 13a7 7 0 0 1 10 0M10 16a3 3 0 0 1 4 0" />
+                <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+              </svg>
+              <span><small>INFRAESTRUCTURA</small><strong>Red inalámbrica</strong></span>
+            </div>
+            <div class="highlight-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="12" r="8" />
+                <path d="m8 12 2.5 2.5L16 9" />
+              </svg>
+              <span><small>OPERACIÓN</small><strong>Gestión centralizada</strong></span>
+            </div>
+            <div class="highlight-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 3 19 6v5c0 4.6-2.8 7.6-7 10-4.2-2.4-7-5.4-7-10V6z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+              <span><small>ESTADO</small><strong>Sesión protegida</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="welcome-signal" aria-hidden="true">
+          <span class="signal-core"></span>
+          <span class="signal-ring signal-ring-one"></span>
+          <span class="signal-ring signal-ring-two"></span>
+          <span class="signal-ring signal-ring-three"></span>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
