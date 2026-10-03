@@ -4,6 +4,7 @@
 # IMPORTS
 # ==========================================
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,6 +12,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.modulo import Modulo, usuario_modulos
 from app.models.rol import Rol
+
+if TYPE_CHECKING:
+    from app.models.empleado import Empleado
 
 
 # ==========================================
@@ -36,6 +40,11 @@ class Usuario(Base):
     )
 
     rol: Mapped[Rol] = relationship(back_populates="usuarios")
+    # Es el lado inverso de Empleado.id_usuario; no se agrega una segunda FK
+    # porque una sola referencia fisica evita estados circulares o contradictorios.
+    empleado: Mapped["Empleado | None"] = relationship(
+        back_populates="usuario", uselist=False
+    )
     modulos: Mapped[list[Modulo]] = relationship(
         secondary=usuario_modulos,
         back_populates="usuarios",

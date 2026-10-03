@@ -1,0 +1,516 @@
+<div class="visits-page">
+  <!-- Encabezado alineado con las pantallas de gestión existentes. -->
+  <header class="visits-header">
+    <h1>Gestión de Visitas Técnicas</h1>
+    <p>
+      {{ visits().length }}
+      {{ visits().length === 1 ? 'visita registrada' : 'visitas registradas' }}
+    </p>
+  </header>
+
+  <main class="visits-content">
+    @if (loadError()) {
+      <p class="page-message error" role="alert">{{ loadError() }}</p>
+    }
+    @if (actionMessage()) {
+      <p class="page-message success" role="status">{{ actionMessage() }}</p>
+    }
+    @if (actionError()) {
+      <p class="page-message error" role="alert">{{ actionError() }}</p>
+    }
+    <div class="visits-toolbar">
+      <label class="visits-search" for="visit-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6" />
+          <path d="m15 15 5 5" />
+        </svg>
+        <input
+          id="visit-search"
+          type="search"
+          placeholder="Buscar por cliente o técnico..."
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+        />
+      </label>
+      <select
+        class="visits-filter"
+        aria-label="Filtrar visitas por estado"
+        [value]="statusFilter()"
+        (change)="onFilterChange($event)"
+      >
+        <option value="all">Todos</option>
+        <option value="Programada">Programada</option>
+        <option value="En Proceso">En Proceso</option>
+        <option value="Completada">Completada</option>
+      </select>
+      <button class="new-visit-button" type="button" (click)="openCreate()">
+        <span aria-hidden="true">+</span> Nueva visita
+      </button>
+    </div>
+
+    <section class="visits-table-card" aria-label="Visitas técnicas">
+      @if (isLoading()) {
+        <div class="empty-state"><strong>Cargando visitas técnicas...</strong></div>
+      } @else if (!visits().length) {
+        <div class="empty-state">
+          <strong>Aún no hay visitas técnicas</strong
+          ><span>Crea la primera visita para comenzar.</span>
+        </div>
+      } @else if (!filteredVisits().length) {
+        <div class="empty-state">
+          <strong>No se encontraron visitas</strong><span>Prueba con otro término o estado.</span>
+        </div>
+      } @else {
+        <div class="visits-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>CLIENTE</th>
+                <th>TIPO</th>
+                <th>FECHA</th>
+                <th>HORA</th>
+                <th>TÉCNICO</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (visit of filteredVisits(); track visit.id_visita) {
+                <tr>
+                  <td>
+                    <strong>{{ visit.id_visita }}</strong>
+                  </td>
+                  <td>{{ visit.nombre_cliente }}</td>
+                  <td>{{ visit.nombre_tipo_instalacion }}</td>
+                  <td>{{ visit.fecha_programada }}</td>
+                  <td>{{ visit.hora_programada.slice(0, 5) }}</td>
+                  <td>{{ visit.nombre_tecnico }}</td>
+                  <td>
+                    <span
+                      class="status-pill"
+                      [class.in-progress]="visit.estado === 'En Proceso'"
+                      [class.completed]="visit.estado === 'Completada'"
+                      >{{ visit.estado }}</span
+                    >
+                  </td>
+                  <td class="visit-actions">
+                    <button type="button" (click)="openView(visit)">Ver</button>
+                    @if (visit.estado === 'Programada') {
+                      <button type="button" (click)="openEdit(visit)">Editar</button
+                      ><button
+                        class="delete"
+                        type="button"
+                        [disabled]="deletingVisitId() !== null"
+                        (click)="requestDeleteVisit(visit)"
+                      >
+                        {{ deletingVisitId() === visit.id_visita ? 'Eliminando...' : 'Eliminar' }}
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</div>
+
+@if (isModalOpen()) {
+  <div class="visit-modal-backdrop" role="presentation" (click)="closeCreate()">
+    <section
+      class="visit-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="visit-form-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="visit-modal-header">
+        <div>
+          <p>VISITAS TÉCNICAS</p>
+          <h2 id="visit-form-title">
+            {{ editingVisit() ? 'Editar Visita Técnica' : 'Nueva Visita Técnica' }}
+          </h2>
+        </div>
+        <button type="button" aria-label="Cerrar" (click)="closeCreate()">×</button>
+      </header>
+      <form id="visit-form" class="visit-form" (submit)="submitVisit($event)">
+        @if (catalogError()) {
+          <p class="form-message" role="alert">{{ catalogError() }}</p>
+        }
+        <div class="form-field client-field">
+          <label for="visit-client">Cliente *</label>
+          <input type="hidden" name="id_cliente" [value]="selectedClientId() ?? ''" />
+          @if (selectedClient(); as client) {
+            <div class="selected-client-card">
+              <div>
+                <span>Código</span><strong>{{ client.id_cliente }}</strong>
+              </div>
+              <div class="selected-client-name">
+                <span>Nombre</span><strong>{{ clientName(client) }}</strong>
+              </div>
+              <div>
+                <span>Teléfono</span><strong>{{ client.telefono }}</strong>
+              </div>
+              <div class="selected-client-address">
+                <span>Dirección</span><strong>{{ client.direccion }}</strong>
+              </div>
+              <button type="button" (click)="changeClient()">Cambiar</button>
+            </div>
+          } @else {
+            <div class="client-search-control">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.8" cy="10.8" r="6.3" />
+                <path d="m16 16 4.5 4.5" />
+              </svg>
+              <input
+                id="visit-client"
+                type="search"
+                placeholder="Buscar por nombre, código, DPI o teléfono..."
+                autocomplete="off"
+                role="combobox"
+                [value]="clientSearch()"
+                [attr.aria-expanded]="isClientDropdownOpen()"
+                aria-controls="visit-client-results"
+                (input)="onClientSearch($event)"
+                (focus)="openClientDropdown()"
+                (blur)="closeClientDropdown()"
+              />
+            </div>
+            @if (isClientDropdownOpen() && clientSearch().trim()) {
+              <div id="visit-client-results" class="client-results" role="listbox">
+                @if (filteredClients().length) {
+                  @for (client of filteredClients(); track client.id_cliente) {
+                    <button
+                      type="button"
+                      role="option"
+                      (mousedown)="$event.preventDefault()"
+                      (click)="selectClient(client)"
+                    >
+                      <strong>{{ client.id_cliente }}</strong>
+                      <span>{{ clientName(client) }}</span>
+                      <small>{{ client.dpi || 'Sin DPI' }} · {{ client.telefono }}</small>
+                    </button>
+                  }
+                } @else {
+                  <p>No se encontraron clientes</p>
+                }
+              </div>
+            }
+          }
+        </div>
+        <div class="form-field type-field">
+          <label for="visit-type">Tipo de instalación *</label>
+          <select
+            id="visit-type"
+            name="id_tipo_instalacion"
+            [value]="selectedTypeId() ?? ''"
+            (change)="onTypeChange($event)"
+            required
+          >
+            <option value="">Seleccione tipo</option>
+            @for (type of installationTypes(); track type.id_tipo_instalacion) {
+              <option [value]="type.id_tipo_instalacion">{{ type.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-field date-field">
+          <label for="visit-date">Fecha programada *</label
+          ><input
+            id="visit-date"
+            type="date"
+            [value]="scheduledDate()"
+            (input)="onTextChange('date', $event)"
+            required
+          />
+        </div>
+        <div class="form-field time-field">
+          <label for="visit-time">Hora programada *</label
+          ><input
+            id="visit-time"
+            type="time"
+            [value]="scheduledTime()"
+            (input)="onTextChange('time', $event)"
+            required
+          />
+        </div>
+
+        <div class="form-field technicians-field">
+          <label for="visit-technician">Técnico asignado *</label>
+          <select
+            id="visit-technician"
+            name="id_empleado"
+            [value]="selectedTechnicianId() ?? ''"
+            (change)="onTechnicianChange($event)"
+            required
+          >
+            <option value="">Seleccione técnico</option>
+            @for (technician of technicians(); track technician.id_empleado) {
+              <option [value]="technician.id_empleado">
+                {{ technicianName(technician) }} · {{ technician.codigo }}
+              </option>
+            }
+          </select>
+          @if (areTechniciansLoading()) {
+            <small>Cargando técnicos...</small>
+          } @else if (!technicians().length && !catalogError()) {
+            <small>No hay técnicos disponibles</small>
+          }
+        </div>
+        <div class="form-field property-field">
+          <label for="visit-property">Propiedad</label>
+          <select
+            id="visit-property"
+            name="id_ubicacion"
+            [value]="selectedLocationId() ?? ''"
+            [disabled]="!selectedClient() || areLocationsLoading() || !clientLocations().length"
+            (change)="onLocationChange($event)"
+          >
+            <option value="">
+              {{ areLocationsLoading() ? 'Cargando propiedades...' : 'Sin propiedad seleccionada' }}
+            </option>
+            @for (location of clientLocations(); track location.id_ubicacion) {
+              <option [value]="location.id_ubicacion">{{ propertyLabel(location) }}</option>
+            }
+          </select>
+          @if (locationsError()) {
+            <small class="property-message error" role="alert">{{ locationsError() }}</small>
+          } @else if (selectedClient() && !areLocationsLoading() && !clientLocations().length) {
+            <small class="property-message">
+              Este cliente todavía no tiene una propiedad registrada. La ubicación podrá registrarse
+              durante la primera visita.
+            </small>
+          }
+        </div>
+        <div class="form-field reason-field">
+          <label for="visit-reason">Motivo de visita *</label
+          ><input
+            id="visit-reason"
+            type="text"
+            [value]="visitReason()"
+            (input)="onTextChange('reason', $event)"
+            required
+          />
+        </div>
+        <div class="form-field indications-field">
+          <label for="visit-instructions">Indicaciones</label
+          ><textarea
+            id="visit-instructions"
+            [value]="instructions()"
+            (input)="onTextChange('instructions', $event)"
+          ></textarea>
+        </div>
+        <div class="form-field observations-field">
+          <label for="visit-observations">Observaciones</label
+          ><textarea
+            id="visit-observations"
+            [value]="observations()"
+            (input)="onTextChange('observations', $event)"
+          ></textarea>
+        </div>
+        @if (!editingVisit()) {
+          <div class="form-field photo-field">
+            <label for="visit-photo">Foto de referencia (opcional)</label>
+            <input
+              #photoInput
+              id="visit-photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              (change)="onPhotoChange($event)"
+            />
+            @if (referencePhotoUrl()) {
+              <div class="photo-preview">
+                <img [src]="referencePhotoUrl()" alt="Vista previa de la foto de referencia" />
+                <div>
+                  <strong>{{ referencePhoto()?.name }}</strong>
+                  <label for="visit-photo">Cambiar imagen</label>
+                  <button type="button" (click)="removeReferencePhoto(photoInput)">
+                    Eliminar imagen
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <label class="photo-selector" for="visit-photo">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <circle cx="8.5" cy="9" r="1.5" />
+                  <path d="m3 17 4.5-4.5 3.5 3.5 2.5-2.5L21 18" />
+                </svg>
+                <span
+                  ><strong>Seleccionar imagen</strong
+                  ><small>JPG, PNG o WEBP · máximo 5 MB</small></span
+                >
+              </label>
+            }
+          </div>
+        }
+      </form>
+      @if (formError()) {
+        <p class="form-message" role="alert">{{ formError() }}</p>
+      }
+      <footer class="visit-modal-actions">
+        <button class="secondary" type="button" [disabled]="isSaving()" (click)="closeCreate()">
+          Cancelar</button
+        ><button class="primary" type="submit" form="visit-form" [disabled]="isSaving()">
+          {{ isSaving() ? 'Guardando...' : editingVisit() ? 'Guardar cambios' : 'Crear visita' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (viewedVisit(); as visit) {
+  <div class="visit-modal-backdrop" role="presentation" (click)="closeView()">
+    <section
+      class="visit-modal visit-detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="visit-detail-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="visit-modal-header">
+        <div>
+          <p>VISITA TÉCNICA {{ visit.id_visita }}</p>
+          <h2 id="visit-detail-title">Detalle de la Visita</h2>
+        </div>
+        <button type="button" aria-label="Cerrar detalle" (click)="closeView()">×</button>
+      </header>
+      <!-- El detalle presenta exclusivamente datos devueltos por la API y no contiene controles editables. -->
+      <dl class="visit-detail-grid">
+        <div>
+          <dt>Cliente</dt>
+          <dd>{{ visit.nombre_cliente }}</dd>
+        </div>
+        <div>
+          <dt>Propiedad</dt>
+          <dd>
+            {{
+              visit.numero_propiedad === null
+                ? 'Sin propiedad asociada'
+                : 'Propiedad ' + visit.numero_propiedad
+            }}
+          </dd>
+        </div>
+        <div>
+          <dt>Teléfono</dt>
+          <dd>{{ visit.telefono_cliente || 'No registrado' }}</dd>
+        </div>
+        <div class="wide">
+          <dt>Dirección</dt>
+          <dd>{{ visit.direccion_cliente || 'No registrada' }}</dd>
+        </div>
+        <div>
+          <dt>Técnico asignado</dt>
+          <dd>{{ visit.nombre_tecnico }}</dd>
+        </div>
+        <div>
+          <dt>Tipo de instalación</dt>
+          <dd>{{ visit.nombre_tipo_instalacion }}</dd>
+        </div>
+        <div>
+          <dt>Fecha</dt>
+          <dd>{{ visit.fecha_programada }}</dd>
+        </div>
+        <div>
+          <dt>Hora</dt>
+          <dd>{{ visit.hora_programada.slice(0, 5) }}</dd>
+        </div>
+        <div>
+          <dt>Estado</dt>
+          <dd>{{ visit.estado }}</dd>
+        </div>
+        <div class="wide">
+          <dt>Motivo de visita</dt>
+          <dd>{{ visit.motivo_visita }}</dd>
+        </div>
+        <div class="wide">
+          <dt>Indicaciones</dt>
+          <dd>{{ visit.indicaciones || 'Sin indicaciones' }}</dd>
+        </div>
+        <div class="wide">
+          <dt>Observaciones</dt>
+          <dd>{{ visit.observaciones || 'Sin observaciones' }}</dd>
+        </div>
+      </dl>
+      @if (photoUrl(visit.foto_referencia); as referenceUrl) {
+        <div class="visit-detail-photo">
+          <span>Referencia fotográfica</span>
+          <img
+            class="visit-reference-thumbnail"
+            [src]="referenceUrl"
+            alt="Referencia de la visita"
+          />
+        </div>
+      }
+      @if (visit.evaluacion; as evaluation) {
+        <section class="visit-evaluation-readonly" aria-label="Evaluación técnica">
+          <h3>Evaluación técnica</h3>
+          <dl class="visit-detail-grid">
+            <div class="wide">
+              <dt>Descripción del trabajo</dt>
+              <dd>{{ evaluation.descripcion_trabajo }}</dd>
+            </div>
+            <div>
+              <dt>Técnicos recomendados</dt>
+              <dd>{{ evaluation.tecnicos_recomendados ?? 'No indicado' }}</dd>
+            </div>
+            <div>
+              <dt>Condiciones del lugar</dt>
+              <dd>{{ evaluation.condiciones_lugar || 'No indicadas' }}</dd>
+            </div>
+            <div class="wide">
+              <dt>Observación técnica</dt>
+              <dd>{{ evaluation.observacion_tecnica || 'Sin observación' }}</dd>
+            </div>
+          </dl>
+          @if (evaluation.materiales.length) {
+            <div class="visit-evaluation-materials">
+              <h4>Materiales evaluados</h4>
+              <ul>
+                @for (material of evaluation.materiales; track material.id_detalle) {
+                  <li>
+                    <span>{{ material.descripcion }}</span>
+                    <strong>{{ material.cantidad }} {{ material.unidad || '' }}</strong>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+      }
+      <footer class="visit-modal-actions">
+        <button class="primary" type="button" (click)="closeView()">Cerrar</button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (deleteConfirmation()) {
+  <div class="client-modal-backdrop" role="presentation" (click)="cancelDelete()">
+    <section
+      class="client-confirmation-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="visit-delete-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="confirmation-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13" />
+        </svg>
+      </div>
+
+      <h2 id="visit-delete-title">¿Eliminar visita técnica?</h2>
+
+      <p>¿Está seguro de que desea eliminar esta visita técnica?</p>
+
+      <div class="client-modal-actions">
+        <button class="secondary-button" type="button" (click)="cancelDelete()">Cancelar</button>
+
+        <button class="danger-button" type="button" (click)="confirmDelete()">Eliminar</button>
+      </div>
+    </section>
+  </div>
+}

@@ -1,0 +1,123 @@
+<div class="maps-page">
+  <header class="maps-header">
+    <div>
+      <span class="maps-kicker">COBERTURA GEOGRÁFICA</span>
+      <h1>MAPAS</h1>
+      <p>Ubicación de propiedades de clientes y antenas</p>
+    </div>
+    <div class="maps-legend" aria-label="Tipos de marcador">
+      <span><i class="property-dot"></i>Propiedades</span>
+      <span><i class="antenna-dot"></i>Antenas</span>
+    </div>
+  </header>
+
+  <main class="maps-content">
+    <div class="maps-toolbar">
+      <label class="maps-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6" />
+          <path d="m15 15 5 5" />
+        </svg>
+        <input
+          type="search"
+          placeholder="Buscar cliente, propiedad o antena..."
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+        />
+      </label>
+
+      <div class="map-filters" aria-label="Filtrar ubicaciones">
+        <button type="button" [class.active]="filter() === 'all'" (click)="setFilter('all')">
+          Todos
+        </button>
+        <button
+          type="button"
+          [class.active]="filter() === 'clients'"
+          (click)="setFilter('clients')"
+        >
+          Clientes
+        </button>
+        <button
+          type="button"
+          [class.active]="filter() === 'antennas'"
+          (click)="setFilter('antennas')"
+        >
+          Antenas
+        </button>
+      </div>
+
+      <button class="add-location" type="button" (click)="prepareAddLocation()">
+        + Agregar ubicación
+      </button>
+    </div>
+
+    @if (dataError()) {
+      <p class="maps-alert error" role="alert">{{ dataError() }}</p>
+    }
+    @if (actionMessage()) {
+      <p class="maps-alert" role="status">{{ actionMessage() }}</p>
+    }
+
+    <section class="map-stage" aria-label="Mapa de propiedades y antenas">
+      <div #mapContainer class="map-canvas"></div>
+
+      @if (isLoadingMap()) {
+        <div class="map-state"><strong>Cargando Google Maps...</strong></div>
+      } @else if (mapError()) {
+        <div class="map-state map-error" role="alert">
+          <strong>Mapa no disponible</strong>
+          <span>{{ mapError() }}</span>
+        </div>
+      }
+
+      @if (!isLoadingData() && !dataError() && !visibleItems().length) {
+        <div class="map-empty">No hay ubicaciones que coincidan con la búsqueda.</div>
+      }
+
+      @if (selectedItem(); as item) {
+        <article class="map-detail-card">
+          <button
+            class="detail-close"
+            type="button"
+            aria-label="Cerrar información"
+            (click)="closeSelection()"
+          >
+            ×
+          </button>
+          @if (imageUrl(item.image); as image) {
+            <img
+              [src]="image"
+              [alt]="item.kind === 'property' ? 'Fachada de la propiedad' : 'Antena'"
+            />
+          }
+          <div class="detail-copy">
+            <span class="detail-type" [class.antenna]="item.kind === 'antenna'">
+              {{ item.kind === 'property' ? 'PROPIEDAD DE CLIENTE' : 'ANTENA' }}
+            </span>
+            <h2>{{ item.title }}</h2>
+            <strong>{{ item.subtitle }}</strong>
+            <small>{{ item.status }}</small>
+            @if (item.address?.trim(); as address) {
+              <p>{{ address }}</p>
+            }
+            @if (item.reference?.trim(); as reference) {
+              <p>{{ reference }}</p>
+            }
+            <div class="detail-actions">
+              <button type="button" (click)="showDetails(item)">
+                {{ item.kind === 'property' ? 'Ver propiedad' : 'Ver detalles' }}
+              </button>
+              <button type="button" (click)="prepareDirections(item)">Cómo llegar</button>
+            </div>
+          </div>
+        </article>
+      }
+    </section>
+
+    <footer class="maps-summary">
+      <span>{{ visibleItems().length }} ubicaciones visibles</span>
+      <span>{{ properties().length }} propiedades registradas</span>
+      <span>{{ antennas().length }} antenas registradas</span>
+    </footer>
+  </main>
+</div>

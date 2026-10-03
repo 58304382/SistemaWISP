@@ -113,14 +113,16 @@
         </svg>
         <span>Reportes</span>
       </button>
-      <a class="nav-item active" routerLink="/usuarios" aria-current="page">
-        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <circle cx="10" cy="8" r="3" />
-          <path d="M4 19c.5-3.2 2.5-5 6-5 2.2 0 3.9.8 5 2.3" />
-          <path d="m17.5 14.5.7 1.1 1.3.2-.9 1 .2 1.3-1.2-.6-1.2.6.2-1.3-.9-1 1.3-.2z" />
-        </svg>
-        <span>Usuarios</span>
-      </a>
+      @if (auth.currentUser()?.rol?.nombre === 'Administrador') {
+        <a class="nav-item active" routerLink="/usuarios" aria-current="page">
+          <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="8" r="3" />
+            <path d="M4 19c.5-3.2 2.5-5 6-5 2.2 0 3.9.8 5 2.3" />
+            <path d="m17.5 14.5.7 1.1 1.3.2-.9 1 .2 1.3-1.2-.6-1.2.6.2-1.3-.9-1 1.3-.2z" />
+          </svg>
+          <span>Usuarios</span>
+        </a>
+      }
       <button class="nav-item nav-item-pending" type="button" aria-disabled="true">
         <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path
@@ -411,22 +413,103 @@
 
       <form [formGroup]="form" (ngSubmit)="save()" novalidate>
         <div class="form-grid">
-          <div class="form-field">
-            <label for="name">Nombre</label>
-            <input id="name" type="text" formControlName="nombre" placeholder="Nombre" />
-            @if (form.controls.nombre.invalid && form.controls.nombre.touched) {
-              <small>Ingresa un nombre.</small>
+          @if (editingId() === null) {
+            <div class="form-field modules-field">
+              <label for="employee-search">Empleado *</label>
+              <div class="form-grid">
+                <input
+                  id="employee-search"
+                  type="search"
+                  [value]="employeeSearch()"
+                  (input)="onEmployeeSearch($event)"
+                  placeholder="Buscar por código, nombre o puesto..."
+                  autocomplete="off"
+                />
+                <select
+                  id="employee-select"
+                  formControlName="id_empleado"
+                  aria-label="Seleccionar empleado disponible"
+                  (change)="onEmployeeSelectionChange()"
+                >
+                  <option [ngValue]="0">Selecciona un empleado</option>
+                  @for (employee of filteredAvailableEmployees(); track employee.id_empleado) {
+                    <option [ngValue]="employee.id_empleado">
+                      {{ employee.codigo }} — {{ employee.nombres }} {{ employee.apellidos }} —
+                      {{ employee.nombre_puesto }}
+                    </option>
+                  }
+                </select>
+              </div>
+              @if (isLoadingAvailableEmployees()) {
+                <div class="modules-heading">
+                  <span>Cargando empleados disponibles...</span>
+                </div>
+              } @else if (availableEmployeesError()) {
+                <small>{{ availableEmployeesError() }}</small>
+                <button class="secondary-button" type="button" (click)="loadAvailableEmployees()">
+                  Reintentar
+                </button>
+              } @else if (availableEmployees().length === 0) {
+                <div class="modules-heading">
+                  <span>No hay empleados disponibles para crear una cuenta.</span>
+                </div>
+              } @else if (filteredAvailableEmployees().length === 0) {
+                <div class="modules-heading">
+                  <span>No se encontraron empleados disponibles.</span>
+                </div>
+              }
+              @if (
+                form.controls.id_empleado.invalid &&
+                (form.controls.id_empleado.touched || submitted())
+              ) {
+                <small>Selecciona un empleado disponible.</small>
+              }
+            </div>
+            @if (selectedEmployee(); as employee) {
+              <div class="modules-field employee-summary">
+                <div class="modules-heading">
+                  <div>
+                    <span>{{ employee.codigo }}</span>
+                    <label>{{ employee.nombres }} {{ employee.apellidos }}</label>
+                  </div>
+                  <strong>{{ employee.nombre_puesto }}</strong>
+                  <button class="secondary-button" type="button" (click)="clearEmployeeSelection()">
+                    Cambiar
+                  </button>
+                </div>
+              </div>
             }
-          </div>
-          <div class="form-field">
-            <label for="last-name">Apellido</label>
-            <input id="last-name" type="text" formControlName="apellido" placeholder="Apellido" />
-            @if (form.controls.apellido.invalid && form.controls.apellido.touched) {
-              <small>Ingresa un apellido.</small>
+          } @else {
+            @if (editingEmployee(); as employee) {
+              <div class="modules-field employee-summary readonly-summary">
+                <div class="modules-heading">
+                  <div>
+                    <span>Empleado asociado</span>
+                    <label>
+                      {{ employee.codigo }} — {{ employee.nombres }} {{ employee.apellidos }}
+                    </label>
+                  </div>
+                  <strong>{{ employee.puesto.nombre }}</strong>
+                </div>
+              </div>
             }
-          </div>
+            <div class="form-field">
+              <label for="name">Nombre</label>
+              <input id="name" type="text" formControlName="nombre" placeholder="Nombre" />
+              @if (form.controls.nombre.invalid && form.controls.nombre.touched) {
+                <small>Ingresa un nombre.</small>
+              }
+            </div>
+            <div class="form-field">
+              <label for="last-name">Apellido</label>
+              <input id="last-name" type="text" formControlName="apellido" placeholder="Apellido" />
+              @if (form.controls.apellido.invalid && form.controls.apellido.touched) {
+                <small>Ingresa un apellido.</small>
+              }
+            </div>
+          }
           <div class="form-field">
-            <label for="user-name">Username</label>
+            <label for="user-name">Username *</label>
             <input
               id="user-name"
               type="text"
@@ -439,7 +522,7 @@
             }
           </div>
           <div class="form-field">
-            <label for="role">Rol</label>
+            <label for="role">Rol *</label>
             <select id="role" formControlName="rol_id">
               @for (role of roles; track role.id) {
                 <option [ngValue]="role.id">{{ role.nombre }}</option>
@@ -547,7 +630,7 @@
           >
             Cancelar
           </button>
-          <button class="primary-button" type="submit" [disabled]="isSaving() || form.invalid">
+          <button class="primary-button" type="submit" [disabled]="isSaving()">
             @if (isSaving()) {
               <span class="spinner" aria-hidden="true"></span><span>Guardando...</span>
             } @else {

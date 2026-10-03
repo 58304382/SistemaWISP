@@ -1,0 +1,69 @@
+<main class="document-page">
+  <header class="document-navigation no-print">
+    <a routerLink="/cotizaciones">← Volver a Cotizaciones</a>
+    <div><h1>{{ tipoVisible() === 'PROFORMA' ? 'Documento Proforma' : 'Documento Cotización' }}</h1><p>Vista preparada para impresión y envío.</p></div>
+  </header>
+
+  <!-- Controles administrativos externos a la hoja comercial. -->
+  <div class="document-toolbar no-print">
+    <button type="button" [disabled]="!documento() || descargandoPdf() || tamano() === 'OFICIO'" (click)="imprimir()">⌁ Imprimir</button>
+    <button data-testid="descargar-pdf" type="button" [disabled]="!documento() || cargando() || !!errorCarga() || descargandoPdf() || tamano() === 'OFICIO'" (click)="descargarPdf()">{{ descargandoPdf() ? 'Descargando...' : '↓ Descargar PDF' }}</button>
+    <button class="whatsapp-button" type="button" [disabled]="!documento()" (click)="enviarWhatsApp()">Abrir WhatsApp</button>
+  </div>
+  @if (mensaje()) { <p class="document-message no-print" role="alert">{{ mensaje() }}</p> }
+  @if (cargando()) { <p class="document-message no-print" role="status">Cargando documento...</p> }
+  @if (errorCarga()) { <p class="document-message no-print" role="alert">{{ errorCarga() }}</p> }
+
+  @if (documento(); as documentoActual) {
+    <!-- La hoja mantiene proporciones documentales independientes del responsive de la aplicación. -->
+    <article #documentoExportable class="commercial-sheet" [class.legal-preview]="tamano() === 'OFICIO'">
+      <!-- Encabezado institucional del documento comercial -->
+      <header class="sheet-header">
+        <div class="company-block">
+          @if (documentoActual.empresa?.logoUrl) { <img [src]="documentoActual.empresa?.logoUrl" alt="Logo de la empresa" /> }
+          @else { <div class="logo-placeholder" aria-label="Logo pendiente">LOGO</div> }
+          <div>
+            <strong>{{ documentoActual.empresa?.nombreComercial || 'Nombre comercial pendiente' }}</strong>
+            <span>NIT: {{ documentoActual.empresa?.nit || 'No configurado' }}</span>
+            <span>{{ documentoActual.empresa?.direccion || 'Dirección no configurada' }}</span>
+            <span>{{ documentoActual.empresa?.telefono || 'Teléfono no configurado' }} · {{ documentoActual.empresa?.correo || 'Correo no configurado' }}</span>
+          </div>
+        </div>
+         <div class="document-identity"><h2>{{ documentoActual.tipo === 'PROFORMA' ? 'PROFORMA' : 'COTIZACIÓN' }}</h2><strong>{{ documentoActual.cotizacion.numero_cotizacion }}</strong><span>Fecha: {{ (documentoActual.tipo === 'PROFORMA' ? documentoActual.fecha_generacion : documentoActual.cotizacion.fecha) | date: 'dd/MM/yyyy' }}</span></div>
+      </header>
+
+      <!-- Información del cliente obtenida de la cotización original -->
+      <section class="client-information"><h3>INFORMACIÓN DEL CLIENTE</h3><div class="client-grid"><p><span>Nombre</span><strong>{{ documentoActual.cotizacion.cliente.nombres }} {{ documentoActual.cotizacion.cliente.apellidos }}</strong></p><p><span>Ubicación</span><strong>{{ documentoActual.cotizacion.cliente.departamento }} · {{ documentoActual.cotizacion.cliente.municipio }}</strong></p><p><span>Dirección</span><strong>{{ documentoActual.cotizacion.cliente.direccion }}</strong></p><p><span>Contacto</span><strong>{{ documentoActual.cotizacion.cliente.telefono }}</strong></p></div></section>
+
+      <!-- Detalle económico sin IVA ni conceptos ajenos al contrato solicitado -->
+      <section class="economic-detail"><table><thead><tr><th>DESCRIPCIÓN</th><th>CANT.</th><th>UNIDAD</th><th>PRECIO UNIT.</th><th>SUBTOTAL</th></tr></thead><tbody>@for (detalle of documentoActual.cotizacion.detalles; track $index) { <tr><td>{{ detalle.descripcion }}</td><td>{{ detalle.cantidad }}</td><td>{{ detalle.unidad || '—' }}</td><td>{{ detalle.precio_unitario | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</td><td>{{ subtotalDetalle($index) | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</td></tr> }</tbody></table></section>
+
+      <!-- El resumen es indivisible y muestra el porcentaje comercial real. -->
+      <section class="totals-section"><dl><div><dt>Subtotal</dt><dd>{{ resumen().subtotal | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div><div><dt>Descuento ({{ documentoActual.cotizacion.porcentaje_descuento }}%)</dt><dd>- {{ resumen().descuento | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div><div class="grand-total"><dt>TOTAL</dt><dd>{{ resumen().total | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div></dl></section>
+
+      <!-- El pie se desplaza hacia abajo en documentos cortos y fluye a páginas posteriores cuando crece el detalle. -->
+      @if (terminosCondiciones().length || mensajeFinal() || documentoActual.tipo === 'PROFORMA') {
+        <footer class="document-final">
+          @if (terminosCondiciones().length) {
+            <section class="terms-section">
+              <h3>TÉRMINOS Y CONDICIONES</h3>
+              <ul>@for (termino of terminosCondiciones(); track $index) { <li>{{ termino }}</li> }</ul>
+            </section>
+          }
+          @if (mensajeFinal(); as mensajeConfigurado) {
+            <p class="final-message">{{ mensajeConfigurado }}</p>
+          }
+          <!-- Las dos firmas son un único bloque indivisible y siempre cierran la Proforma. -->
+          @if (documentoActual.tipo === 'PROFORMA') {
+            <section class="signatures">
+              <div><h3>FIRMA AUTORIZADA</h3><div class="signature-space">@if (documentoActual.empresa?.firmaUrl) { <img [src]="documentoActual.empresa?.firmaUrl" alt="Firma autorizada" /> } @else { <span>Firma pendiente de Configuración</span> }</div><strong>{{ documentoActual.empresa?.nombreFirmante || 'Firma Autorizada' }}</strong><small>{{ documentoActual.empresa?.cargoFirmante || 'Cargo pendiente' }}</small></div>
+              <div><h3>FIRMA DEL CLIENTE</h3><div class="signature-space"><span>Firma pendiente de captura</span></div><strong>Firma del Cliente</strong></div>
+            </section>
+          }
+        </footer>
+      }
+    </article>
+  } @else if (!cargando()) {
+    <section class="unavailable-document no-print"><div class="empty-document-icon">▤</div><h2>{{ tipoSolicitado() === 'PROFORMA' ? 'Proforma no disponible' : 'Cotización no disponible' }}</h2><p>{{ errorCarga() || 'No se encontró información para este documento.' }}</p><a routerLink="/cotizaciones">Regresar al listado</a></section>
+  }
+</main>

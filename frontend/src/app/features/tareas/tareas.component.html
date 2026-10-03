@@ -1,0 +1,458 @@
+<div class="tasks-page">
+  <!-- Encabezado compacto: contexto del tablero y resumen de estados en una sola franja. -->
+  <header class="tasks-header">
+    <div>
+      <div class="tasks-title">
+        <span class="tasks-title-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M9 5H6.5A1.5 1.5 0 0 0 5 6.5v13A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 5H15"
+            />
+            <rect x="9" y="3" width="6" height="4" rx="1" />
+            <path d="m8.5 14 2.2 2.2 4.8-5" />
+          </svg>
+        </span>
+        <h1>Tareas</h1>
+      </div>
+      <p>Consulta y seguimiento de los trabajos técnicos programados.</p>
+    </div>
+    <div class="status-counters" aria-label="Resumen de tareas por estado">
+      <span class="scheduled"
+        ><i></i><strong>{{ statusCounts().Programada }}</strong> Programadas</span
+      >
+      <span class="in-progress"
+        ><i></i><strong>{{ statusCounts()['En Proceso'] }}</strong> En Proceso</span
+      >
+      <span class="completed"
+        ><i></i><strong>{{ statusCounts().Completada }}</strong> Completadas</span
+      >
+    </div>
+  </header>
+
+  <main class="tasks-content">
+    <!-- Los filtros afectan un único tablero que combina instalaciones y visitas técnicas. -->
+    <div class="tasks-toolbar">
+      <label class="tasks-search" for="task-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6" />
+          <path d="m15 15 5 5" />
+        </svg>
+        <input
+          id="task-search"
+          type="search"
+          placeholder="Buscar por cliente, técnico o fecha..."
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+        />
+      </label>
+      <label class="task-filter"
+        ><span>Tipo:</span
+        ><select
+          [value]="typeFilter()"
+          (change)="onTypeFilter($event)"
+          aria-label="Filtrar por tipo"
+        >
+          <option value="all">Todos</option>
+          <option value="Instalación">Instalación</option>
+          <option value="Visita Técnica">Visita Técnica</option>
+        </select></label
+      >
+      <label class="task-filter"
+        ><span>Proceso:</span
+        ><select
+          [value]="statusFilter()"
+          (change)="onStatusFilter($event)"
+          aria-label="Filtrar por proceso"
+        >
+          <option value="all">Todos</option>
+          <option value="Programada">Programada</option>
+          <option value="En Proceso">En Proceso</option>
+          <option value="Completada">Completada</option>
+        </select></label
+      >
+    </div>
+
+    @if (loadError()) {
+      <p role="alert">{{ loadError() }}</p>
+    }
+    @if (actionMessage()) {
+      <p class="task-success-message" role="status">{{ actionMessage() }}</p>
+    }
+
+    @if (!tasks().length) {
+      <section class="tasks-empty">
+        @if (isLoadingTasks()) {
+          <strong>Cargando tareas...</strong>
+          <p>Consultando las visitas técnicas programadas.</p>
+        } @else {
+          <strong>Aún no hay tareas disponibles</strong>
+          <p>El tablero mostrará aquí instalaciones y visitas técnicas programadas.</p>
+        }
+      </section>
+    } @else if (!taskGroups().length) {
+      <section class="tasks-empty">
+        <strong>No se encontraron tareas</strong>
+        <p>Prueba con otros filtros o términos de búsqueda.</p>
+      </section>
+    } @else {
+      <!-- Cada sección representa un día; el orden del componente garantiza HOY, MAÑANA y fechas posteriores. -->
+      <div class="task-groups">
+        @for (group of taskGroups(); track group.fecha) {
+          <section class="task-day">
+            <header class="day-heading">
+              <h2>{{ group.etiqueta }}</h2>
+              <span
+                >{{ group.tareas.length }}
+                {{ group.tareas.length === 1 ? 'tarea' : 'tareas' }}</span
+              >
+            </header>
+            <div class="day-tasks">
+              @for (task of group.tareas; track task.tipo + ':' + task.id) {
+                <!-- Una sola arquitectura adapta acciones y responsables según tipo, estado y bloqueo. -->
+                <article class="task-card" [class.task-card-locked]="task.bloqueada">
+                  <div class="task-card-heading">
+                    <span class="task-type">{{ task.tipo }}</span>
+                    <div class="task-state">
+                      @if (task.bloqueada) {
+                        <span
+                          class="task-lock"
+                          title="Tarea bloqueada"
+                          aria-label="Tarea bloqueada"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="5" y="10" width="14" height="10" rx="2" />
+                            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                          </svg>
+                        </span>
+                      }
+                      <span
+                        class="task-status"
+                        [class.in-progress]="task.estado === 'En Proceso'"
+                        [class.completed]="task.estado === 'Completada'"
+                        >{{ task.estado }}</span
+                      >
+                    </div>
+                  </div>
+                  <div class="task-card-details">
+                    <div class="task-time">
+                      <span>Hora</span><strong>{{ task.hora }}</strong>
+                    </div>
+                    <div>
+                      <span>Cliente</span><strong>{{ task.cliente }}</strong>
+                    </div>
+                    <div>
+                      <span>Tipo de instalación</span><strong>{{ task.tipoInstalacion }}</strong>
+                    </div>
+                    <div>
+                      <span>{{ technicianLabel(task) }}</span
+                      ><strong>{{ technicianDisplay(task) }}</strong>
+                    </div>
+                  </div>
+                  @if (task.tipo === 'Visita Técnica') {
+                    <section class="task-location" aria-label="Ubicación de la visita">
+                      @if (task.id_ubicacion === null) {
+                        <div class="location-status missing">
+                          <strong>Ubicación no registrada</strong>
+                          <span
+                            >La propiedad se registrará con los datos confirmados en campo.</span
+                          >
+                        </div>
+                        @if (task.puedeRealizarAcciones) {
+                          <button type="button" (click)="openLocationRegistration(task)">
+                            Registrar ubicación
+                          </button>
+                        }
+                      } @else {
+                        <div class="location-status registered">
+                          <strong
+                            >Ubicación registrada · Propiedad {{ task.numeroPropiedad }}</strong
+                          >
+                          @if (task.direccionPropiedad?.trim(); as address) {
+                            <span>{{ address }}</span>
+                          }
+                          @if (task.referenciaPropiedad?.trim(); as reference) {
+                            <small>{{ reference }}</small>
+                          }
+                        </div>
+                        @if (facadeUrl(task.fotoFachada); as facade) {
+                          <img [src]="facade" alt="Fachada de la propiedad" />
+                        }
+                        @if (hasGeographicCoordinates(task)) {
+                          <div class="location-actions">
+                            <button type="button" (click)="openRegisteredLocationMap(task)">
+                              Ver en mapa
+                            </button>
+                            <button
+                              type="button"
+                              data-action="directions"
+                              (click)="prepareDirections(task)"
+                            >
+                              📍 Cómo llegar
+                            </button>
+                          </div>
+                        }
+                      }
+                    </section>
+                  } @else {
+                    <section class="task-location" aria-label="Ubicación de la instalación">
+                      @if (task.id_ubicacion === null) {
+                        <div class="location-status missing">
+                          <strong>Inconsistencia de ubicación</strong>
+                          <span>La instalación no tiene una propiedad vinculada.</span>
+                        </div>
+                      } @else {
+                        <div class="location-status registered">
+                          <strong
+                            >Ubicación registrada · Propiedad {{ task.numeroPropiedad }}</strong
+                          >
+                          @if (task.direccionPropiedad?.trim(); as address) {
+                            <span>{{ address }}</span>
+                          }
+                          @if (task.referenciaPropiedad?.trim(); as reference) {
+                            <small>{{ reference }}</small>
+                          }
+                        </div>
+                        @if (facadeUrl(task.fotoFachada); as facade) {
+                          <img [src]="facade" alt="Fachada de la propiedad" />
+                        }
+                        @if (hasGeographicCoordinates(task)) {
+                          <button
+                            type="button"
+                            data-action="directions"
+                            (click)="prepareDirections(task)"
+                          >
+                            📍 Cómo llegar
+                          </button>
+                        }
+                      }
+                    </section>
+                  }
+                  <!-- Ver siempre representa los datos originales; las demás acciones dependen del flujo. -->
+                  <div class="task-actions">
+                    <div class="task-actions-secondary">
+                      <button
+                        type="button"
+                        [disabled]="task.tipo === 'Visita Técnica' && !task.puedeVer"
+                        (click)="openVisitDetails(task)"
+                      >
+                        Ver
+                      </button>
+                    </div>
+
+                    @if (task.tipo === 'Visita Técnica') {
+                      @if (task.puedeRealizarAcciones) {
+                        @if (task.estado === 'Programada') {
+                          <button
+                            class="task-primary-action"
+                            type="button"
+                            (click)="openVisitEvaluation(task)"
+                          >
+                            Realizar evaluación
+                          </button>
+                        } @else if (task.estado === 'En Proceso') {
+                          <button
+                            class="task-primary-action"
+                            type="button"
+                            (click)="openVisitEvaluation(task)"
+                          >
+                            Continuar evaluación
+                          </button>
+                        }
+                      } @else if (!task.esResponsable) {
+                        <span class="task-locked-message">Acciones técnicas bloqueadas</span>
+                      }
+                    } @else if (!task.bloqueada) {
+                      @if (task.estado === 'Programada') {
+                        <button
+                          class="task-primary-action"
+                          type="button"
+                          (click)="openStartInstallation(task)"
+                        >
+                          Iniciar
+                        </button>
+                      } @else if (task.estado === 'En Proceso') {
+                        <button
+                          class="task-primary-action"
+                          type="button"
+                          (click)="openCompleteInstallation(task)"
+                        >
+                          Completar instalación
+                        </button>
+                      }
+                    } @else if (task.tipo === 'Instalación') {
+                      <span class="task-locked-message">Acciones técnicas bloqueadas</span>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+@if (visitForLocation(); as visit) {
+  <div class="location-modal-backdrop" role="presentation" (click)="closeLocationRegistration()">
+    <section
+      class="location-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="location-form-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <div>
+          <span>PRIMERA VISITA</span>
+          <h2 id="location-form-title">Registrar propiedad</h2>
+          <p>{{ visit.cliente }}</p>
+        </div>
+        <button type="button" aria-label="Cerrar" (click)="closeLocationRegistration()">×</button>
+      </header>
+      <form id="first-location-form" class="location-form" (submit)="submitLocation($event)">
+        <label class="location-address">
+          <span>Dirección *</span>
+          <input
+            type="text"
+            maxlength="500"
+            [value]="locationAddress()"
+            (input)="onLocationTextChange('direccion', $event)"
+            required
+          />
+        </label>
+        <div class="geolocation-field">
+          <span>Coordenadas</span>
+          <button type="button" [disabled]="isCapturingLocation()" (click)="useCurrentLocation()">
+            {{ isCapturingLocation() ? 'Obteniendo ubicación...' : 'Usar mi ubicación' }}
+          </button>
+          <button type="button" [disabled]="isCapturingLocation()" (click)="selectLocationOnMap()">
+            Seleccionar en mapa
+          </button>
+          @if (geolocationMessage()) {
+            <small class="geolocation-success">✓ {{ geolocationMessage() }}</small>
+          }
+          @if (geolocationError()) {
+            <small class="geolocation-error" role="alert">{{ geolocationError() }}</small>
+          }
+        </div>
+        <label>
+          <span>Referencia</span>
+          <input
+            type="text"
+            maxlength="500"
+            [value]="locationReference()"
+            (input)="onLocationTextChange('referencia', $event)"
+          />
+        </label>
+        <label>
+          <span>Observaciones</span>
+          <textarea
+            [value]="locationObservations()"
+            (input)="onLocationTextChange('observaciones', $event)"
+          ></textarea>
+        </label>
+        <div class="facade-field">
+          <span>Foto de fachada</span>
+          <input
+            #facadeInput
+            id="facade-photo"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            (change)="onFacadePhotoChange($event)"
+          />
+          <label for="facade-photo" class="facade-selector">
+            @if (facadePreviewUrl(); as preview) {
+              <img [src]="preview" alt="Vista previa de la fachada" />
+            } @else {
+              <span>Seleccionar fotografía</span>
+              <small>JPG, PNG o WEBP · máximo 5 MB</small>
+            }
+          </label>
+        </div>
+        @if (locationFormError()) {
+          <p class="location-form-error" role="alert">{{ locationFormError() }}</p>
+        }
+      </form>
+      <footer>
+        <button type="button" [disabled]="isSavingLocation()" (click)="closeLocationRegistration()">
+          Cancelar
+        </button>
+        <button
+          class="save-location"
+          type="submit"
+          form="first-location-form"
+          [disabled]="isSavingLocation()"
+        >
+          {{ isSavingLocation() ? 'Guardando...' : 'Guardar propiedad' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (propertyMapMode(); as mapMode) {
+  <app-property-map
+    [mode]="mapMode"
+    [initialCoordinates]="propertyMapCoordinates()"
+    [propertyNumber]="propertyMapTask()?.numeroPropiedad ?? null"
+    [address]="propertyMapTask()?.direccionPropiedad ?? null"
+    [reference]="propertyMapTask()?.referenciaPropiedad ?? null"
+    (confirmed)="confirmMapCoordinates($event)"
+    (closed)="closePropertyMap()"
+  />
+}
+
+<!-- Confirmación previa: evita iniciar por accidente y no realiza llamadas a una API inexistente. -->
+@if (installationToStart(); as installation) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeStartInstallation()">
+    <section
+      class="start-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="start-installation-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <span>INSTALACIÓN</span>
+        <h2 id="start-installation-title">Inicio no disponible</h2>
+      </header>
+      <dl>
+        <div>
+          <dt>Cliente:</dt>
+          <dd>{{ installation.cliente }}</dd>
+        </div>
+        <div>
+          <dt>Hora programada:</dt>
+          <dd>{{ installation.hora }}</dd>
+        </div>
+      </dl>
+      <p class="start-warning">
+        Tareas muestra el estado registrado, pero no modifica instalaciones en esta fase.
+      </p>
+      <footer>
+        <button class="modal-cancel" type="button" (click)="closeStartInstallation()">
+          Cancelar
+        </button>
+        <button class="modal-confirm" type="button" (click)="confirmStartInstallation()">
+          Entendido
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+<!-- Un único componente adapta edición o lectura según el estado de la visita seleccionada. -->
+@if (visitForEvaluation(); as visit) {
+  <app-evaluacion-visita
+    [task]="visit"
+    (closed)="closeVisitEvaluation()"
+    (progressed)="onVisitEvaluationProgressed($event)"
+    (saved)="onVisitEvaluationSaved($event)"
+  />
+}
+
+<!-- El cierre técnico vive en Tareas y no modifica la evaluación de visitas. -->
+@if (installationToComplete(); as installation) {
+  <app-completar-instalacion [task]="installation" (closed)="closeCompleteInstallation()" />
+}

@@ -1,0 +1,617 @@
+<!-- ========================================
+     GESTION DE EMPLEADOS
+========================================= -->
+<div class="employees-page">
+  <!-- ========================================
+       ENCABEZADO
+  ========================================= -->
+  <header class="employees-header">
+    <div class="employees-heading">
+      <div class="employees-heading-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <circle cx="9" cy="8" r="3.5" />
+          <path d="M2.8 19.5c.5-3.8 2.7-6.1 6.2-6.1s5.7 2.3 6.2 6.1" />
+          <path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2M16 14c2.8.2 4.7 2 5.2 5.5" />
+        </svg>
+      </div>
+      <div>
+        <h1>Empleados</h1>
+        <p>Administre la información del personal de Multiservicios Tale.</p>
+      </div>
+    </div>
+
+    <button class="employee-primary-button" type="button" (click)="openCreate()">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      <span>Nuevo empleado</span>
+    </button>
+  </header>
+
+  @if (errorMessage() && !isModalOpen() && !isEditModalOpen() && !deleteConfirmation()) {
+    <div class="employee-page-error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  <section class="employees-content">
+    <!-- BUSQUEDA, FILTROS Y CONTADOR -->
+    <div class="employees-toolbar">
+      <label class="employee-search" for="employee-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="10.8" cy="10.8" r="6.3" />
+          <path d="m16 16 4.5 4.5" />
+        </svg>
+        <input
+          id="employee-search"
+          type="search"
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+          placeholder="Buscar código, nombre o teléfono..."
+          autocomplete="off"
+        />
+      </label>
+
+      <div class="employee-filter">
+        <select
+          aria-label="Filtrar empleados por puesto"
+          [value]="positionFilter()"
+          (change)="onPositionFilterChange($event)"
+        >
+          <option value="all">Todos</option>
+          @for (position of puestos(); track position.id_puesto) {
+            <option [value]="position.nombre">{{ position.nombre }}</option>
+          }
+        </select>
+        <span class="filter-chevron">⌄</span>
+      </div>
+
+      <div class="employee-filter">
+        <select
+          aria-label="Filtrar empleados por estado"
+          [value]="statusFilter()"
+          (change)="onStatusFilterChange($event)"
+        >
+          <option value="all">Todos</option>
+          <option value="active">Activo</option>
+          <option value="inactive">Inactivo</option>
+        </select>
+        <span class="filter-chevron">⌄</span>
+      </div>
+
+      <span class="employee-count">{{ filteredEmployees().length }} empleado(s)</span>
+    </div>
+
+    <!-- TABLA PRINCIPAL -->
+    <div class="employees-table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>CÓDIGO</th>
+            <th>NOMBRE COMPLETO</th>
+            <th>TELÉFONO</th>
+            <th>PUESTO</th>
+            <th>FECHA INGRESO</th>
+            <th>ESTADO</th>
+            <th>ACCIONES</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (filteredEmployees().length) {
+            @for (employee of filteredEmployees(); track employee.codigo) {
+              <tr>
+                <td class="employee-code">{{ employee.codigo }}</td>
+                <td>
+                  <strong>{{ employee.nombres }} {{ employee.apellidos }}</strong>
+                  @if (employee.correo) {
+                    <small>{{ employee.correo }}</small>
+                  }
+                </td>
+                <td>{{ employee.telefono_principal }}</td>
+                <td>
+                  <span class="position-pill">{{ employee.puesto }}</span>
+                </td>
+                <td>{{ employee.fecha_ingreso }}</td>
+                <td>
+                  <span
+                    class="employee-status-pill"
+                    [class.status-inactive]="employee.estado === 'Inactivo'"
+                  >
+                    {{ employee.estado }}
+                  </span>
+                </td>
+                <td>
+                  <div class="employee-actions" aria-label="Acciones de empleado">
+                    <button
+                      class="employee-action view"
+                      type="button"
+                      aria-label="Ver empleado"
+                      (click)="openDetails(employee.detail)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path
+                          d="M2.8 12s3.2-5.2 9.2-5.2 9.2 5.2 9.2 5.2-3.2 5.2-9.2 5.2S2.8 12 2.8 12Z"
+                        />
+                        <circle cx="12" cy="12" r="2.2" />
+                      </svg>
+                      <span>Ver</span>
+                    </button>
+                    <button
+                      class="employee-action edit"
+                      type="button"
+                      aria-label="Editar empleado"
+                      [disabled]="isLoadingEmployee() === employee.detail.id_empleado"
+                      (click)="openEdit(employee.detail)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="m4 16.5-.8 4.3 4.3-.8L19 8.5 15.5 5zM14 6.5l3.5 3.5" />
+                      </svg>
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      class="employee-action delete"
+                      type="button"
+                      aria-label="Eliminar empleado"
+                      [disabled]="
+                        employee.estado === 'Inactivo' ||
+                        isDeleting() === employee.detail.id_empleado
+                      "
+                      (click)="requestDelete(employee.detail)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13" />
+                      </svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          } @else {
+            <tr>
+              <td class="employees-empty" colspan="7">
+                <strong>Aún no hay empleados registrados</strong>
+                <span>Los integrantes del equipo aparecerán aquí.</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- ========================================
+     MODAL NUEVO / EDITAR EMPLEADO
+========================================= -->
+@if (isModalOpen() || isEditModalOpen()) {
+  <div class="employee-modal-backdrop" role="presentation" (click)="closeModal()">
+    <section
+      class="employee-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="employee-form-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="employee-modal-header">
+        <div>
+          <p>CONFIGURACIÓN / EMPLEADOS</p>
+          <h2 id="employee-form-title">
+            {{ isEditModalOpen() ? 'Editar empleado' : 'Nuevo empleado' }}
+          </h2>
+          @if (editingEmployee(); as employee) {
+            <span class="employee-modal-subtitle">
+              {{ employee.codigo }} — {{ employee.nombres }} {{ employee.apellidos }}
+            </span>
+          }
+        </div>
+        <button
+          class="employee-close-button"
+          type="button"
+          aria-label="Cerrar modal"
+          (click)="closeModal()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+
+      <p class="employee-modal-description">
+        {{
+          isEditModalOpen()
+            ? 'Actualice la información del integrante del equipo.'
+            : 'Registre la información del nuevo integrante del equipo.'
+        }}
+      </p>
+
+      @if (errorMessage()) {
+        <div class="employee-inline-error" role="alert">{{ errorMessage() }}</div>
+      }
+
+      <form class="employee-form" [formGroup]="form" (submit)="$event.preventDefault()">
+        <div class="employee-form-field">
+          <label for="employee-code">Código</label>
+          <input id="employee-code" type="text" formControlName="codigo" readonly />
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-names">Nombres *</label>
+          <input
+            id="employee-names"
+            type="text"
+            formControlName="nombres"
+            placeholder="Juan Pablo"
+          />
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-surnames">Apellidos *</label>
+          <input
+            id="employee-surnames"
+            type="text"
+            formControlName="apellidos"
+            placeholder="Tzul Xitamul"
+          />
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-position">Puesto *</label>
+          <select id="employee-position" formControlName="id_puesto">
+            <option [ngValue]="0">Seleccione puesto</option>
+            @for (position of puestos(); track position.id_puesto) {
+              <option [ngValue]="position.id_puesto">{{ position.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="employee-form-field">
+          <label for="employee-document-type">Tipo documento *</label>
+          <select id="employee-document-type" formControlName="tipo_documento">
+            <option value="DPI">DPI</option>
+          </select>
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-document-number">Número documento *</label>
+          <input
+            id="employee-document-number"
+            type="text"
+            formControlName="numero_documento"
+            placeholder="1234567890101"
+          />
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-main-phone">Teléfono principal *</label>
+          <input
+            id="employee-main-phone"
+            type="tel"
+            formControlName="telefono_principal"
+            placeholder="5512-3456"
+          />
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-alt-phone">Teléfono alternativo</label>
+          <input
+            id="employee-alt-phone"
+            type="tel"
+            formControlName="telefono_alternativo"
+            placeholder="7760-0011"
+          />
+        </div>
+
+        <div class="employee-form-field">
+          <label for="employee-email">Correo electrónico</label>
+          <input
+            id="employee-email"
+            type="email"
+            formControlName="correo"
+            placeholder="empleado@tale.gt"
+          />
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-department">Departamento *</label>
+          <select
+            id="employee-department"
+            formControlName="id_departamento"
+            (change)="onDepartmentChange()"
+          >
+            <option [ngValue]="0">Seleccione departamento</option>
+            @for (department of departamentos(); track department.id_departamento) {
+              <option [ngValue]="department.id_departamento">{{ department.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-municipality">Municipio *</label>
+          <select id="employee-municipality" formControlName="id_municipio">
+            <option [ngValue]="0">
+              {{ isLoadingMunicipios() ? 'Cargando municipios...' : 'Seleccione municipio' }}
+            </option>
+            @for (municipality of municipios(); track municipality.id_municipio) {
+              <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-start-date">Fecha de ingreso *</label>
+          <input id="employee-start-date" type="date" formControlName="fecha_ingreso" />
+        </div>
+
+        <div class="employee-form-field employee-field-wide employee-address-field">
+          <label for="employee-address">Dirección *</label>
+          <input
+            id="employee-address"
+            type="text"
+            formControlName="direccion"
+            placeholder="Calle, zona, referencia"
+          />
+        </div>
+        <div class="employee-form-field">
+          <label for="employee-status">Estado</label>
+          <select id="employee-status" formControlName="estado">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </div>
+
+        <div class="employee-form-field employee-field-wide employee-observations-field">
+          <label for="employee-observations">Observaciones</label>
+          <textarea
+            id="employee-observations"
+            formControlName="observaciones"
+            placeholder="Opcional"
+          ></textarea>
+        </div>
+        <div class="employee-form-field employee-photo-field">
+          <label for="employee-photo">Foto de perfil</label>
+          <input
+            #profilePhotoInput
+            id="employee-photo"
+            class="employee-file-input"
+            type="file"
+            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+            (change)="onProfilePhotoSelected($event)"
+          />
+          @if (profilePhotoUrl(); as photoUrl) {
+            <div class="employee-photo-preview">
+              <img [src]="photoUrl" alt="Vista previa de foto de perfil" />
+              <div class="employee-photo-actions">
+                <button
+                  class="employee-change-photo"
+                  type="button"
+                  (click)="profilePhotoInput.click()"
+                >
+                  Cambiar foto
+                </button>
+                <button class="employee-remove-photo" type="button" (click)="removeProfilePhoto()">
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          } @else {
+            <label class="employee-photo-dropzone" for="employee-photo">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="8.5" cy="9" r="1.5" />
+                <path d="m3 17 4.5-4.5 3.5 3.5 2.5-2.5L21 18" />
+              </svg>
+              <span class="employee-photo-primary-text">Adjuntar foto de perfil</span>
+              <span class="employee-photo-secondary-text">JPG, JPEG o PNG</span>
+            </label>
+          }
+        </div>
+      </form>
+
+      <div class="employee-modal-actions">
+        <button class="employee-secondary-button" type="button" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button
+          class="employee-primary-button"
+          type="button"
+          [disabled]="isSaving()"
+          (click)="saveEmployee()"
+        >
+          {{ isEditModalOpen() ? 'Guardar cambios' : 'Guardar empleado' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (notice(); as currentNotice) {
+  <div class="employee-success-backdrop" role="presentation">
+    <section
+      class="employee-confirmation-modal success-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="employee-success-title"
+    >
+      <div class="employee-confirmation-icon success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="m5 12 4 4L19 6" />
+        </svg>
+      </div>
+
+      <h2 id="employee-success-title">{{ currentNotice.title }}</h2>
+
+      <p>{{ currentNotice.message }}</p>
+
+      <button class="employee-primary-button" type="button" (click)="clearNotice()">
+        Continuar
+      </button>
+    </section>
+  </div>
+}
+
+@if (deleteConfirmation(); as employeeToDelete) {
+  <div class="employee-success-backdrop" role="presentation" (click)="cancelDelete()">
+    <section
+      class="employee-confirmation-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="employee-delete-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="employee-confirmation-icon danger-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13" />
+        </svg>
+      </div>
+
+      <h2 id="employee-delete-title">¿Eliminar empleado?</h2>
+
+      <p>
+        El empleado
+        <strong
+          >{{ employeeToDelete.codigo }} — {{ employeeToDelete.nombres }}
+          {{ employeeToDelete.apellidos }}</strong
+        >
+        será desactivado. Su información se conservará en el sistema.
+      </p>
+
+      @if (errorMessage()) {
+        <div class="employee-inline-error" role="alert">{{ errorMessage() }}</div>
+      }
+
+      <div class="employee-modal-actions">
+        <button
+          class="employee-secondary-button"
+          type="button"
+          [disabled]="isDeleting()"
+          (click)="cancelDelete()"
+        >
+          Cancelar
+        </button>
+        <button
+          class="employee-danger-button"
+          type="button"
+          [disabled]="isDeleting() === employeeToDelete.id_empleado"
+          (click)="confirmDelete()"
+        >
+          {{ isDeleting() === employeeToDelete.id_empleado ? 'Eliminando...' : 'Eliminar' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (selectedEmployee(); as employee) {
+  <div class="employee-modal-backdrop employee-detail-backdrop" role="presentation">
+    <section
+      class="employee-modal employee-detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="employee-detail-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="employee-modal-header">
+        <div>
+          <p>EMPLEADOS / DETALLE</p>
+          <h2 id="employee-detail-title">Detalle del empleado</h2>
+          <span class="employee-modal-subtitle">
+            {{ employee.codigo }} — {{ employee.nombres }} {{ employee.apellidos }}
+          </span>
+        </div>
+        <button
+          class="employee-close-button"
+          type="button"
+          aria-label="Cerrar detalle"
+          (click)="closeDetails()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+
+      <section class="employee-detail-section">
+        <h3>INFORMACIÓN PERSONAL</h3>
+        <div class="employee-detail-grid employee-personal-grid">
+          <div class="employee-detail-item">
+            <span>Código</span>
+            <strong>{{ employee.codigo }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Nombres</span>
+            <strong>{{ employee.nombres }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Apellidos</span>
+            <strong>{{ employee.apellidos }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>{{ employee.tipo_documento }}</span>
+            <strong>{{ employee.numero_documento }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Teléfono principal</span>
+            <strong>{{ employee.telefono_principal }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Teléfono alternativo</span>
+            <strong>{{ employee.telefono_alternativo || 'No registrado' }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Correo</span>
+            <strong>{{ employee.correo || 'No registrado' }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Dirección</span>
+            <strong>{{ employee.direccion }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Departamento</span>
+            <strong>{{ employee.nombre_departamento }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Municipio</span>
+            <strong>{{ employee.nombre_municipio }}</strong>
+          </div>
+          <div class="employee-detail-photo-item">
+            <span>Foto de perfil</span>
+            <div class="employee-detail-photo-frame">
+              @if (employee.foto_perfil) {
+                <img
+                  [src]="photoUrl(employee.foto_perfil)"
+                  alt="Foto de perfil de {{ employee.nombres }} {{ employee.apellidos }}"
+                />
+              } @else {
+                <div class="employee-detail-photo-empty">Sin foto de perfil</div>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="employee-detail-section employee-labor-section">
+        <h3>INFORMACIÓN LABORAL</h3>
+        <div class="employee-detail-grid employee-labor-grid">
+          <div class="employee-detail-item">
+            <span>Puesto</span>
+            <strong>{{ employee.nombre_puesto }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Fecha de ingreso</span>
+            <strong>{{ employee.fecha_ingreso }}</strong>
+          </div>
+          <div class="employee-detail-item">
+            <span>Estado</span>
+            <strong
+              class="employee-detail-status"
+              [class.employee-detail-status-inactive]="employee.estado === 'Inactivo'"
+            >
+              {{ employee.estado }}
+            </strong>
+          </div>
+        </div>
+      </section>
+
+      <div class="employee-detail-observations">
+        <span>Observaciones</span>
+        <p>{{ employee.observaciones || 'Sin observaciones' }}</p>
+      </div>
+
+      <div class="employee-detail-actions">
+        <button class="employee-secondary-button" type="button" (click)="closeDetails()">
+          Cerrar
+        </button>
+      </div>
+    </section>
+  </div>
+}

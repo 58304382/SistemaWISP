@@ -3,6 +3,7 @@
 // ==========================================
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { catchError, map, of } from 'rxjs';
 
 import { AuthService } from '../services/auth.service';
 
@@ -13,14 +14,24 @@ export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  if (auth.hasValidSession()) {
-    return true;
+  if (!auth.hasValidSession()) {
+    auth.clearSession();
+    return router.createUrlTree(['/login'], {
+      queryParams: { returnUrl: state.url },
+    });
   }
 
-  auth.clearSession();
-  return router.createUrlTree(['/login'], {
-    queryParams: { returnUrl: state.url },
-  });
+  return auth.loadCurrentUser().pipe(
+    map(() => true),
+    catchError(() => {
+      auth.clearSession();
+      return of(
+        router.createUrlTree(['/login'], {
+          queryParams: { returnUrl: state.url },
+        }),
+      );
+    }),
+  );
 };
 
 // ==========================================
@@ -28,8 +39,18 @@ export const authGuard: CanActivateFn = (_route, state) => {
 // ==========================================
 export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
-  // El token puede tener una expiración válida en el navegador y aun así haber
-  // sido revocado o firmado con otra clave. Solo una sesión ya cargada evita
-  // volver a mostrar el login; los tokens heredados se limpian al autenticarse.
-  return auth.currentUser() ? inject(Router).createUrlTree(['/usuarios']) : true;
+  const router = inject(Router);
+
+  if (!auth.hasValidSession()) {
+    auth.clearSession();
+    return true;
+  }
+
+  return auth.loadCurrentUser().pipe(
+    map(() => router.createUrlTree(['/inicio'])),
+    catchError(() => {
+      auth.clearSession();
+      return of(true);
+    }),
+  );
 };

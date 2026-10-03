@@ -1,0 +1,87 @@
+<main class="quotes-page">
+  <header class="page-heading">
+    <p class="eyebrow">GESTIÓN COMERCIAL</p>
+    <h1>Cotizaciones y Proformas</h1>
+    <p>Gestione cotizaciones y genere proformas para los clientes.</p>
+  </header>
+
+  <section class="quotes-content" aria-labelledby="quotes-list-title">
+    <h2 id="quotes-list-title" class="visually-hidden">Listado de cotizaciones</h2>
+
+    <!-- Buscador, estado y acción principal permanecen en una sola fila en escritorio. -->
+    <div class="quotes-toolbar">
+      <label class="search-control" for="quote-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg>
+        <input id="quote-search" type="search" placeholder="Buscar por cliente o número de cotización..." [value]="busqueda()" (input)="actualizarBusqueda($event)" />
+      </label>
+      <label class="status-control">
+        <span>Estado:</span>
+        <select aria-label="Filtrar por estado" [value]="filtroEstado()" (change)="actualizarEstado($event)">
+          <option value="TODOS">Todos</option>
+          @for (estado of estados; track estado) { <option [value]="estado">{{ estado }}</option> }
+        </select>
+      </label>
+      <a class="primary-button" routerLink="/cotizaciones/nueva">
+        <span aria-hidden="true">+</span> Nueva Cotización
+      </a>
+    </div>
+
+    @if (cargando()) { <div class="scope-notice" role="status">Cargando cotizaciones...</div> }
+    @if (errorCarga()) { <p class="action-message" role="alert">{{ errorCarga() }} <button type="button" (click)="cargarCotizaciones()">Reintentar</button></p> }
+    @if (mensajeAccion()) { <p class="action-message" role="alert">{{ mensajeAccion() }}</p> }
+
+    <!-- Tabla principal con las columnas exactas definidas para el módulo. -->
+    <div class="table-card">
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>NO. COTIZACIÓN</th><th>CLIENTE</th><th>ORIGEN</th><th>FECHA</th><th>TOTAL</th><th>ESTADO</th><th>PROFORMA</th><th>ACCIONES</th></tr></thead>
+          <tbody>
+            @for (cotizacion of cotizacionesFiltradas(); track cotizacion.id_cotizacion) {
+              <tr>
+                <td><strong>{{ cotizacion.numero_cotizacion }}</strong></td>
+                <td>{{ cotizacion.cliente.nombres }} {{ cotizacion.cliente.apellidos }}</td>
+                <td>{{ cotizacion.origen }}</td>
+                <td>{{ cotizacion.fecha | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ total(cotizacion) | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</td>
+                <td><span class="status-pill" [attr.data-status]="cotizacion.estado">{{ cotizacion.estado }}</span></td>
+                <td>{{ cotizacion.tiene_proforma ? 'Disponible' : '—' }}</td>
+                <td>
+                  <div class="row-actions">
+                    @for (accion of acciones(cotizacion); track accion) {
+                      @if (accion === 'VER') {
+                        <a class="action-button" [routerLink]="['/cotizaciones', cotizacion.id_cotizacion, 'documento']"><span aria-hidden="true">◉</span> Ver</a>
+                      } @else if (accion === 'EDITAR') {
+                        <a class="action-button" [routerLink]="['/cotizaciones', cotizacion.id_cotizacion, 'editar']" [queryParams]="{ origen: cotizacion.origen }"><span aria-hidden="true">✎</span> Editar</a>
+                      } @else if (accion === 'GENERAR_COTIZACION') {
+                        <button class="action-button" type="button" [disabled]="estaOperando(cotizacion, accion)" (click)="generarCotizacion(cotizacion)"><span aria-hidden="true">›</span> {{ estaOperando(cotizacion, accion) ? 'Generando...' : 'Generar Cotización' }}</button>
+                      } @else if (accion === 'VER_PROFORMA') {
+                        <a class="action-button" [routerLink]="['/cotizaciones', cotizacion.id_cotizacion, 'proforma']"><span aria-hidden="true">◉</span> Ver Proforma</a>
+                      } @else {
+                        <button class="action-button" type="button" [disabled]="estaOperando(cotizacion, accion)" (click)="solicitarConfirmacion(cotizacion, accion)"><span aria-hidden="true">›</span> {{ etiquetaAccion(accion) }}</button>
+                      }
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              @if (!cargando() && !errorCarga()) { <tr><td colspan="8" class="empty-state"><strong>No hay cotizaciones registradas</strong><span>Cree una nueva cotización para comenzar.</span></td></tr> }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+@if (confirmacionAccion(); as confirmacion) {
+  <div class="confirmation-backdrop" role="presentation" (click)="cancelarConfirmacion()">
+    <section class="confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="quote-confirmation-title" (click)="$event.stopPropagation()">
+      <h2 id="quote-confirmation-title">Confirmar acción</h2>
+      <p>{{ textoConfirmacion(confirmacion) }}</p>
+      <footer>
+        <button class="action-button" type="button" [disabled]="operacionActiva() !== null" (click)="cancelarConfirmacion()">Cancelar</button>
+        <button class="confirmation-button" type="button" [disabled]="operacionActiva() !== null" (click)="confirmarAccion()">{{ operacionActiva() ? 'Procesando...' : 'Confirmar' }}</button>
+      </footer>
+    </section>
+  </div>
+}

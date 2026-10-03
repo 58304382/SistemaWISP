@@ -17,6 +17,7 @@ import {
   ValidatorFn,
   Validators,
 } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 
@@ -24,6 +25,8 @@ import { getApiErrorMessage } from '../../core/utils/api-error';
 import { AuthService } from '../../core/services/auth.service';
 import { UsuariosService } from '../../core/services/usuarios.service';
 import {
+  EmpleadoDisponible,
+  EmpleadoUsuario,
   Modulo,
   ROLES,
   Usuario,
@@ -74,6 +77,10 @@ export class UsuariosComponent implements OnInit {
   readonly searchTerm = signal('');
   readonly activeFilter = signal<UserFilter>('all');
   readonly modules = signal<Modulo[]>([]);
+  readonly availableEmployees = signal<EmpleadoDisponible[]>([]);
+  readonly selectedEmployee = signal<EmpleadoDisponible | null>(null);
+  readonly editingEmployee = signal<EmpleadoUsuario | null>(null);
+  readonly employeeSearch = signal('');
   readonly roles = ROLES;
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
@@ -87,6 +94,8 @@ export class UsuariosComponent implements OnInit {
   readonly submitted = signal(false);
   readonly showPassword = signal(false);
   readonly showConfirmPassword = signal(false);
+  readonly isLoadingAvailableEmployees = signal(false);
+  readonly availableEmployeesError = signal('');
 
   // ==========================================
   // BUSQUEDA Y FILTROS
@@ -123,11 +132,30 @@ export class UsuariosComponent implements OnInit {
     });
   });
 
+  readonly filteredAvailableEmployees = computed(() => {
+    const query = this.normalize(this.employeeSearch());
+    if (!query) {
+      return this.availableEmployees();
+    }
+    return this.availableEmployees().filter((employee) =>
+      this.normalize(
+        [
+          employee.codigo,
+          employee.nombres,
+          employee.apellidos,
+          `${employee.nombres} ${employee.apellidos}`,
+          employee.nombre_puesto,
+        ].join(' '),
+      ).includes(query),
+    );
+  });
+
   // ==========================================
   // FORMULARIO DE USUARIO
   // ==========================================
   readonly form = this.formBuilder.nonNullable.group(
     {
+      id_empleado: [0],
       nombre: ['', [Validators.required, Validators.maxLength(150)]],
       apellido: ['', [Validators.required, Validators.maxLength(150)]],
       username: ['', [Validators.required, Validators.maxLength(100)]],
@@ -196,6 +224,7 @@ export class UsuariosComponent implements OnInit {
   openCreate(): void {
     this.editingId.set(null);
     this.form.reset({
+      id_empleado: 0,
       nombre: '',
       apellido: '',
       username: '',
@@ -205,9 +234,14 @@ export class UsuariosComponent implements OnInit {
       activo: true,
       modulo_ids: [],
     });
+    this.setIdentityValidators(true);
     this.setPasswordValidators(true);
     this.resetFormState();
+    this.selectedEmployee.set(null);
+    this.editingEmployee.set(null);
+    this.employeeSearch.set('');
     this.isModalOpen.set(true);
+    this.loadAvailableEmployees();
   }
 
   openEdit(user: Usuario): void {
@@ -220,6 +254,7 @@ export class UsuariosComponent implements OnInit {
         next: (currentUser) => {
           this.editingId.set(currentUser.id);
           this.form.reset({
+            id_empleado: 0,
             nombre: currentUser.nombre,
             apellido: currentUser.apellido,
             username: currentUser.username,
@@ -229,8 +264,11 @@ export class UsuariosComponent implements OnInit {
             activo: currentUser.activo,
             modulo_ids: currentUser.modulos?.map((module) => module.id) ?? [],
           });
+          this.setIdentityValidators(false);
           this.setPasswordValidators(false);
           this.resetFormState();
+          this.selectedEmployee.set(null);
+          this.editingEmployee.set(currentUser.empleado ?? null);
           this.isModalOpen.set(true);
         },
         error: (error: unknown) => {
@@ -246,6 +284,46 @@ export class UsuariosComponent implements OnInit {
     if (!this.isSaving()) {
       this.isModalOpen.set(false);
     }
+  }
+
+  loadAvailableEmployees(): void {
+    this.isLoadingAvailableEmployees.set(true);
+    this.availableEmployeesError.set('');
+    this.usuariosService
+      .getAvailableEmployees()
+      .pipe(finalize(() => this.isLoadingAvailableEmployees.set(false)))
+      .subscribe({
+        next: (employees) => this.availableEmployees.set(employees),
+        error: (error: unknown) => {
+          this.availableEmployees.set([]);
+          this.availableEmployeesError.set(
+            getApiErrorMessage(error, 'No fue posible cargar los empleados disponibles.'),
+          );
+        },
+      });
+  }
+
+  onEmployeeSearch(event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    this.employeeSearch.set(input.value);
+    if (this.selectedEmployee()) {
+      this.clearEmployeeSelection();
+    }
+  }
+
+  onEmployeeSelectionChange(): void {
+    const id = this.form.controls.id_empleado.value;
+    const employee = this.availableEmployees().find((item) => item.id_empleado === id) ?? null;
+    this.selectedEmployee.set(employee);
+    this.form.controls.id_empleado.markAsTouched();
+  }
+
+  clearEmployeeSelection(): void {
+    this.form.controls.id_empleado.setValue(0);
+    this.selectedEmployee.set(null);
   }
 
   onModuleChange(moduleId: number, event: Event): void {
@@ -295,8 +373,7 @@ export class UsuariosComponent implements OnInit {
     const request =
       id === null
         ? this.usuariosService.create({
-            nombre: raw.nombre.trim(),
-            apellido: raw.apellido.trim(),
+            id_empleado: raw.id_empleado,
             username: raw.username.trim(),
             password: raw.password,
             rol_id: raw.rol_id,
@@ -323,7 +400,17 @@ export class UsuariosComponent implements OnInit {
         });
       },
       error: (error: unknown) => {
-        this.errorMessage.set(getApiErrorMessage(error, 'No fue posible guardar el usuario.'));
+        const message = getApiErrorMessage(error, 'No fue posible guardar el usuario.');
+        this.errorMessage.set(message);
+        if (
+          id === null &&
+          error instanceof HttpErrorResponse &&
+          error.status === 409 &&
+          this.normalize(message).includes('empleado')
+        ) {
+          this.clearEmployeeSelection();
+          this.loadAvailableEmployees();
+        }
       },
     });
   }
@@ -401,6 +488,18 @@ export class UsuariosComponent implements OnInit {
     this.form.controls.password.updateValueAndValidity();
     this.form.controls.confirmPassword.updateValueAndValidity();
     this.form.updateValueAndValidity();
+  }
+
+  private setIdentityValidators(isCreate: boolean): void {
+    this.form.controls.id_empleado.setValidators(
+      isCreate ? [Validators.required, Validators.min(1)] : [],
+    );
+    const employeeNameValidators = isCreate ? [] : [Validators.required, Validators.maxLength(150)];
+    this.form.controls.nombre.setValidators(employeeNameValidators);
+    this.form.controls.apellido.setValidators(employeeNameValidators);
+    this.form.controls.id_empleado.updateValueAndValidity();
+    this.form.controls.nombre.updateValueAndValidity();
+    this.form.controls.apellido.updateValueAndValidity();
   }
 
   private resetFormState(): void {

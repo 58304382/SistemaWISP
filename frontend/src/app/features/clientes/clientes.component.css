@@ -1,0 +1,136 @@
+/* ==========================================
+   ESTRUCTURA DEL MODULO DE CLIENTES
+========================================== */
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.client-module-page {
+  min-height: 100%;
+  background: var(--paper);
+}
+
+/* ==========================================
+   ENCABEZADO
+========================================== */
+.client-module-header {
+  padding: 47px clamp(30px, 5vw, 76px) 38px;
+  text-align: center;
+  background: var(--paper);
+}
+
+.client-module-header h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 33px;
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+}
+
+.client-module-header p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ==========================================
+   CONTENEDOR DE OPCIONES
+========================================== */
+.client-options {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(28px, 4vw, 64px);
+  padding: 76px clamp(30px, 5vw, 76px) 60px;
+}
+
+.client-option {
+  display: flex;
+  flex: 0 1 220px;
+  flex-direction: column;
+  align-items: center;
+  width: 220px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+/* ==========================================
+   CIRCULOS DE NAVEGACION
+========================================== */
+.client-option-icon {
+  display: grid;
+  place-items: center;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  color: #fff;
+}
+
+/* ==========================================
+   SOMBRAS POR TIPO DE OPCION
+========================================== */
+.client-option-icon-blue {
+  background: linear-gradient(145deg, #2f9cff 0%, #2387f5 45%, #1260e9 100%);
+  box-shadow: 0 9px 24px rgba(18, 96, 233, 0.16);
+}
+
+.client-option-icon-orange {
+  background: linear-gradient(145deg, #ffb85d 0%, #f3943b 52%, #dc6e2c 100%);
+  box-shadow: 0 9px 24px rgba(220, 110, 44, 0.16);
+}
+
+.client-option-icon-green {
+  background: linear-gradient(145deg, #61ce98 0%, #39b77d 52%, #218b63 100%);
+  box-shadow: 0 9px 24px rgba(33, 139, 99, 0.16);
+}
+
+.client-option-icon svg {
+  width: 74px;
+  height: 74px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.client-option-label {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 58px;
+  margin-top: 19px;
+  color: var(--ink);
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+
+/* ==========================================
+   ADAPTACION PARA PANTALLAS PEQUENAS
+========================================== */
+@media (max-width: 900px) {
+  .client-options {
+    gap: 42px 28px;
+  }
+}
+
+@media (max-width: 550px) {
+  .client-module-header {
+    padding: 29px 21px 25px;
+  }
+
+  .client-options {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: start;
+    padding: 64px 21px 40px;
+  }
+
+  .client-option {
+    width: 190px;
+  }
+}

@@ -1,0 +1,538 @@
+<!-- ========================================
+     GESTIÓN DE CLIENTES
+========================================= -->
+
+<div class="clients-management-page">
+  <!-- ========================================
+       ENCABEZADO
+  ========================================= -->
+  <header class="figma-clients-header">
+    <div>
+      <h1>Gestión de Clientes</h1>
+
+      <p>
+        {{ clients().length }}
+        {{ clients().length === 1 ? 'cliente registrado' : 'clientes registrados' }}
+      </p>
+    </div>
+  </header>
+
+  <!-- ========================================
+       CONTENIDO
+  ========================================= -->
+  <section class="clients-management-content">
+    <!-- ERROR GENERAL -->
+    @if (errorMessage() && !isModalOpen() && !deleteConfirmation()) {
+      <div class="inline-error" role="alert">
+        <span>
+          {{ errorMessage() }}
+        </span>
+
+        <button type="button" (click)="loadClients()">Reintentar</button>
+      </div>
+    }
+
+    <!-- ========================================
+         BUSCADOR + FILTRO
+    ========================================= -->
+    <div class="figma-clients-toolbar">
+      <!-- BUSCADOR -->
+      <label class="figma-client-search" for="client-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="10.8" cy="10.8" r="6.3" />
+
+          <path d="m16 16 4.5 4.5" />
+        </svg>
+
+        <input
+          id="client-search"
+          type="search"
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+          placeholder="Buscar por nombre, DPI, teléfono..."
+          autocomplete="off"
+        />
+      </label>
+
+      <!-- FILTRO DE ESTADO -->
+      <div class="figma-status-filter">
+        <select
+          [value]="activeFilter()"
+          (change)="onFilterChange($event)"
+          aria-label="Filtrar clientes por estado"
+        >
+          <option value="all">Todos</option>
+          <option value="active">Activo</option>
+          <option value="inactive">Inactivo</option>
+        </select>
+
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m7 10 5 5 5-5" />
+        </svg>
+      </div>
+
+      <!-- BOTÓN DE CREACIÓN -->
+      <button class="figma-new-client" type="button" (click)="openCreate()">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+
+        <span>Nuevo Cliente</span>
+      </button>
+    </div>
+
+    <!-- ========================================
+         TABLA DE CLIENTES
+    ========================================= -->
+    <div class="figma-clients-table">
+      <!-- CARGANDO -->
+      @if (isLoading()) {
+        <div class="loading-state" role="status">
+          <span class="large-spinner" aria-hidden="true"></span>
+
+          <span> Cargando clientes... </span>
+        </div>
+      }
+
+      <!-- SIN CLIENTES -->
+      @else if (!clients().length && !errorMessage()) {
+        <div class="empty-state">
+          <h3>Aún no hay clientes</h3>
+
+          <p>Registra el primer cliente para comenzar.</p>
+
+          <button class="secondary-button" type="button" (click)="openCreate()">
+            Crear cliente
+          </button>
+        </div>
+      }
+
+      <!-- SIN RESULTADOS -->
+      @else if (!filteredClients().length) {
+        <div class="empty-state">
+          <h3>No se encontraron clientes</h3>
+
+          <p>Prueba con otro término o cambia el filtro.</p>
+
+          <button class="secondary-button" type="button" (click)="clearFilters()">
+            Limpiar búsqueda
+          </button>
+        </div>
+      }
+
+      <!-- TABLA -->
+      @else {
+        <div class="clients-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+
+                <th>NOMBRE COMPLETO</th>
+
+                <th>DPI</th>
+
+                <th>TELÉFONO</th>
+
+                <th>MUNICIPIO</th>
+
+                <th>ESTADO</th>
+
+                <th class="actions-heading">ACCIONES</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (client of filteredClients(); track client.id_cliente) {
+                <tr>
+                  <!-- ID -->
+                  <td data-label="ID">
+                    <span class="client-id">
+                      C{{ client.id_cliente.toString().padStart(3, '0') }}
+                    </span>
+                  </td>
+
+                  <!-- NOMBRE COMPLETO -->
+                  <td data-label="Nombre completo">
+                    <strong class="client-name">
+                      {{ client.nombres }}
+                      {{ client.apellidos }}
+                    </strong>
+                  </td>
+
+                  <!-- DPI -->
+                  <td data-label="DPI">
+                    {{ client.dpi || '—' }}
+                  </td>
+
+                  <!-- TELÉFONO -->
+                  <td data-label="Teléfono">
+                    {{ client.telefono }}
+                  </td>
+
+                  <!-- MUNICIPIO -->
+                  <td data-label="Municipio">
+                    {{ client.municipio.nombre }}
+                  </td>
+
+                  <!-- ESTADO -->
+                  <td data-label="Estado">
+                    <span
+                      class="status-pill"
+                      [class.status-inactive]="client.estado === 'Inactivo'"
+                    >
+                      <span></span>
+
+                      {{ client.estado }}
+                    </span>
+                  </td>
+
+                  <!-- ACCIONES -->
+                  <td data-label="Acciones">
+                    <div class="figma-client-actions">
+                      <!-- EDITAR -->
+                      <button
+                        class="figma-action-button edit"
+                        type="button"
+                        title="Editar cliente"
+                        aria-label="Editar cliente"
+                        [disabled]="isLoadingEdit() === client.id_cliente"
+                        (click)="openEdit(client)"
+                      >
+                        @if (isLoadingEdit() === client.id_cliente) {
+                          <span class="action-spinner" aria-hidden="true"></span>
+                        } @else {
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="m4 16.5-.8 4.3 4.3-.8L19 8.5 15.5 5zM14 6.5l3.5 3.5" />
+                          </svg>
+                        }
+                        <span class="action-label">Editar</span>
+                      </button>
+
+                      <!-- ELIMINAR -->
+                      <button
+                        class="figma-action-button delete"
+                        type="button"
+                        title="Eliminar cliente"
+                        aria-label="Eliminar cliente"
+                        [disabled]="isDeleting() === client.id_cliente"
+                        (click)="requestDelete(client)"
+                      >
+                        @if (isDeleting() === client.id_cliente) {
+                          <span class="action-spinner delete-spinner" aria-hidden="true"></span>
+                        } @else {
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13" />
+                          </svg>
+                        }
+                        <span class="action-label">Eliminar</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </section>
+</div>
+
+<!-- ========================================
+     FORMULARIO DE CLIENTE
+========================================= -->
+
+@if (isModalOpen()) {
+  <div class="client-modal-backdrop" role="presentation" (click)="closeModal()">
+    <section
+      class="client-modal-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="client-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- ENCABEZADO DEL MODAL -->
+      <div class="client-modal-header">
+        <div>
+          <p class="breadcrumb">CLIENTES</p>
+
+          <h2 id="client-modal-title">
+            {{ editingId() === null ? 'Nuevo Cliente' : 'Editar Cliente' }}
+          </h2>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          aria-label="Cerrar formulario"
+          (click)="closeModal()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+
+      <p class="modal-description">Completa la información administrativa del cliente.</p>
+
+      <!-- ERROR DEL MODAL -->
+      @if (errorMessage()) {
+        <div class="inline-error modal-error" role="alert">
+          <span>
+            {{ errorMessage() }}
+          </span>
+        </div>
+      }
+
+      <!-- ========================================
+           FORMULARIO
+      ========================================= -->
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <section class="client-form-section">
+          <h3>INFORMACIÓN DEL CLIENTE</h3>
+
+          <div class="client-form-grid">
+            <!-- NOMBRE -->
+            <div class="client-form-field">
+              <label for="client-names"> Nombre * </label>
+
+              <input id="client-names" type="text" formControlName="nombres" placeholder="Nombre" />
+
+              @if (hasError('nombres')) {
+                <small> Ingresa el nombre. </small>
+              }
+            </div>
+
+            <!-- APELLIDO -->
+            <div class="client-form-field">
+              <label for="client-surnames"> Apellido * </label>
+
+              <input
+                id="client-surnames"
+                type="text"
+                formControlName="apellidos"
+                placeholder="Apellido"
+              />
+
+              @if (hasError('apellidos')) {
+                <small> Ingresa el apellido. </small>
+              }
+            </div>
+
+            <!-- DPI -->
+            <div class="client-form-field">
+              <label for="client-dpi"> DPI * </label>
+
+              <input id="client-dpi" type="text" formControlName="dpi" placeholder="DPI" />
+
+              @if (hasError('dpi')) {
+                <small> Ingresa el DPI. </small>
+              }
+            </div>
+
+            <!-- TELÉFONO -->
+            <div class="client-form-field">
+              <label for="client-phone"> Teléfono * </label>
+
+              <input
+                id="client-phone"
+                type="tel"
+                formControlName="telefono"
+                placeholder="Teléfono"
+              />
+
+              @if (hasError('telefono')) {
+                <small> Ingresa el teléfono. </small>
+              }
+            </div>
+
+            <!-- CORREO -->
+            <div class="client-form-field client-form-field-wide">
+              <label for="client-email"> Correo electrónico </label>
+
+              <input
+                id="client-email"
+                type="email"
+                formControlName="correo"
+                placeholder="correo@ejemplo.com"
+              />
+
+              @if (hasError('correo')) {
+                <small> Ingresa un correo válido. </small>
+              }
+            </div>
+
+            <!-- DIRECCIÓN -->
+            <div class="client-form-field client-form-field-wide">
+              <label for="client-address"> Dirección * </label>
+
+              <input
+                id="client-address"
+                type="text"
+                formControlName="direccion"
+                placeholder="Dirección del cliente"
+              />
+
+              @if (hasError('direccion')) {
+                <small> Ingresa la dirección. </small>
+              }
+            </div>
+
+            <!-- UBICACIÓN -->
+            <div class="client-location-grid">
+              <!-- DEPARTAMENTO -->
+              <div class="client-form-field">
+                <label for="client-department"> Departamento </label>
+
+                <select
+                  id="client-department"
+                  formControlName="id_departamento"
+                  (change)="onDepartmentChange()"
+                >
+                  <option [ngValue]="0">Seleccione departamento</option>
+
+                  @for (department of departamentos(); track department.id_departamento) {
+                    <option [ngValue]="department.id_departamento">
+                      {{ department.nombre }}
+                    </option>
+                  }
+                </select>
+
+                @if (hasError('id_departamento')) {
+                  <small> Selecciona un departamento. </small>
+                }
+              </div>
+
+              <!-- MUNICIPIO -->
+              <div class="client-form-field">
+                <label for="client-municipality"> Municipio * </label>
+
+                <select id="client-municipality" formControlName="id_municipio">
+                  <option [ngValue]="0">
+                    {{ isLoadingMunicipios() ? 'Cargando municipios...' : 'Seleccione municipio' }}
+                  </option>
+
+                  @for (municipality of municipios(); track municipality.id_municipio) {
+                    <option [ngValue]="municipality.id_municipio">
+                      {{ municipality.nombre }}
+                    </option>
+                  }
+                </select>
+
+                @if (
+                  hasError('id_municipio') || (submitted() && !form.getRawValue().id_municipio)
+                ) {
+                  <small> Selecciona un municipio. </small>
+                }
+              </div>
+
+              <!-- ESTADO -->
+              <div class="client-form-field">
+                <label for="client-status"> Estado </label>
+
+                <select id="client-status" formControlName="estado">
+                  <option [ngValue]="'Activo'">Activo</option>
+
+                  <option [ngValue]="'Inactivo'">Inactivo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- BOTONES DEL FORMULARIO -->
+        <div class="client-modal-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            [disabled]="isSaving()"
+            (click)="closeModal()"
+          >
+            Cancelar
+          </button>
+
+          <button class="primary-button" type="submit" [disabled]="isSaving()">
+            @if (isSaving()) {
+              <span class="button-spinner" aria-hidden="true"></span>
+
+              <span> Guardando... </span>
+            } @else {
+              <span> Guardar cliente </span>
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+<!-- ========================================
+     CONFIRMACIÓN DE ELIMINACIÓN
+========================================= -->
+
+@if (deleteConfirmation(); as clientToDelete) {
+  <div class="client-modal-backdrop" role="presentation" (click)="cancelDelete()">
+    <section
+      class="client-confirmation-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="client-delete-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="confirmation-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13" />
+        </svg>
+      </div>
+
+      <h2 id="client-delete-title">¿Eliminar cliente?</h2>
+
+      <p>
+        ¿Está seguro de que desea eliminar a
+
+        <strong>
+          {{ clientToDelete.nombres }}
+          {{ clientToDelete.apellidos }} </strong
+        >?
+      </p>
+
+      <div class="client-modal-actions">
+        <button class="secondary-button" type="button" (click)="cancelDelete()">Cancelar</button>
+
+        <button class="danger-button" type="button" (click)="confirmDelete()">Eliminar</button>
+      </div>
+    </section>
+  </div>
+}
+
+<!-- ========================================
+     AVISO DE OPERACIÓN
+========================================= -->
+
+@if (notice(); as currentNotice) {
+  <div class="client-modal-backdrop" role="presentation">
+    <section
+      class="client-confirmation-modal success-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="client-success-title"
+    >
+      <div class="confirmation-icon success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="m5 12 4 4L19 6" />
+        </svg>
+      </div>
+
+      <h2 id="client-success-title">
+        {{ currentNotice.title }}
+      </h2>
+
+      <p>
+        {{ currentNotice.message }}
+      </p>
+
+      <button class="primary-button" type="button" (click)="clearNotice()">Continuar</button>
+    </section>
+  </div>
+}

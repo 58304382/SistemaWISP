@@ -1,0 +1,53 @@
+<div class="map-backdrop" role="presentation" (click)="closed.emit()">
+  <section
+    class="map-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="property-map-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header>
+      <div>
+        <span>{{ mode() === 'select' ? 'SELECCIÓN DE UBICACIÓN' : 'PROPIEDAD REGISTRADA' }}</span>
+        <h2 id="property-map-title">
+          {{ mode() === 'select' ? 'Confirmar punto en el mapa' : 'Propiedad ' + propertyNumber() }}
+        </h2>
+        @if (mode() === 'readonly') {
+          <p>
+            {{ address() || 'Dirección no registrada' }} · {{ reference() || 'Sin referencia' }}
+          </p>
+        }
+      </div>
+      <button type="button" aria-label="Cerrar mapa" (click)="closed.emit()">×</button>
+    </header>
+
+    @if (mode() === 'select') {
+      <p class="map-instructions">Toca o haz clic sobre el mapa para ajustar el marcador.</p>
+    }
+    <div class="map-stage">
+      <div #mapContainer class="map-canvas" aria-label="Mapa de la propiedad"></div>
+      @if (isLoading()) {
+        <div class="map-state">Cargando Google Maps...</div>
+      }
+      @if (loadError()) {
+        <div class="map-state error" role="alert">{{ loadError() }}</div>
+      }
+    </div>
+
+    <footer>
+      @if (mode() === 'select') {
+        <button type="button" (click)="closed.emit()">Cancelar</button>
+        <button
+          class="map-confirm"
+          type="button"
+          [disabled]="!selectedCoordinates()"
+          (click)="confirmSelection()"
+        >
+          Confirmar ubicación
+        </button>
+      } @else {
+        <button class="map-confirm" type="button" (click)="closed.emit()">Cerrar</button>
+      }
+    </footer>
+  </section>
+</div>

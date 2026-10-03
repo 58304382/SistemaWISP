@@ -94,7 +94,9 @@ export class LoginComponent implements OnInit {
   // UTILIDADES Y MENSAJES
   // ==========================================
   private safeReturnUrl(value: string | null): string {
-    return value?.startsWith('/') && !value.startsWith('//') ? value : '/usuarios';
+    return value?.startsWith('/') && !value.startsWith('//') && value !== '/login'
+      ? value
+      : '/inicio';
   }
 
   private getLoginErrorMessage(error: unknown): string {

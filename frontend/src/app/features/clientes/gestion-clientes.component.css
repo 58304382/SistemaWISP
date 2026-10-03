@@ -1,0 +1,1436 @@
+/* ==========================================
+   CONTENEDOR PRINCIPAL
+========================================== */
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.clients-management-page {
+  min-height: 100%;
+  background: var(--paper);
+}
+
+/* ==========================================
+   ENCABEZADO
+========================================== */
+.clients-management-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 47px clamp(30px, 5vw, 76px) 38px;
+  border-bottom: 1px solid #e4e8ee;
+  background: #fff;
+}
+
+.breadcrumb {
+  margin: 0 0 12px;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.breadcrumb span {
+  margin: 0 5px;
+  color: #b6bec9;
+}
+
+.clients-management-header h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 33px;
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+}
+
+.page-description {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ==========================================
+   BUSQUEDA Y FILTROS
+========================================== */
+.clients-management-content {
+  padding: 32px clamp(30px, 5vw, 76px) 60px;
+}
+
+.clients-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+
+.clients-list-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clients-list-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 18px;
+  letter-spacing: -0.035em;
+}
+
+.count-badge {
+  display: grid;
+  place-items: center;
+  min-width: 23px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 12px;
+  color: var(--blue);
+  background: #eaf1fc;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.clients-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.clients-search {
+  display: flex;
+  align-items: center;
+  width: min(100%, 300px);
+  height: 42px;
+  padding: 0 13px;
+  border: 1px solid #ccd5e2;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.clients-search:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(52, 105, 190, 0.1);
+}
+
+.clients-search svg {
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  margin-right: 9px;
+  fill: none;
+  stroke: #7e8998;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.clients-search input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+}
+
+.clients-toolbar .primary-button,
+.client-modal-actions .primary-button,
+.client-confirmation-modal .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 41px;
+  padding: 0 17px;
+  border: 0;
+  border-radius: 7px;
+  color: #fff;
+  background: var(--blue);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clients-toolbar .primary-button:hover,
+.client-modal-actions .primary-button:hover,
+.client-confirmation-modal .primary-button:hover {
+  background: #28579f;
+}
+
+.clients-toolbar .primary-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.clients-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.filter-label {
+  margin-right: 3px;
+  color: #8995a5;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.filter-chip {
+  height: 29px;
+  padding: 0 12px;
+  border: 1px solid #dce3ec;
+  border-radius: 16px;
+  color: #718096;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.filter-chip.selected {
+  border-color: #c6d8f5;
+  color: var(--blue);
+  background: #eaf1fc;
+}
+
+.inline-error {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #f0caca;
+  border-radius: 8px;
+  color: #a3484b;
+  background: #fff6f6;
+  font-size: 12px;
+}
+
+.inline-error button {
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ==========================================
+   TABLA
+========================================== */
+.clients-table-card {
+  overflow: hidden;
+  min-height: 250px;
+  border: 1px solid #dce3ed;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(29, 52, 82, 0.045);
+}
+
+.clients-table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+}
+
+th {
+  padding: 15px 18px;
+  border-bottom: 1px solid #dce4f1;
+  color: #667287;
+  background: #eef3fd;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-align: left;
+}
+
+td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #eef1f4;
+  color: #5b6675;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:hover {
+  background: #fcfdff;
+}
+
+.client-name {
+  color: #263244;
+  font-weight: 700;
+}
+
+/* ==========================================
+   ESTADOS
+========================================== */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 20px;
+  color: #398463;
+  background: #edf9f3;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.status-pill > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #54bd8c;
+}
+
+.status-pill.status-inactive {
+  color: #9a6870;
+  background: #f9eeee;
+}
+
+.status-pill.status-inactive > span {
+  background: #ca7b83;
+}
+
+/* ==========================================
+   ACCIONES
+========================================== */
+.actions-heading,
+.client-row-actions {
+  text-align: right;
+}
+
+.client-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.client-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.client-action svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.client-action.edit {
+  color: var(--blue);
+  background: #edf3ff;
+}
+
+.client-action.delete {
+  color: #bd646a;
+}
+
+.client-action:hover:not(:disabled) {
+  border-color: #dce4ef;
+  background: #f7faff;
+}
+
+.client-action.delete:hover:not(:disabled) {
+  border-color: #efd4d5;
+  background: #fff7f7;
+}
+
+.client-action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.action-spinner,
+.button-spinner,
+.large-spinner {
+  display: inline-block;
+  border: 2px solid #d9e4f4;
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: client-spin 0.7s linear infinite;
+}
+
+.action-spinner {
+  width: 13px;
+  height: 13px;
+}
+
+.delete-spinner {
+  border-color: #f0d6d7;
+  border-top-color: #bd646a;
+}
+
+.button-spinner {
+  width: 13px;
+  height: 13px;
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+}
+
+.loading-state,
+.empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 250px;
+  color: #8995a5;
+  font-size: 12px;
+}
+
+.loading-state {
+  gap: 12px;
+}
+
+.large-spinner {
+  width: 25px;
+  height: 25px;
+}
+
+.empty-state {
+  align-content: center;
+  gap: 7px;
+  padding: 30px;
+  text-align: center;
+}
+
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 4px;
+  border-radius: 11px;
+  color: #7198d1;
+  background: #edf3fd;
+}
+
+.empty-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.empty-state h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.empty-state p {
+  max-width: 300px;
+  margin: 0 0 9px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.secondary-button,
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 41px;
+  padding: 0 17px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-button {
+  border: 1px solid #d9dfe8;
+  color: #4b586a;
+  background: #fff;
+}
+
+.danger-button {
+  min-width: 105px;
+  border: 0;
+  color: #fff;
+  background: #c9575d;
+}
+
+/* ==========================================
+   FORMULARIO / MODAL
+========================================== */
+.client-modal-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 25px;
+  background: rgba(18, 29, 46, 0.58);
+}
+
+.client-modal-card,
+.client-confirmation-modal {
+  width: min(100%, 760px);
+  max-height: calc(100dvh - 50px);
+  overflow-y: auto;
+  padding: 29px;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 18px 60px rgba(15, 29, 52, 0.2);
+}
+
+.client-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.client-modal-header .breadcrumb {
+  margin-bottom: 9px;
+}
+
+.client-modal-header h2,
+.client-confirmation-modal h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 23px;
+  letter-spacing: -0.045em;
+}
+
+.close-button {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border: 0;
+  border-radius: 5px;
+  color: #8290a1;
+  background: #f4f6f8;
+  cursor: pointer;
+}
+
+.close-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.modal-description {
+  margin: 9px 0 25px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.modal-error {
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
+.client-form-section {
+  margin-top: 24px;
+}
+
+.client-form-section:first-of-type {
+  margin-top: 0;
+}
+
+.client-form-section h3 {
+  margin: 0 0 12px;
+  color: #667287;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.client-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 14px;
+}
+
+.client-form-field {
+  min-width: 0;
+}
+
+.client-form-field-wide {
+  grid-column: 1 / -1;
+}
+
+.client-location-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.client-form-field label {
+  display: block;
+  margin-bottom: 7px;
+  color: #455263;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.client-form-field input,
+.client-form-field select,
+.client-form-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 11px;
+  border: 1px solid #d9dfe7;
+  border-radius: 6px;
+  outline: 0;
+  color: #354152;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+}
+
+.client-form-field input,
+.client-form-field select {
+  height: 42px;
+}
+
+.client-form-field textarea {
+  min-height: 78px;
+  padding-top: 11px;
+  resize: vertical;
+}
+
+.client-form-field input:focus,
+.client-form-field select:focus,
+.client-form-field textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(52, 105, 190, 0.1);
+}
+
+.client-form-field small {
+  display: block;
+  margin-top: 5px;
+  color: #b34c4c;
+  font-size: 10px;
+}
+
+.client-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 29px;
+  padding-top: 19px;
+  border-top: 1px solid #edf0f3;
+}
+
+.client-confirmation-modal {
+  width: min(100%, 405px);
+  text-align: center;
+}
+
+.client-confirmation-modal .client-modal-actions {
+  justify-content: center;
+  border-top: 0;
+}
+
+.confirmation-icon {
+  display: grid;
+  place-items: center;
+  width: 49px;
+  height: 49px;
+  margin: 0 auto 17px;
+  border-radius: 50%;
+  color: #c9575d;
+  background: #fff0f0;
+}
+
+.confirmation-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.client-confirmation-modal p {
+  margin: 11px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.client-confirmation-modal p strong {
+  color: #39485a;
+}
+
+.success-icon {
+  color: #fff;
+  background: #4db586;
+}
+
+.success-modal .primary-button {
+  width: 100%;
+  margin-top: 24px;
+}
+
+@keyframes client-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+@media (max-width: 850px) {
+  .clients-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .clients-toolbar-actions {
+    width: 100%;
+  }
+
+  .clients-search {
+    flex: 1;
+    width: auto;
+  }
+}
+
+@media (max-width: 650px) {
+  .clients-management-header {
+    padding: 29px 21px 25px;
+  }
+
+  .clients-management-content {
+    padding: 25px 21px 40px;
+  }
+
+  .clients-toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .clients-toolbar .primary-button,
+  .clients-search {
+    width: 100%;
+  }
+
+  .client-modal-backdrop {
+    align-items: start;
+    padding: 15px;
+  }
+
+  .client-modal-card,
+  .client-confirmation-modal {
+    padding: 22px;
+  }
+
+  .client-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .client-form-field-wide {
+    grid-column: auto;
+  }
+
+  .client-location-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   GESTIÓN DE CLIENTES — ESTILO FIGMA MAKE
+========================================================= */
+
+.clients-management-page {
+  width: 100%;
+  min-height: 100%;
+  background: #f4f7fb;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   ENCABEZADO
+========================================================= */
+
+.figma-clients-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 34px 32px 26px;
+}
+
+.figma-clients-header h1 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.figma-clients-header p {
+  margin: 6px 0 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* =========================================================
+   BOTÓN NUEVO CLIENTE
+========================================================= */
+
+.figma-new-client {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  min-width: 152px;
+  height: 44px;
+
+  padding: 0 18px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #2563eb;
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.figma-new-client:hover {
+  background: #1d4ed8;
+}
+
+.figma-new-client:active {
+  transform: scale(0.98);
+}
+
+.figma-new-client svg {
+  width: 20px;
+  height: 20px;
+
+  fill: none;
+  stroke: currentColor;
+
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* =========================================================
+   CONTENIDO PRINCIPAL
+========================================================= */
+
+.clients-management-content {
+  padding: 0 32px 40px;
+}
+
+/* =========================================================
+   BUSCADOR + FILTRO
+========================================================= */
+
+.figma-clients-toolbar {
+  display: flex;
+  align-items: center;
+
+  gap: 16px;
+
+  margin-bottom: 20px;
+}
+
+.figma-clients-toolbar .figma-new-client {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* BUSCADOR */
+
+.figma-client-search {
+  display: flex;
+  align-items: center;
+
+  width: 480px;
+  height: 46px;
+
+  padding: 0 14px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+
+  background: #ffffff;
+}
+
+.figma-client-search:focus-within {
+  border-color: #2563eb;
+
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.figma-client-search svg {
+  width: 19px;
+  height: 19px;
+
+  flex-shrink: 0;
+
+  margin-right: 10px;
+
+  fill: none;
+  stroke: #94a3b8;
+
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.figma-client-search input {
+  width: 100%;
+  height: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #334155;
+
+  font-size: 14px;
+}
+
+.figma-client-search input::placeholder {
+  color: #94a3b8;
+}
+
+/* =========================================================
+   FILTRO DE ESTADO
+========================================================= */
+
+.figma-status-filter {
+  position: relative;
+
+  width: 120px;
+  height: 46px;
+}
+
+.figma-status-filter select {
+  width: 100%;
+  height: 100%;
+
+  padding: 0 38px 0 14px;
+
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+
+  outline: none;
+
+  appearance: none;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font-size: 14px;
+
+  cursor: pointer;
+}
+
+.figma-status-filter select:focus {
+  border-color: #2563eb;
+
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.figma-status-filter svg {
+  position: absolute;
+
+  right: 12px;
+  top: 50%;
+
+  width: 16px;
+  height: 16px;
+
+  transform: translateY(-50%);
+
+  fill: none;
+  stroke: #64748b;
+
+  stroke-width: 2;
+
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   CONTENEDOR TABLA
+========================================================= */
+
+.figma-clients-table {
+  width: 100%;
+
+  overflow: hidden;
+
+  border: 1px solid #dde3ec;
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.clients-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* =========================================================
+   TABLA
+========================================================= */
+
+.figma-clients-table table {
+  width: 100%;
+
+  min-width: 900px;
+
+  border-collapse: collapse;
+
+  table-layout: fixed;
+}
+
+/* =========================================================
+   ENCABEZADO DE TABLA
+========================================================= */
+
+.figma-clients-table thead {
+  background: #f8fafc;
+}
+
+.figma-clients-table th {
+  height: 50px;
+
+  padding: 0 20px;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  color: #64748b;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-align: left;
+
+  vertical-align: middle;
+}
+
+/* =========================================================
+   FILAS
+========================================================= */
+
+.figma-clients-table td {
+  height: 70px;
+
+  padding: 0 20px;
+
+  border-bottom: 1px solid #edf1f5;
+
+  color: #475569;
+
+  font-size: 14px;
+
+  vertical-align: middle;
+}
+
+.figma-clients-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.figma-clients-table tbody tr {
+  background: #ffffff;
+
+  transition: background 0.15s ease;
+}
+
+.figma-clients-table tbody tr:hover {
+  background: #fbfdff;
+}
+
+/* =========================================================
+   NOMBRE DEL CLIENTE
+========================================================= */
+
+.client-name {
+  color: #111827;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   ESTADO
+========================================================= */
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  padding: 5px 10px;
+
+  border-radius: 999px;
+
+  background: #dcfce7;
+  color: #15803d;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-pill > span {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #22c55e;
+}
+
+.status-pill.status-inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-pill.status-inactive > span {
+  background: #ef4444;
+}
+
+/* =========================================================
+   ACCIONES
+========================================================= */
+
+.actions-heading {
+  text-align: center !important;
+}
+
+.figma-client-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 14px;
+}
+
+.figma-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  height: 32px;
+
+  padding: 0 9px;
+
+  border: 1px solid transparent;
+  border-radius: 6px;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
+}
+
+.figma-action-button svg {
+  width: 18px;
+  height: 18px;
+
+  fill: none;
+
+  stroke: currentColor;
+  stroke-width: 1.8;
+
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.figma-action-button.edit {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.figma-action-button.edit:hover {
+  border-color: #dbeafe;
+  background: #dbeafe;
+}
+
+.figma-action-button.delete {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.figma-action-button.delete:hover {
+  border-color: #fee2e2;
+  background: #fee2e2;
+}
+
+.figma-action-button:active {
+  transform: scale(0.92);
+}
+
+/* =========================================================
+   ESTADOS DE CARGA Y VACÍO
+========================================================= */
+
+.loading-state,
+.empty-state {
+  display: grid;
+  place-items: center;
+
+  min-height: 240px;
+
+  color: #64748b;
+
+  font-size: 14px;
+
+  text-align: center;
+}
+
+.loading-state {
+  gap: 12px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+
+  color: #111827;
+
+  font-size: 16px;
+}
+
+.empty-state p {
+  margin: 0 0 16px;
+
+  color: #64748b;
+}
+
+/* =========================================================
+   SPINNER
+========================================================= */
+
+.large-spinner {
+  width: 28px;
+  height: 28px;
+
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+
+  border-radius: 50%;
+
+  animation: clients-spin 0.7s linear infinite;
+}
+
+@keyframes clients-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1000px) {
+  .figma-client-search {
+    width: 420px;
+  }
+}
+
+@media (max-width: 800px) {
+  .figma-clients-header {
+    padding: 28px 22px 24px;
+  }
+
+  .clients-management-content {
+    padding: 0 22px 40px;
+  }
+
+  .figma-clients-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .figma-clients-toolbar .figma-new-client {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .figma-client-search,
+  .figma-status-filter {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .figma-clients-header {
+    flex-direction: column;
+
+    gap: 18px;
+  }
+
+  .figma-new-client {
+    width: 100%;
+  }
+}
+
+/* ========================================
+   AJUSTE DE TABLA - CLIENTES
+======================================== */
+
+.figma-clients-table {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.figma-clients-table .clients-table-scroll {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.figma-clients-table table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Ancho proporcional de las siete columnas */
+.figma-clients-table th:nth-child(1),
+.figma-clients-table td:nth-child(1) {
+  width: 6%;
+}
+
+.figma-clients-table th:nth-child(2),
+.figma-clients-table td:nth-child(2) {
+  width: 22%;
+}
+
+.figma-clients-table th:nth-child(3),
+.figma-clients-table td:nth-child(3) {
+  width: 14%;
+}
+
+.figma-clients-table th:nth-child(4),
+.figma-clients-table td:nth-child(4) {
+  width: 14%;
+}
+
+.figma-clients-table th:nth-child(5),
+.figma-clients-table td:nth-child(5) {
+  width: 18%;
+}
+
+.figma-clients-table th:nth-child(6),
+.figma-clients-table td:nth-child(6) {
+  width: 10%;
+}
+
+.figma-clients-table th:nth-child(7),
+.figma-clients-table td:nth-child(7) {
+  width: 16%;
+}
+
+/* Espaciado más compacto */
+.figma-clients-table th,
+.figma-clients-table td {
+  padding: 12px 10px;
+  vertical-align: middle;
+}
+
+/* Centrar columnas específicas */
+.figma-clients-table th:nth-child(1),
+.figma-clients-table td:nth-child(1),
+.figma-clients-table th:nth-child(6),
+.figma-clients-table td:nth-child(6),
+.figma-clients-table th:nth-child(7),
+.figma-clients-table td:nth-child(7) {
+  text-align: center;
+}
+
+/* Evitar que municipio haga crecer demasiado la tabla */
+.figma-clients-table td:nth-child(5) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+/* Nombre adaptable para no forzar el ancho de la tabla */
+.figma-clients-table .client-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Acciones centradas */
+.figma-client-actions {
+  justify-content: center;
+}

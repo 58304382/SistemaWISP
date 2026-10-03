@@ -272,21 +272,6 @@
 .password-label {
   margin-top: 20px;
 }
-.password-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-}
-.password-heading .field-label {
-  margin-bottom: 8px;
-}
-.forgot-password {
-  margin-top: 10px;
-  color: #ff7918;
-  font-size: 12px;
-  font-weight: 650;
-}
 .input-wrap {
   position: relative;
   display: flex;
@@ -347,22 +332,6 @@
   margin: 6px 0 0;
   color: #b34c4c;
   font-size: 12px;
-}
-.remember-field {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-top: 23px;
-  color: #91a0b4;
-  font-size: 13px;
-  cursor: pointer;
-}
-.remember-field input {
-  width: 20px;
-  height: 20px;
-  margin: 0;
-  accent-color: var(--blue);
-  cursor: pointer;
 }
 /* ==========================================
    ACCIONES

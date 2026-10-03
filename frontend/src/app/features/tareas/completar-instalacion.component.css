@@ -1,0 +1,256 @@
+/* ==========================================
+   MODAL DE CIERRE TECNICO
+========================================== */
+:host {
+  display: contents;
+}
+.completion-backdrop {
+  position: fixed;
+  z-index: 35;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 22px;
+  background: rgba(18, 29, 46, 0.58);
+}
+.completion-modal {
+  width: min(94vw, 920px);
+  max-height: calc(100dvh - 44px);
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 18px 60px rgba(15, 29, 52, 0.2);
+}
+.completion-header {
+  padding-bottom: 15px;
+  border-bottom: 1px solid #edf0f3;
+}
+.completion-header span {
+  color: #2b8a5a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.completion-header h2 {
+  margin: 6px 0 0;
+  color: #172033;
+  font-size: 23px;
+  letter-spacing: -0.035em;
+}
+.completion-header p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+/* Dos columnas mantienen observación y evidencia compactas en escritorio. */
+.completion-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px 18px;
+  margin-top: 17px;
+}
+.completion-field {
+  min-width: 0;
+}
+.completion-field > label {
+  display: block;
+  margin-bottom: 7px;
+  color: #455263;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.completion-field textarea {
+  width: 100%;
+  min-height: 150px;
+  box-sizing: border-box;
+  padding: 11px;
+  border: 1px solid #d9dfe7;
+  border-radius: 7px;
+  outline: 0;
+  color: #354152;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+.completion-field textarea:focus {
+  border-color: #2b8a5a;
+  box-shadow: 0 0 0 3px rgba(43, 138, 90, 0.1);
+}
+.field-error {
+  display: block;
+  margin-top: 6px;
+  color: #b3494d;
+  font-size: 10px;
+}
+
+/* ==========================================
+   EVIDENCIA Y VISTA PREVIA TEMPORAL
+========================================== */
+.evidence-field > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  opacity: 0;
+}
+.evidence-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.evidence-options label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 66px;
+  gap: 8px;
+  padding: 8px;
+  border: 1px dashed #b8c4d2;
+  border-radius: 8px;
+  color: #526174;
+  background: #fbfcfe;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+.evidence-options svg {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: #2b8a5a;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+.evidence-preview {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+  padding: 7px;
+  border: 1px solid #dfe6ed;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.evidence-preview img {
+  width: 72px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+.evidence-preview strong {
+  overflow: hidden;
+  color: #526174;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================
+   INFORMACION Y ACCIONES
+========================================== */
+.automatic-datetime {
+  display: flex;
+  align-items: center;
+  grid-column: 1 / -1;
+  gap: 8px;
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid #cfe0f5;
+  border-radius: 7px;
+  color: #3d638f;
+  background: #f1f7ff;
+  font-size: 11px;
+}
+.automatic-datetime span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+  background: #4b83cf;
+  font-size: 10px;
+  font-weight: 800;
+}
+.form-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #efcaca;
+  border-radius: 7px;
+  color: #9c3f43;
+  background: #fff5f5;
+  font-size: 11px;
+}
+.completion-actions {
+  display: flex;
+  justify-content: flex-end;
+  grid-column: 1 / -1;
+  gap: 9px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f3;
+}
+.completion-actions button {
+  height: 40px;
+  padding: 0 17px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.completion-cancel {
+  border: 1px solid #d9dfe8;
+  color: #4b586a;
+  background: #fff;
+}
+.completion-submit {
+  border: 0;
+  color: #fff;
+  background: #2b8a5a;
+}
+
+/* Tablet y móvil apilan el mismo formulario sin crear otra variante funcional. */
+@media (max-width: 720px) {
+  .completion-backdrop {
+    align-items: start;
+    padding: 14px;
+  }
+  .completion-modal {
+    padding: 20px;
+  }
+  .completion-form {
+    grid-template-columns: 1fr;
+  }
+  .automatic-datetime,
+  .form-message,
+  .completion-actions {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .evidence-options {
+    grid-template-columns: 1fr;
+  }
+  .completion-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .completion-actions button {
+    width: 100%;
+  }
+}

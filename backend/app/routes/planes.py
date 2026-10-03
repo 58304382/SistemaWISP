@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.database import get_db
 from app.models.usuario import Usuario
 from app.schemas.plan import PlanCreate, PlanResponse, PlanUpdate, TipoPlan
-from app.services.auth import CurrentUser
+from app.services.auth import require_module_access
 from app.services.planes import (
     PlanConflictError,
     PlanInUseError,
@@ -22,16 +22,7 @@ from app.services.planes import (
 router = APIRouter(prefix="/api/planes", tags=["planes"])
 
 
-def require_planes_access(current_user: CurrentUser) -> Usuario:
-    if not any(modulo.codigo == "planes" and modulo.activo for modulo in current_user.modulos):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para acceder al módulo Planes",
-        )
-    return current_user
-
-
-PlanesUser = Annotated[Usuario, Depends(require_planes_access)]
+PlanesUser = Annotated[Usuario, Depends(require_module_access("planes"))]
 
 
 def require_planes_administrator(current_user: PlanesUser) -> Usuario:

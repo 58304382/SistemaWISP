@@ -32,6 +32,20 @@ body {
 body {
   background: var(--paper);
 }
+
+/* ==========================================
+   SHELL AUTENTICADO Y SIDEBAR COMPARTIDO
+========================================== */
+/* Las copias internas de cada módulo permanecen intactas y ocultas. */
+app-shell .inicio-shell > .sidebar,
+app-shell .app-shell > .sidebar {
+  display: none;
+}
+app-shell .inicio-shell,
+app-shell .app-shell {
+  min-height: 100%;
+}
+
 button,
 input,
 select {

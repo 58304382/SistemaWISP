@@ -1,0 +1,332 @@
+/* ==========================================
+   ESTRUCTURA DEL SIDEBAR
+========================================== */
+:host {
+  display: block;
+  flex: 0 0 274px;
+  height: 100%;
+}
+
+.system-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 274px;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  color: #b8c9e1;
+  background: #0d2342;
+}
+
+/* ==========================================
+   ENCABEZADO Y MARCA
+========================================== */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  flex: 0 0 65px;
+  gap: 12px;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(154, 184, 224, 0.08);
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  color: #fff;
+  background: #2054d8;
+}
+
+.brand-mark svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.brand-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brand-copy strong {
+  color: #f5f8ff;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.brand-copy small {
+  overflow: hidden;
+  color: #6e8ebc;
+  font-size: 14px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================
+   NAVEGACION Y ESTADOS
+========================================== */
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  padding: 15px 10px 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: #294b78 transparent;
+  scrollbar-width: thin;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  color: #b8c9e1;
+  background: transparent;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.1;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.nav-item:hover:not(.active):not(.nav-item-pending) {
+  color: #e7efff;
+  background: rgba(38, 82, 143, 0.34);
+}
+
+.nav-item.active {
+  color: #f4f8ff;
+  background: #173d7f;
+}
+
+.nav-item-pending {
+  cursor: default;
+}
+
+.clients-entry {
+  position: relative;
+}
+
+.clients-entry > .nav-item {
+  padding-right: 40px;
+}
+
+.clients-expander {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: #9db0ca;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.clients-expander:hover {
+  background: rgba(38, 82, 143, 0.34);
+}
+
+.nav-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.chevron {
+  width: 17px;
+  height: 17px;
+  margin-left: auto;
+  fill: none;
+  stroke: #9db0ca;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  transition: transform 0.15s ease;
+}
+
+.clients-expander[aria-expanded='false'] .chevron {
+  transform: rotate(180deg);
+}
+
+/* ==========================================
+   SUBMENU Y MODULOS
+========================================== */
+.clients-submenu {
+  padding: 2px 0 5px;
+}
+
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 38px;
+  padding-left: 29px;
+  color: #6f89b0;
+  font-size: 16px;
+  font-weight: 450;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-subitem:hover,
+.nav-subitem.active-subitem {
+  color: #b8c9e1;
+}
+
+.subitem-dot {
+  flex: 0 0 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.nav-section-title {
+  margin: 12px 10px 6px;
+  color: #2d5d91;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  line-height: 1.2;
+}
+
+/* ==========================================
+   USUARIO ACTUAL
+========================================== */
+.sidebar-bottom {
+  flex: 0 0 auto;
+  padding: 17px 14px 14px;
+  border-top: 1px solid rgba(154, 184, 224, 0.1);
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sidebar-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  background: #2054d8;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sidebar-user-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+
+.sidebar-user-copy strong,
+.sidebar-user-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-user-copy strong {
+  color: #f3f6fd;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sidebar-user-copy span {
+  color: #7190bb;
+  font-size: 12px;
+}
+
+.logout-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: #9eb2ce;
+  background: transparent;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  color: #fff;
+  background: rgba(38, 82, 143, 0.34);
+}
+
+.logout-button svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+/* ==========================================
+   RESPONSIVE Y ACCESIBILIDAD DE MOVIMIENTO
+========================================== */
+@media (max-width: 760px) {
+  :host,
+  .system-sidebar {
+    flex-basis: 240px;
+    width: 240px;
+  }
+
+  .nav-item {
+    font-size: 15px;
+  }
+
+  .nav-subitem {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item,
+  .chevron {
+    transition: none;
+  }
+}

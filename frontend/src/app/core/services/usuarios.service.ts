@@ -6,7 +6,13 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API_ENDPOINTS } from '../config/api.config';
-import { Modulo, Usuario, UsuarioCreate, UsuarioUpdate } from '../models/usuario.models';
+import {
+  EmpleadoDisponible,
+  Modulo,
+  Usuario,
+  UsuarioCreate,
+  UsuarioUpdate,
+} from '../models/usuario.models';
 
 // ==========================================
 // SERVICIO DE USUARIOS
@@ -28,6 +34,10 @@ export class UsuariosService {
 
   getModules(): Observable<Modulo[]> {
     return this.http.get<Modulo[]>(API_ENDPOINTS.modulos);
+  }
+
+  getAvailableEmployees(): Observable<EmpleadoDisponible[]> {
+    return this.http.get<EmpleadoDisponible[]>(API_ENDPOINTS.empleadosDisponiblesUsuario);
   }
 
   // ==========================================

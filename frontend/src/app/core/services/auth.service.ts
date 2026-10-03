@@ -4,7 +4,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 
 import { API_ENDPOINTS } from '../config/api.config';
 import { LoginRequest, TokenResponse } from '../models/auth.models';
@@ -41,6 +41,19 @@ export class AuthService {
 
   loadCurrentUser(): Observable<Usuario> {
     return this.http.get<Usuario>(API_ENDPOINTS.me).pipe(tap((user) => this.currentUser.set(user)));
+  }
+
+  hasModule(moduleCode: string, user = this.currentUser()): boolean {
+    return user?.modulos.some((modulo) => modulo.codigo === moduleCode && modulo.activo) ?? false;
+  }
+
+  isAdministrator(user = this.currentUser()): boolean {
+    return user?.rol.nombre === 'Administrador';
+  }
+
+  ensureCurrentUser(): Observable<Usuario> {
+    const user = this.currentUser();
+    return user ? of(user) : this.loadCurrentUser();
   }
 
   getToken(): string | null {

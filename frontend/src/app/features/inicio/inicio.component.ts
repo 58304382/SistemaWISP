@@ -29,6 +29,12 @@ export class InicioComponent implements OnInit {
     const user = this.auth.currentUser();
     return user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}`.toUpperCase() : 'U';
   });
+  readonly canAccessPlanes = computed(
+    () =>
+      this.auth
+        .currentUser()
+        ?.modulos.some((modulo) => modulo.codigo === 'planes' && modulo.activo) ?? false,
+  );
 
   // ==========================================
   // CARGA DE LA SESION ACTUAL

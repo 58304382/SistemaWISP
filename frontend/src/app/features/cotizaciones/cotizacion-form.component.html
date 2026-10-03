@@ -1,0 +1,111 @@
+<main class="quote-form-page">
+  <header class="form-heading">
+    <div>
+      <a routerLink="/cotizaciones" class="back-link">← Volver a Cotizaciones</a>
+      <h1>{{ titulo() }}</h1>
+      <p>
+        @if (origen() === 'EVALUACION') { Complete los precios de los materiales evaluados. }
+        @else { Registre los conceptos y valores de una cotización directa. }
+      </p>
+    </div>
+    <span class="origin-badge">{{ origen() }}</span>
+  </header>
+
+  @if (cargandoCotizacion()) { <div class="dependency-notice" role="status">Cargando cotización...</div> }
+  @if (errorCarga()) { <div class="dependency-notice" role="alert">{{ errorCarga() }}</div> }
+
+  @if (vista() === 'FORMULARIO') {
+    <form class="quote-form" (submit)="$event.preventDefault(); mostrarRevision()">
+      <!-- Selección de cliente real; el número de cotización no se captura manualmente. -->
+      <section class="form-section client-section">
+        <div class="section-title"><span>01</span><div><h2>Cliente</h2><p>Seleccione el cliente asociado a la cotización.</p></div></div>
+        <div class="client-row">
+          <div class="field client-field">
+            <label for="client-search">Cliente *</label>
+            @if (clienteSeleccionado(); as cliente) {
+              <div class="selected-client">
+                <div class="client-name"><span>NOMBRE</span><strong>{{ nombreCliente(cliente) }}</strong></div>
+                <div><span>TELÉFONO</span><strong>{{ cliente.telefono || 'No registrado' }}</strong></div>
+                <div class="client-address"><span>DIRECCIÓN</span><strong>{{ cliente.direccion || 'No registrada' }}</strong></div>
+                 @if (!modoEdicion()) { <button type="button" [disabled]="formularioBloqueado()" (click)="cambiarCliente()">Cambiar</button> }
+              </div>
+            } @else {
+               <input id="client-search" type="search" placeholder="Buscar cliente..." autocomplete="off" role="combobox" aria-controls="quote-client-results" [attr.aria-expanded]="busquedaCliente().trim() ? 'true' : 'false'" [disabled]="origen() === 'EVALUACION' || modoEdicion() || formularioBloqueado()" [value]="busquedaCliente()" (input)="actualizarBusquedaCliente($event)" />
+              @if (busquedaCliente().trim()) {
+                <div class="client-results" id="quote-client-results" role="listbox">
+                  @for (cliente of clientesFiltrados(); track cliente.id_cliente) {
+                    <button type="button" role="option" (click)="seleccionarCliente(cliente)"><strong>{{ nombreCliente(cliente) }}</strong><span>{{ cliente.telefono }}</span></button>
+                  } @empty { <p>No se encontraron clientes activos.</p> }
+                </div>
+              }
+            }
+            @if (cargandoClientes()) { <small>Cargando clientes...</small> }
+            @if (errorClientes()) { <small class="field-error">{{ errorClientes() }}</small> }
+            @if (intentoGuardar() && !clienteSeleccionado()) { <small class="field-error">Seleccione un cliente.</small> }
+          </div>
+        </div>
+      </section>
+
+      <!-- Detalle económico editable sin relación ficticia con Inventario. -->
+      <section class="form-section detail-section">
+        <div class="section-title"><span>02</span><div><h2>Detalle</h2><p>Agregue únicamente conceptos necesarios para esta cotización.</p></div></div>
+        <div class="detail-header"><span>DESCRIPCIÓN</span><span>CANTIDAD</span><span>UNIDAD</span><span>PRECIO U.</span><span>SUBTOTAL</span><span></span></div>
+        @for (detalle of detalles(); track detalle.idTemporal) {
+          <div class="detail-row">
+             <label><span>Descripción</span><input type="text" maxlength="200" [disabled]="!puedeEditarEstructura() || formularioBloqueado()" [value]="detalle.descripcion" (input)="actualizarDetalle(detalle.idTemporal, 'descripcion', $event)" /></label>
+             <label><span>Cantidad</span><input type="number" min="0.01" step="0.01" [disabled]="!puedeEditarEstructura() || formularioBloqueado()" [value]="detalle.cantidad" (input)="actualizarDetalle(detalle.idTemporal, 'cantidad', $event)" /></label>
+             <label><span>Unidad</span><input type="text" maxlength="20" [disabled]="!puedeEditarEstructura() || formularioBloqueado()" [value]="detalle.unidad ?? ''" (input)="actualizarDetalle(detalle.idTemporal, 'unidad', $event)" /></label>
+             <label><span>Precio U.</span><input type="number" min="0" step="0.01" [disabled]="formularioBloqueado()" [value]="detalle.precio_unitario ?? ''" (input)="actualizarDetalle(detalle.idTemporal, 'precio_unitario', $event)" /></label>
+            <output>{{ subtotalDetalle(detalle) | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</output>
+              <button class="remove-button" type="button" aria-label="Quitar concepto" [disabled]="detalles().length === 1 || !puedeEditarEstructura() || formularioBloqueado()" (click)="quitarConcepto(detalle.idTemporal)">×</button>
+          </div>
+        }
+          <button class="add-detail" type="button" [disabled]="!puedeEditarEstructura() || formularioBloqueado()" (click)="agregarConcepto()">+ Agregar concepto</button>
+         @if (!preciosCompletos()) { <small class="field-error">Complete los precios pendientes antes de generar la cotización.</small> }
+      </section>
+
+      <!-- Resumen económico compacto con descuento editable. -->
+      <section class="summary-layout">
+        <aside class="summary-card" aria-label="Resumen económico">
+          <p>RESUMEN ECONÓMICO</p>
+          <dl>
+            <div><dt>Subtotal</dt><dd>{{ resumen().subtotal | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div>
+             <div class="discount-row"><dt><label for="quote-discount">% Descuento</label></dt><dd><input id="quote-discount" type="number" min="0" max="100" step="0.01" [disabled]="formularioBloqueado()" [value]="porcentajeDescuento()" (input)="actualizarDescuento($event)" /></dd></div>
+            <div><dt>Descuento</dt><dd>- {{ resumen().descuento | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div>
+            <div class="summary-total"><dt>TOTAL</dt><dd>{{ resumen().total | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div>
+          </dl>
+        </aside>
+      </section>
+
+      @if (mensajeGuardado()) { <p class="save-message" role="alert">{{ mensajeGuardado() }}</p> }
+       <footer class="form-actions"><a routerLink="/cotizaciones" class="secondary-button">Cancelar</a>@if (puedeGuardarEnProceso()) { <button class="secondary-button" type="button" [disabled]="formularioBloqueado()" (click)="guardarCambiosEnProceso()">Guardar cambios</button> }<button class="save-button" type="submit" [disabled]="formularioBloqueado()">{{ guardando() ? 'Guardando...' : etiquetaRevision() }} →</button></footer>
+    </form>
+  } @else {
+    <!-- La revisión es solo una vista local previa y nunca un estado de Cotización. -->
+    <section class="quote-review" aria-labelledby="review-title">
+      <header class="review-title"><p>COMPROBACIÓN FINAL</p><h2 id="review-title">REVISIÓN DE COTIZACIÓN</h2><span>Verifique la información antes de confirmar.</span></header>
+      <!-- Información real del cliente y fecha de emisión conservada por el formulario. -->
+      <div class="review-client">
+        <div class="review-client-information">
+          <h3>INFORMACIÓN DEL CLIENTE</h3>
+          <div class="review-client-grid">
+            <p><span>Nombre completo</span><strong>{{ nombreClienteSeleccionado() }}</strong></p>
+            <p><span>Departamento</span><strong>{{ departamentoClienteSeleccionado() }}</strong></p>
+            <p><span>Municipio</span><strong>{{ municipioClienteSeleccionado() }}</strong></p>
+            <p><span>Dirección de la casa</span><strong>{{ clienteSeleccionado()?.direccion || 'No disponible' }}</strong></p>
+          </div>
+        </div>
+        <p class="review-date"><span>Fecha de la Cotización</span><strong>{{ fechaCotizacionFormateada() }}</strong></p>
+      </div>
+      <div class="review-table-scroll">
+        <table class="review-table">
+          <thead><tr><th>DESCRIPCIÓN</th><th>CANT.</th><th>UNIDAD</th><th>PRECIO U.</th><th>SUBTOTAL</th></tr></thead>
+          <tbody>@for (detalle of detalles(); track detalle.idTemporal) { <tr><td>{{ detalle.descripcion }}</td><td>{{ detalle.cantidad }}</td><td>{{ detalle.unidad || '—' }}</td><td>{{ detalle.precio_unitario | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</td><td>{{ subtotalDetalle(detalle) | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</td></tr> }</tbody>
+        </table>
+      </div>
+      <div class="review-totals"><dl><div><dt>Subtotal</dt><dd>{{ resumen().subtotal | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div><div><dt>Descuento ({{ porcentajeDescuento() }}%)</dt><dd>- {{ resumen().descuento | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div><div class="review-grand-total"><dt>TOTAL</dt><dd>{{ resumen().total | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd></div></dl></div>
+      @if (mensajeGuardado()) { <p class="save-message" role="alert">{{ mensajeGuardado() }}</p> }
+       <footer class="review-actions"><button class="secondary-button" type="button" [disabled]="guardando()" (click)="volverAEditar()">← Volver a editar</button><button class="save-button" type="button" [disabled]="!preciosCompletos() || guardando() || operacionFinalizada()" (click)="generarCotizacion()">{{ guardando() ? 'Procesando...' : operacionFinalizada() ? 'Operación completada' : etiquetaAccionFinal() }}</button></footer>
+    </section>
+  }
+</main>

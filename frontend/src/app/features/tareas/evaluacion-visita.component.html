@@ -1,0 +1,217 @@
+<div class="evaluation-backdrop" role="presentation" (click)="close()">
+  <section
+    class="evaluation-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="evaluation-title"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- El encabezado comunica el modo sin duplicar formularios para cada estado. -->
+    <header class="evaluation-header">
+      <div>
+        <span>VISITA TÉCNICA</span>
+        <h2 id="evaluation-title">{{ title }}</h2>
+      </div>
+      @if (readonlyMode) {
+        <strong>Solo lectura</strong>
+      }
+    </header>
+
+    @if (task.soloLectura) {
+      <dl class="visit-summary">
+        <div>
+          <dt>Cliente</dt>
+          <dd>{{ task.cliente }}</dd>
+        </div>
+        <div>
+          <dt>Técnico responsable</dt>
+          <dd>{{ task.tecnico }}</dd>
+        </div>
+        <div>
+          <dt>Fecha y hora</dt>
+          <dd>{{ task.fecha }} · {{ task.hora }}</dd>
+        </div>
+        <div>
+          <dt>Tipo de instalación</dt>
+          <dd>{{ task.tipoInstalacion }}</dd>
+        </div>
+        <div class="visit-summary-reason">
+          <dt>Motivo</dt>
+          <dd>{{ task.descripcion }}</dd>
+        </div>
+      </dl>
+    }
+
+    <p class="evaluation-section-title">Evaluación técnica</p>
+    <form class="evaluation-form" novalidate (submit)="submit($event)">
+      <div class="evaluation-field">
+        <label for="work-description">Descripción del trabajo requerido *</label>
+        <textarea
+          id="work-description"
+          placeholder="Describa el trabajo que se deberá realizar..."
+          [value]="descripcionTrabajo()"
+          [readonly]="readonlyMode"
+          (input)="onDescriptionChange($event)"
+        ></textarea>
+        @if (errors().descripcionTrabajo) {
+          <small class="field-error">{{ errors().descripcionTrabajo }}</small>
+        }
+      </div>
+
+      <div class="evaluation-field technicians-count-field">
+        <label for="recommended-technicians">Técnicos recomendados *</label>
+        <input
+          id="recommended-technicians"
+          type="number"
+          min="1"
+          step="1"
+          [value]="tecnicosRecomendados() ?? ''"
+          [readonly]="readonlyMode"
+          (input)="onTechniciansChange($event)"
+        />
+        @if (errors().tecnicosRecomendados) {
+          <small class="field-error">{{ errors().tecnicosRecomendados }}</small>
+        }
+      </div>
+
+      <!-- Cada fila edita directamente descripción, cantidad y unidad del contrato backend. -->
+      <div class="evaluation-field materials-field">
+        <label>Materiales / accesorios necesarios</label>
+        @if (materialesDetalle().length) {
+          <div class="materials-list">
+            @for (material of materialesDetalle(); track $index) {
+              <div class="material-row">
+                <label class="material-description">
+                  <span>Descripción *</span>
+                  <input
+                    type="text"
+                    maxlength="200"
+                    [value]="material.descripcion"
+                    [readonly]="readonlyMode"
+                    aria-label="Descripción del material o accesorio"
+                    (input)="updateMaterial($index, 'descripcion', $event)"
+                  />
+                  @if (materialErrors()[$index]?.descripcion) {
+                    <small class="field-error">{{ materialErrors()[$index]?.descripcion }}</small>
+                  }
+                </label>
+                <label>
+                  <span>Cantidad *</span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    [value]="material.cantidad"
+                    [readonly]="readonlyMode"
+                    aria-label="Cantidad del material o accesorio"
+                    (input)="updateMaterial($index, 'cantidad', $event)"
+                  />
+                  @if (materialErrors()[$index]?.cantidad) {
+                    <small class="field-error">{{ materialErrors()[$index]?.cantidad }}</small>
+                  }
+                </label>
+                <label>
+                  <span>Unidad</span>
+                  <input
+                    type="text"
+                    maxlength="30"
+                    [value]="material.unidad ?? ''"
+                    [readonly]="readonlyMode"
+                    aria-label="Unidad del material o accesorio"
+                    (input)="updateMaterial($index, 'unidad', $event)"
+                  />
+                  @if (materialErrors()[$index]?.unidad) {
+                    <small class="field-error">{{ materialErrors()[$index]?.unidad }}</small>
+                  }
+                </label>
+                @if (!readonlyMode) {
+                  <button
+                    type="button"
+                    aria-label="Eliminar material"
+                    (click)="removeMaterial($index)"
+                  >
+                    ×
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        } @else if (readonlyMode) {
+          <p class="readonly-empty">Sin materiales registrados</p>
+        }
+        @if (!readonlyMode) {
+          <button class="add-material-button" type="button" (click)="addMaterial()">
+            + Agregar material / accesorio
+          </button>
+        }
+      </div>
+
+      <div class="evaluation-field">
+        <label for="site-conditions">Condiciones del lugar *</label>
+        <textarea
+          id="site-conditions"
+          placeholder="Describa acceso, postes, distancias u otras condiciones..."
+          [value]="condicionesLugar()"
+          [readonly]="readonlyMode"
+          (input)="onConditionsChange($event)"
+        ></textarea>
+        @if (errors().condicionesLugar) {
+          <small class="field-error">{{ errors().condicionesLugar }}</small>
+        }
+      </div>
+
+      <div class="evaluation-field">
+        <label for="technical-observation">Observación técnica *</label>
+        <textarea
+          id="technical-observation"
+          placeholder="Registre el resultado técnico de la evaluación..."
+          [value]="observacionTecnica()"
+          [readonly]="readonlyMode"
+          (input)="onObservationChange($event)"
+        ></textarea>
+        @if (errors().observacionTecnica) {
+          <small class="field-error">{{ errors().observacionTecnica }}</small>
+        }
+      </div>
+
+      <div class="evaluation-field location-field">
+        <label>Ubicación del cliente</label>
+        @if (readonlyMode) {
+          <p class="readonly-empty">
+            {{
+              task.evaluacion?.ubicacionRegistrada
+                ? 'Ubicación registrada'
+                : 'Sin ubicación registrada'
+            }}
+          </p>
+        } @else {
+          <button class="location-button" type="button" (click)="requestLocation()">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+              <circle cx="12" cy="10" r="2.5" />
+            </svg>
+            Agregar ubicación
+          </button>
+          @if (locationMessage()) {
+            <small class="location-message">{{ locationMessage() }}</small>
+          }
+        }
+      </div>
+
+      @if (formMessage()) {
+        <p class="form-message" role="alert">{{ formMessage() }}</p>
+      }
+
+      <footer class="evaluation-actions">
+        <button class="secondary-button" type="button" (click)="close()">
+          {{ readonlyMode ? 'Cerrar' : 'Cancelar' }}
+        </button>
+        @if (!readonlyMode) {
+          <button class="primary-button" type="submit" [disabled]="isSaving()">
+            {{ isSaving() ? 'Guardando...' : 'Terminar evaluación' }}
+          </button>
+        }
+      </footer>
+    </form>
+  </section>
+</div>

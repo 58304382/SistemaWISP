@@ -13,6 +13,26 @@ export interface Modulo {
   activo: boolean;
 }
 
+export interface EmpleadoDisponible {
+  id_empleado: number;
+  codigo: string;
+  nombres: string;
+  apellidos: string;
+  id_puesto: number;
+  nombre_puesto: string;
+}
+
+export interface EmpleadoUsuario {
+  id_empleado: number;
+  codigo: string;
+  nombres: string;
+  apellidos: string;
+  puesto: {
+    id_puesto: number;
+    nombre: string;
+  };
+}
+
 // ==========================================
 // MODELO DE USUARIO
 // ==========================================
@@ -27,14 +47,14 @@ export interface Usuario {
   updated_at: string | null;
   rol: Rol;
   modulos: Modulo[];
+  empleado?: EmpleadoUsuario | null;
 }
 
 // ==========================================
 // PAYLOADS DE USUARIO
 // ==========================================
 export interface UsuarioCreate {
-  nombre: string;
-  apellido: string;
+  id_empleado: number;
   username: string;
   password: string;
   rol_id: number;

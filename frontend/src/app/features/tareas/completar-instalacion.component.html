@@ -1,0 +1,93 @@
+<div class="completion-backdrop" role="presentation" (click)="cancel()">
+  <section
+    class="completion-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="completion-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="completion-header">
+      <span>INSTALACIÓN EN PROCESO</span>
+      <h2 id="completion-title">Completar instalación</h2>
+      <p>{{ task.cliente }}</p>
+    </header>
+
+    <form class="completion-form" novalidate (submit)="submit($event)">
+      <div class="completion-field">
+        <label for="completion-observation">Observación técnica *</label>
+        <textarea
+          id="completion-observation"
+          placeholder="Describa el trabajo realizado y cualquier detalle técnico..."
+          [value]="technicalObservation()"
+          (input)="onObservationChange($event)"
+        ></textarea>
+        @if (observationError()) {
+          <small class="field-error">{{ observationError() }}</small>
+        }
+      </div>
+
+      <!-- Los inputs permanecen ocultos; las etiquetas ofrecen cámara o galería con el mismo flujo. -->
+      <div class="completion-field evidence-field">
+        <label>Evidencia fotográfica *</label>
+        <input
+          id="camera-evidence"
+          type="file"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          capture="environment"
+          (change)="onPhotoChange($event)"
+        />
+        <input
+          id="gallery-evidence"
+          type="file"
+          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          (change)="onPhotoChange($event)"
+        />
+
+        @if (evidencePreviewUrl(); as previewUrl) {
+          <div class="evidence-preview">
+            <img [src]="previewUrl" alt="Vista previa de evidencia fotográfica" />
+            <strong>{{ evidencePhoto()?.name }}</strong>
+          </div>
+        }
+
+        <div class="evidence-options">
+          <label for="camera-evidence">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M8 6.5 9.5 4h5L16 6.5h3A2 2 0 0 1 21 8.5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"
+              />
+              <circle cx="12" cy="13" r="3.5" />
+            </svg>
+            Tomar fotografía
+          </label>
+          <label for="gallery-evidence">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <circle cx="8.5" cy="9" r="1.5" />
+              <path d="m3 17 4.5-4.5 3.5 3.5 2.5-2.5L21 18" />
+            </svg>
+            Seleccionar imagen
+          </label>
+        </div>
+        @if (evidenceError()) {
+          <small class="field-error">{{ evidenceError() }}</small>
+        }
+      </div>
+
+      <!-- Fecha y hora pertenecen al cierre del servidor, por eso no existen controles editables. -->
+      <p class="automatic-datetime">
+        <span aria-hidden="true">i</span>
+        Fecha y hora de finalización se registrarán automáticamente.
+      </p>
+
+      @if (formMessage()) {
+        <p class="form-message" role="alert">{{ formMessage() }}</p>
+      }
+
+      <footer class="completion-actions">
+        <button class="completion-cancel" type="button" (click)="cancel()">Cancelar</button>
+        <button class="completion-submit" type="submit">Completar instalación</button>
+      </footer>
+    </form>
+  </section>
+</div>

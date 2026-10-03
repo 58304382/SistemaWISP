@@ -1,0 +1,41 @@
+/* ==========================================
+   PANTALLA BASE DE DASHBOARD
+========================================== */
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.dashboard-page {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  padding: 32px;
+  background: var(--paper);
+}
+
+/* ==========================================
+   CONTENIDO DE PRESENTACION
+========================================== */
+.dashboard-placeholder {
+  width: min(100%, 720px);
+  padding: 42px;
+  border: 1px solid #e0e6ef;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(23, 38, 59, 0.06);
+}
+
+.dashboard-placeholder p {
+  margin: 0 0 10px;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.dashboard-placeholder h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 32px;
+}
