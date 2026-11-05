@@ -1,0 +1,212 @@
+<!-- ========================================
+     ENCABEZADO Y RUTA DEL CATALOGO
+========================================= -->
+<div class="catalog-page" [class.embedded]="embebido()">
+  <header class="catalog-header">
+    @if (!embebido()) {
+    <nav class="catalog-breadcrumb" aria-label="Ruta de navegación">
+      <a routerLink="/configuracion">Configuración</a>
+      <span aria-hidden="true">/</span>
+      <a routerLink="/configuracion/mantenimiento">Mantenimiento del Sistema</a>
+      <span aria-hidden="true">/</span>
+      <a routerLink="/configuracion/mantenimiento/catalogos">Catálogos</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">{{ config().titulo }}</span>
+    </nav>
+    }
+    <h1>{{ config().titulo }}</h1>
+    <p class="page-description">
+      Administre los registros del catálogo y su disponibilidad en el sistema.
+    </p>
+  </header>
+
+  <main class="catalog-content">
+    <div class="catalog-toolbar">
+      <div class="catalog-summary">
+        <strong>{{ totalActivos() }}</strong> activos / {{ tipos().length }} total
+      </div>
+      <button class="primary-button" type="button" [disabled]="cargando() || guardando() || procesandoId() !== null" (click)="abrirNuevo()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        Nuevo
+      </button>
+    </div>
+
+    @if (notice(); as aviso) {
+      <div class="notice-success" role="status">
+        <div><strong>{{ aviso.title }}</strong><span>{{ aviso.message }}</span></div>
+        <button type="button" aria-label="Cerrar mensaje" (click)="cerrarNotice()">×</button>
+      </div>
+    }
+
+    @if (errorMessage() && !modalAbierto()) {
+      <div class="inline-error" role="alert">{{ errorMessage() }}</div>
+    }
+
+    @if (catalogo() === 'caja') {
+      <p class="catalog-help">Las categorías automáticas conservan su origen. Entrada y Salida mantienen la operación manual actual; los nuevos registros no amplían ese formulario.</p>
+    }
+    <section class="catalog-table-card actions-sticky" [attr.aria-label]="config().titulo">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            @if (catalogo() === 'caja') { <th>Tipo</th><th>Origen financiero</th> }
+            @if (catalogo() === 'puestos') { <th>Funciones del sistema</th> }
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (cargando()) {
+            <tr><td class="empty-state" [attr.colspan]="columnas()">Cargando catálogo...</td></tr>
+          } @else if (tipos().length) {
+            @for (tipo of tipos(); track tipo.id_tipo_instalacion) {
+              <tr>
+                <td><strong>{{ tipo.nombre }}</strong></td>
+                <td>{{ tipo.descripcion || 'Sin descripción' }}</td>
+                @if (catalogo() === 'caja') { <td>{{ tipo.tipo }}</td><td>{{ tipo.origen_financiero || 'Manual' }}</td> }
+                @if (catalogo() === 'puestos') { <td>{{ tipo.tiene_funciones_sistema ? 'Sí' : 'No' }}</td> }
+                <td>
+                  <span class="status-pill" [class.inactive]="tipo.estado === 'Inactivo'">
+                    {{ tipo.estado }}
+                  </span>
+                </td>
+                <td>
+                  <div class="catalog-actions">
+                    <button class="action view" type="button" [disabled]="procesandoId() !== null" (click)="abrirVer(tipo)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2.8 12s3.2-5.2 9.2-5.2 9.2 5.2 9.2 5.2-3.2 5.2-9.2 5.2S2.8 12 2.8 12Z" />
+                        <circle cx="12" cy="12" r="2.2" />
+                      </svg>
+                      Ver
+                    </button>
+                    <button class="action edit" type="button" [disabled]="procesandoId() !== null" (click)="abrirEditar(tipo)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m4 16.5-.8 4.3 4.3-.8L19 8.5 15.5 5zM14 6.5l3.5 3.5" />
+                      </svg>
+                      Editar
+                    </button>
+                    <button
+                      class="action toggle"
+                      type="button"
+                      [disabled]="procesandoId() !== null || estadoProtegido(tipo)"
+                      [title]="estadoProtegido(tipo) ? 'Registro protegido por reglas del sistema' : ''"
+                      (click)="alternarEstado(tipo)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3v9M7.5 5.5A8 8 0 1 0 16.5 5.5" />
+                      </svg>
+                      {{ tipo.estado === 'Activo' ? 'Desactivar' : 'Activar' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          } @else {
+            <tr>
+              <td class="empty-state" [attr.colspan]="columnas()">
+                <strong>No hay registros en {{ config().titulo }}</strong>
+                <span>Utilice Nuevo para agregar un registro al catálogo.</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+
+<!-- ========================================
+     MODAL DE DETALLE, ALTA Y EDICION
+========================================= -->
+@if (modalAbierto()) {
+  <div class="modal-backdrop" role="presentation" (click)="cerrarModal()">
+    <section
+      class="catalog-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="catalog-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <div>
+          <p>CATÁLOGOS / {{ config().titulo }}</p>
+          <h2 id="catalog-modal-title">
+            {{ modo() === 'crear'
+              ? 'Nuevo ' + config().singular
+              : modo() === 'editar'
+                ? 'Editar ' + config().singular
+                : 'Detalle del ' + config().singular }}
+          </h2>
+        </div>
+        <button class="close-button" type="button" aria-label="Cerrar" (click)="cerrarModal()">
+          ×
+        </button>
+      </header>
+
+      @if (errorMessage()) {
+        <div class="inline-error" role="alert">{{ errorMessage() }}</div>
+      }
+
+      @if (modo() === 'ver' && seleccionado(); as tipo) {
+        <div class="detail-grid">
+          <div><span>Nombre</span><strong>{{ tipo.nombre }}</strong></div>
+          <div><span>Estado</span><strong>{{ tipo.estado }}</strong></div>
+          @if (catalogo() === 'caja') {
+            <div><span>Tipo</span><strong>{{ tipo.tipo }}</strong></div>
+            <div><span>Origen financiero</span><strong>{{ tipo.origen_financiero || 'Manual' }}</strong></div>
+          }
+          @if (catalogo() === 'puestos') {
+            <div><span>Funciones del sistema</span><strong>{{ tipo.tiene_funciones_sistema ? 'Sí' : 'No' }}</strong></div>
+          }
+          <div class="detail-wide">
+            <span>Descripción</span>
+            <strong>{{ tipo.descripcion || 'Sin descripción registrada' }}</strong>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" (click)="cerrarModal()">Cerrar</button>
+          <button class="primary-button" type="button" (click)="editarSeleccionado()">Editar</button>
+        </div>
+      } @else {
+        <form class="catalog-form" [formGroup]="form" (ngSubmit)="guardar()">
+          <label class="field-name">
+            <span>Nombre *</span>
+            <input type="text" formControlName="nombre" [attr.maxlength]="nombreMax()" [readOnly]="nombreProtegido()" autocomplete="off" />
+            @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+              <small class="field-error">El nombre es obligatorio.</small>
+            }
+          </label>
+          <label>
+            <span>Estado</span>
+            <select formControlName="estado">
+              <option value="Activo">Activo</option>
+              <option value="Inactivo">Inactivo</option>
+            </select>
+          </label>
+          @if (catalogo() === 'caja') {
+            <label><span>Tipo de movimiento</span><select formControlName="tipo"><option value="Ingreso">Ingreso</option><option value="Egreso">Egreso</option></select></label>
+            <label><span>Origen financiero (protegido)</span><input [value]="seleccionado()?.origen_financiero || 'Manual'" readonly /></label>
+          }
+          @if (catalogo() === 'puestos') {
+            <label><span>Funciones del sistema</span><input class="boolean-input" type="checkbox" formControlName="tiene_funciones_sistema" /></label>
+          }
+          @if (protegido() || nombreProtegido()) {
+            <p class="catalog-help field-wide">Los campos que sostienen asignaciones, accesos o procesos financieros están protegidos. Puede editar la descripción.</p>
+          }
+          <label class="field-wide">
+            <span>Descripción</span>
+            <textarea formControlName="descripcion" rows="3" [attr.maxlength]="descripcionMax()"></textarea>
+          </label>
+          <div class="modal-actions">
+            <button class="secondary-button" type="button" (click)="cerrarModal()">Cancelar</button>
+            <button class="primary-button" type="submit" [disabled]="guardando()">
+              {{ guardando() ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}

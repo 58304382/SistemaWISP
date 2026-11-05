@@ -20,6 +20,205 @@ REGLA PRINCIPAL:
 
 ---
 
+
+
+
+# REGLAS DE SCREAMING ARCHITECTURE
+
+## Organización general
+
+SistemaWISP utiliza Screaming Architecture.
+
+El código debe organizarse principalmente por funcionalidades o capacidades
+del negocio y no por tablas de base de datos.
+
+Una tabla de PostgreSQL NO equivale automáticamente a un módulo.
+
+Antes de crear un archivo nuevo, identificar primero qué módulo funcional es
+su propietario y revisar la estructura existente.
+
+No crear módulos, componentes, servicios, modelos o carpetas innecesarias.
+
+---
+
+## Backend
+
+Las funcionalidades del negocio deben ubicarse en:
+
+backend/app/modules/<modulo>/
+
+Cada módulo puede contener, cuando realmente corresponda:
+
+- models/
+- schemas/
+- services/
+- routers/
+
+Módulos actuales:
+
+- auth
+- clientes
+- cotizaciones
+- empleados
+- instalaciones
+- mapas
+- planes
+- tareas
+- usuarios
+- visitas_tecnicas
+
+No volver a crear funcionalidades en las antiguas carpetas globales:
+
+backend/app/routes/
+backend/app/schemas/
+
+backend/app/models/ no debe utilizarse para nuevos modelos funcionales.
+Se conserva únicamente el mecanismo global de registro ORM mientras sea
+necesario.
+
+backend/app/services/ no debe utilizarse para nuevos servicios funcionales,
+excepto servicios verdaderamente transversales.
+
+Actualmente debe permanecer:
+
+backend/app/services/image_uploads.py
+
+porque es compartido por diferentes módulos.
+
+---
+
+## Propiedad funcional
+
+Mantener estas responsabilidades:
+
+- PuestoEmpleado pertenece a Empleados.
+- Rol y Modulo/permisos pertenecen a Usuarios.
+- TipoInstalacion pertenece a Visitas Técnicas.
+- Evaluaciones de visitas pertenecen a Visitas Técnicas.
+- CotizacionDetalle y Proforma pertenecen a Cotizaciones.
+- Antena, UbicacionCliente y elementos geográficos del mapa pertenecen a Mapas.
+- InstalacionTecnico pertenece a Instalaciones.
+- Tareas no posee modelo ORM o tabla propia.
+- Auth pertenece al módulo Auth.
+- JWT y seguridad transversal permanecen en core.
+
+No crear módulos separados para entidades internas de estos agregados sin
+autorización explícita.
+
+---
+
+## Frontend Angular
+
+Las funcionalidades deben organizarse en:
+
+frontend/src/app/features/<feature>/
+
+Dentro de cada feature utilizar, cuando corresponda:
+
+- components/
+- models/
+- services/
+
+Los archivos relacionados con un componente Angular deben permanecer juntos:
+
+- .ts
+- .html
+- .css
+- .spec.ts
+
+No volver a crear:
+
+frontend/src/app/core/models/
+frontend/src/app/core/services/
+
+para almacenar lógica funcional.
+
+core/ queda reservado para infraestructura transversal como:
+
+- configuración;
+- guards;
+- interceptores;
+- utilidades globales.
+
+Los modelos y servicios propios de Auth pertenecen a:
+
+frontend/src/app/features/auth/
+
+Los guards e interceptor de autenticación permanecen en core.
+
+---
+
+## Archivos transversales
+
+Mantener en sus ubicaciones actuales:
+
+backend/app/services/image_uploads.py
+
+frontend/src/app/core/config/api.config.ts
+frontend/src/app/core/config/runtime-config.ts
+frontend/src/app/core/guards/access.guard.ts
+frontend/src/app/core/guards/access.guard.spec.ts
+frontend/src/app/core/guards/auth.guard.ts
+frontend/src/app/core/interceptors/auth.interceptor.ts
+frontend/src/app/core/utils/api-error.ts
+
+No mover estos archivos sin autorización específica.
+
+---
+
+## Nuevas funcionalidades
+
+Antes de desarrollar una funcionalidad:
+
+1. Identificar su módulo funcional propietario.
+2. Revisar la estructura existente.
+3. Reutilizar código existente cuando corresponda.
+4. Evitar duplicados.
+5. No crear carpetas globales funcionales.
+6. No crear un módulo únicamente porque exista una tabla.
+7. No modificar otros módulos fuera del alcance solicitado.
+
+Si se detecta un problema arquitectónico fuera del alcance de la tarea,
+reportarlo y esperar autorización.
+
+---
+
+## Base de datos
+
+Una reorganización del código NO autoriza modificaciones en PostgreSQL.
+
+No modificar sin autorización explícita:
+
+- tablas;
+- columnas;
+- claves foráneas;
+- constraints;
+- índices;
+- estados;
+- catálogos;
+- migraciones.
+
+---
+
+## Documentación del código
+
+Todo código nuevo o modificado dentro del alcance debe documentarse en español.
+
+Documentar especialmente:
+
+- funciones importantes;
+- validaciones;
+- reglas de negocio;
+- seguridad;
+- estados;
+- relaciones;
+- procesamiento de archivos;
+- lógica no evidente.
+
+No comentar cada línea.
+No agregar comentarios obvios.
+No modificar archivos fuera del alcance únicamente para documentarlos.
+
 ## 2. ARQUITECTURA REAL DEL PROYECTO
 
 SistemaWISP utiliza:
@@ -56,22 +255,51 @@ Rutas:
 
 `frontend/src/app/app.routes.ts`
 
-Código compartido de API, autenticación, modelos y servicios:
+Las funcionalidades del negocio deben organizarse principalmente en:
 
-`frontend/src/app/core/`
+`frontend/src/app/features/<feature>/`
 
-Funcionalidades principales:
+Cada feature puede contener, cuando corresponda:
 
-`frontend/src/app/features/`
+- `components/`
+- `models/`
+- `services/`
 
-Mantener la arquitectura Angular existente.
+Los archivos relacionados con un componente deben permanecer juntos:
 
-Antes de crear un nuevo componente, servicio, modelo o ruta, comprobar si
-ya existe una implementación reutilizable.
+- `.ts`
+- `.html`
+- `.css`
+- `.spec.ts`
 
-NO duplicar componentes, servicios ni rutas existentes.
+`frontend/src/app/core/` queda reservado exclusivamente para infraestructura
+transversal y compartida, como:
 
----
+- configuración de API;
+- configuración runtime;
+- guards;
+- interceptores;
+- utilidades globales.
+
+NO utilizar `core/` como ubicación para modelos o servicios propios de una
+funcionalidad.
+
+NO volver a crear:
+
+`frontend/src/app/core/models/`
+`frontend/src/app/core/services/`
+
+para almacenar lógica funcional.
+
+Antes de crear un componente, modelo, servicio o ruta:
+
+1. Identificar el feature funcional propietario.
+2. Revisar su estructura existente.
+3. Comprobar si ya existe una implementación reutilizable.
+4. Evitar duplicados.
+
+Mantener la arquitectura Angular existente y las reglas de Screaming
+Architecture definidas en este archivo.
 
 ## 4. ESTRUCTURA DEL BACKEND
 
@@ -83,40 +311,82 @@ Punto de entrada:
 
 `backend/app/main.py`
 
-Mantener la separación existente:
+Las funcionalidades del negocio deben organizarse principalmente en:
 
-`backend/app/models/`
-- Representación ORM de PostgreSQL.
+`backend/app/modules/<modulo>/`
 
-`backend/app/schemas/`
-- Validación de entrada y salida.
+Cada módulo funcional puede contener, cuando realmente corresponda:
 
-`backend/app/services/`
-- Lógica de negocio y acceso a datos.
+- `models/`
+- `schemas/`
+- `services/`
+- `routers/`
 
-`backend/app/routes/`
-- Endpoints HTTP.
+La organización debe representar capacidades funcionales del sistema y NO
+simplemente tablas de PostgreSQL.
+
+Una tabla NO equivale automáticamente a un módulo.
+
+Módulos funcionales actuales:
+
+- `auth`
+- `clientes`
+- `cotizaciones`
+- `empleados`
+- `instalaciones`
+- `mapas`
+- `planes`
+- `tareas`
+- `usuarios`
+- `visitas_tecnicas`
 
 `backend/app/core/`
-- Configuración, seguridad y funciones compartidas.
+
+se reserva para configuración, seguridad e infraestructura transversal.
+
+`backend/app/models/`
+
+NO debe utilizarse para crear nuevos modelos funcionales.
+Se conserva únicamente el mecanismo global de registro ORM existente mientras
+sea necesario para la inicialización de SQLAlchemy.
+
+`backend/app/services/`
+
+NO debe utilizarse para nuevos servicios propios de módulos funcionales.
+
+Actualmente se conserva:
+
+`backend/app/services/image_uploads.py`
+
+porque proporciona procesamiento de imágenes compartido entre diferentes
+módulos.
+
+Las antiguas carpetas globales:
+
+`backend/app/routes/`
+`backend/app/schemas/`
+
+ya no deben utilizarse para nuevas funcionalidades.
+
+Las migraciones permanecen en:
 
 `backend/migrations/`
-- Migraciones SQL del proyecto.
 
-No trasladar lógica entre capas innecesariamente.
+No asumir que Alembic está configurado.
 
-Antes de modificar una funcionalidad backend revisar, cuando corresponda:
+Antes de modificar una funcionalidad backend:
 
-1. model
-2. schema
-3. service
-4. route
-5. relaciones
-6. validaciones
-7. permisos
-8. pruebas relacionadas
+1. Identificar su módulo funcional propietario.
+2. Revisar sus models, schemas, services y routers existentes cuando correspondan.
+3. Revisar relaciones SQLAlchemy.
+4. Revisar validaciones y reglas de negocio.
+5. Revisar permisos y seguridad.
+6. Revisar pruebas relacionadas.
+7. Reutilizar implementaciones existentes.
+8. No modificar otros módulos fuera del alcance solicitado.
 
----
+No trasladar lógica entre módulos ni crear nuevas abstracciones sin una
+necesidad funcional y autorización correspondiente.
 
 ## 5. CONTROL ESTRICTO DEL ALCANCE
 

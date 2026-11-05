@@ -1,0 +1,39 @@
+<main class="finance-page">
+  <header class="page-heading">
+    <span class="heading-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <rect x="3.5" y="6.5" width="17" height="11" rx="2" />
+        <path d="M7 12h10M12 9v6" />
+      </svg>
+    </span>
+    <div>
+      <p>GESTIÓN FINANCIERA</p>
+      <h1>Finanzas</h1>
+      <span>Administre los movimientos financieros de SistemaWISP.</span>
+    </div>
+  </header>
+
+  <section class="finance-options" aria-label="Opciones de Finanzas">
+    <a class="option-card" routerLink="/finanzas/cobros" aria-label="Ir a Cobros">
+      <span class="option-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M5 7.5h13.5A1.5 1.5 0 0 1 20 9v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11"
+          />
+          <path d="M15 11h5v4h-5a2 2 0 0 1 0-4ZM16.5 13h.01" />
+        </svg>
+      </span>
+      <strong>Cobros</strong>
+    </a>
+
+    <a class="option-card" routerLink="/finanzas/caja-general" aria-label="Ir a Caja">
+      <span class="option-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M7 4h10l1 7H6l1-7ZM5 11h14v8H5zM8 7h8M8 15h3M15 15h1" />
+          <path d="M4 19h16" />
+        </svg>
+      </span>
+      <strong>Caja</strong>
+    </a>
+  </section>
+</main>

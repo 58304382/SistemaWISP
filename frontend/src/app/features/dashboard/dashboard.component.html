@@ -1,9 +1,491 @@
 <!-- ========================================
-     PANTALLA BASE DE DASHBOARD
+     DASHBOARD GERENCIAL
 ========================================= -->
-<section class="dashboard-page" aria-labelledby="dashboard-title">
-  <section class="dashboard-placeholder">
-    <p>VISTA PRINCIPAL</p>
-    <h1 id="dashboard-title">Dashboard</h1>
+<main class="dashboard-page">
+  <header class="dashboard-header">
+    <span class="heading-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <rect x="4" y="4" width="6" height="6" rx="1" />
+        <rect x="14" y="4" width="6" height="6" rx="1" />
+        <rect x="4" y="14" width="6" height="6" rx="1" />
+        <rect x="14" y="14" width="6" height="6" rx="1" />
+      </svg>
+    </span>
+    <div class="heading-copy">
+      <p class="eyebrow">GERENCIA / VISTA CONSOLIDADA</p>
+      <h1>Dashboard Gerencial</h1>
+      <span>Indicadores reales de finanzas, clientes, servicios y operación.</span>
+    </div>
+    <div class="heading-meta">
+      @if (periodoInfo(); as info) {
+        <span class="period-chip">{{ info.descripcion }}</span>
+      }
+      @if (actualizadoEn(); as fecha) {
+        <span class="updated-at">Actualizado {{ formatearFechaHora(fecha) }}</span>
+      }
+    </div>
+  </header>
+
+  <section class="dashboard-content">
+    <!-- ========================================
+         FILTROS DE PERÍODO
+    ========================================= -->
+    <div class="filter-bar" aria-label="Filtros del Dashboard">
+      <div class="period-group" role="group" aria-label="Período del Dashboard">
+        @for (opcion of periodos; track opcion.codigo) {
+          <button
+            type="button"
+            class="period-button"
+            [class.selected]="periodo() === opcion.codigo"
+            [attr.aria-pressed]="periodo() === opcion.codigo"
+            (click)="seleccionarPeriodo(opcion.codigo)"
+          >
+            {{ opcion.nombre }}
+          </button>
+        }
+      </div>
+
+      @if (periodo() === 'personalizado') {
+        <div class="custom-range">
+          <label>
+            <span>Desde</span>
+            <input type="date" [value]="fechaInicio()" (change)="actualizarFechaInicio($event)" />
+          </label>
+          <label>
+            <span>Hasta</span>
+            <input type="date" [value]="fechaFin()" (change)="actualizarFechaFin($event)" />
+          </label>
+          <button type="button" class="apply-button" [disabled]="cargando()" (click)="aplicarPersonalizado()">
+            Aplicar
+          </button>
+        </div>
+      }
+
+      <button
+        type="button"
+        class="refresh-button"
+        [disabled]="cargando()"
+        aria-label="Actualizar indicadores"
+        (click)="actualizar()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 11a8 8 0 1 0-2.3 6.2M20 5v6h-6" />
+        </svg>
+        <span>{{ cargando() ? 'Actualizando' : 'Actualizar' }}</span>
+      </button>
+    </div>
+
+    <!-- ========================================
+         ESTADOS DE ERROR Y CARGA
+    ========================================= -->
+    @if (error()) {
+      <div class="error-banner" role="alert">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v6M12 16h.01" />
+        </svg>
+        <span>{{ error() }}</span>
+        <button type="button" (click)="actualizar()">Reintentar</button>
+      </div>
+    }
+
+    @if (cargando() && resumen()) {
+      <div class="loading-strip" role="status">
+        <span></span>
+        Actualizando indicadores del período...
+      </div>
+    }
+
+    @if (cargando() && !resumen()) {
+      <section class="skeleton-grid" role="status" aria-label="Cargando indicadores">
+        @for (tarjeta of tarjetasCarga; track tarjeta) {
+          <div class="skeleton-card"></div>
+        }
+      </section>
+      <section class="skeleton-chart-grid" aria-hidden="true">
+        <div class="skeleton-chart wide"></div>
+        <div class="skeleton-chart"></div>
+        <div class="skeleton-chart"></div>
+      </section>
+    } @else if (resumen(); as data) {
+      @if (sinDatos()) {
+        <div class="empty-banner" role="status">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6" />
+          </svg>
+          <div>
+            <strong>No hay actividad registrada en este período</strong>
+            <span>Cambie el filtro para consultar otro rango de fechas.</span>
+          </div>
+        </div>
+      }
+
+      <!-- ========================================
+           TARJETAS GERENCIALES
+      ========================================= -->
+      <section class="metric-grid" aria-label="Indicadores principales">
+        <article class="metric-card tone-blue">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 17V7M4 17h16M8 14l3-4 3 2 4-6" />
+            </svg>
+          </span>
+          <div class="metric-copy">
+            <p>Ingresos confirmados</p>
+            <strong>{{ data.financiero.ingresos | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+            <small>Pagos confirmados en el período</small>
+          </div>
+        </article>
+
+        <article class="metric-card tone-teal">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 7h16v11H4zM8 12h8M12 9.5v5" />
+            </svg>
+          </span>
+          <div class="metric-copy">
+            <p>Cobros aplicados</p>
+            <strong>{{ data.financiero.cobros_aplicados | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+            <small>Importe aplicado a obligaciones</small>
+          </div>
+        </article>
+
+        <article class="metric-card tone-amber">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 6h14v13H5zM8 3v4M16 3v4M8 12h8M8 15h5" />
+            </svg>
+          </span>
+          <div class="metric-copy">
+            <p>Cartera pendiente</p>
+            <strong>{{ data.financiero.cartera_pendiente | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+            <small>{{ data.financiero.documentos_pendientes }} documentos con saldo</small>
+          </div>
+        </article>
+
+        <article class="metric-card tone-red">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v6M12 16h.01" />
+            </svg>
+          </span>
+          <div class="metric-copy">
+            <p>Morosidad</p>
+            <strong>{{ data.financiero.morosidad_monto | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+            <small>{{ data.financiero.documentos_vencidos }} documentos vencidos</small>
+          </div>
+        </article>
+
+        <article class="metric-card tone-indigo">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="9" cy="8" r="3" />
+              <circle cx="17" cy="9" r="2.5" />
+              <path d="M3.5 19c.5-3.2 2.4-5 5.5-5s5 1.8 5.5 5M14 15c2.8-.7 5.4.6 6.5 3.6" />
+            </svg>
+          </span>
+          <div class="metric-copy">
+            <p>Clientes activos</p>
+            <strong>{{ data.clientes.activos }}</strong>
+            <small>{{ data.clientes.inactivos }} inactivos · {{ data.clientes.total }} totales</small>
+          </div>
+        </article>
+
+        <article class="metric-card tone-purple">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 10a12 12 0 0 1 16 0M7 13a8 8 0 0 1 10 0M10 16a4 4 0 0 1 4 0" />
+              <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+          <div class="metric-copy">
+            <p>Servicios activos</p>
+            <strong>{{ data.servicios.activos }}</strong>
+            <small>{{ data.servicios.inactivos }} inactivos · {{ data.servicios.total }} totales</small>
+          </div>
+        </article>
+
+        <article class="metric-card tone-green">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6M16 7h3v3" />
+            </svg>
+          </span>
+          <div class="metric-copy">
+            <p>Ingreso mensual contratado</p>
+            <strong>{{ data.servicios.ingreso_mensual_contratado | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+            <small>{{ data.servicios.clientes_con_servicio_activo }} clientes con servicio</small>
+          </div>
+        </article>
+      </section>
+
+      <!-- ========================================
+           GRÁFICAS
+      ========================================= -->
+      <!-- ========================================
+           RESUMEN FINANCIERO Y ALERTAS
+      ========================================= -->
+      <section class="summary-grid" aria-label="Resumen financiero y alertas">
+        <article class="summary-card financial-summary">
+          <header class="summary-header">
+            <div>
+              <p>CAJA GENERAL</p>
+              <h2>RESUMEN FINANCIERO</h2>
+              <span>Movimientos reales calculados por el módulo de Caja.</span>
+            </div>
+            <a class="summary-link" routerLink="/finanzas">
+              Ver finanzas
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h14M14 7l5 5-5 5" />
+              </svg>
+            </a>
+          </header>
+
+          @if (reporteCaja(); as caja) {
+            <div class="financial-metrics">
+              <div class="financial-metric">
+                <span>Saldo inicial</span>
+                <strong>{{ caja.saldo_inicial | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+              </div>
+              <div class="financial-metric">
+                <span>Entradas</span>
+                <strong>{{ caja.entradas | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+              </div>
+              <div class="financial-metric">
+                <span>Salidas</span>
+                <strong>{{ caja.salidas | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+              </div>
+              <div class="financial-metric expected">
+                <span>Saldo esperado</span>
+                <strong>{{ caja.saldo_esperado | currency: 'GTQ' : 'symbol-narrow' }}</strong>
+              </div>
+            </div>
+            <p class="summary-footnote">
+              {{ caja.periodo_descripcion }} · {{ caja.total_movimientos }} movimientos
+            </p>
+          } @else if (errorCaja()) {
+            <div class="summary-empty" role="status">
+              <strong>Resumen no disponible</strong>
+              <span>{{ errorCaja() }}</span>
+            </div>
+          } @else if (periodo() === 'personalizado') {
+            <div class="summary-empty" role="status">
+              <strong>Rango personalizado no disponible</strong>
+              <span>El reporte actual de Caja General solo admite hoy, semana o mes.</span>
+            </div>
+          } @else if (!cajaDisponible()) {
+            <div class="summary-empty" role="status">
+              <strong>Acceso administrativo requerido</strong>
+              <span>El resumen de Caja General está disponible para el perfil Administrador.</span>
+            </div>
+          } @else {
+            <div class="summary-empty" role="status">
+              <strong>Sin movimientos en Caja</strong>
+              <span>No se registraron movimientos para el período consultado.</span>
+            </div>
+          }
+        </article>
+
+        <article class="summary-card alerts-summary">
+          <header class="summary-header">
+            <div>
+              <p>MONITOREO</p>
+              <h2>ALERTAS INTELIGENTES</h2>
+              <span>Incidencias reales detectadas en la operación.</span>
+            </div>
+            <span class="alert-count">{{ alertas().length }}</span>
+          </header>
+
+          @if (alertas().length) {
+            <div class="alerts-list">
+              @for (alerta of alertas(); track alerta.titulo) {
+                <div
+                  class="alert-item"
+                  [class.critical]="alerta.nivel === 'critica'"
+                  [class.warning]="alerta.nivel === 'atencion'"
+                  [class.info]="alerta.nivel === 'informativa'"
+                >
+                  <span class="alert-dot" aria-hidden="true"></span>
+                  <div class="alert-copy">
+                    <strong>{{ alerta.titulo }}</strong>
+                    <span>{{ alerta.mensaje }}</span>
+                  </div>
+                  @if (alerta.monto) {
+                    <strong class="alert-amount">
+                      {{ alerta.monto | currency: 'GTQ' : 'symbol-narrow' }}
+                    </strong>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="alerts-empty">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="m8.5 12 2.3 2.3 4.7-5" />
+              </svg>
+              <div>
+                <strong>Sin alertas activas</strong>
+                <span>No se detectaron incidencias en el período consultado.</span>
+              </div>
+            </div>
+          }
+        </article>
+      </section>
+
+      <section class="chart-grid" aria-label="Gráficas gerenciales">
+        <article class="chart-card chart-wide">
+          <header class="card-heading">
+            <div>
+              <p>FINANZAS</p>
+              <h2>Ingresos vs cobros aplicados</h2>
+              <span>Evolución del dinero confirmado y aplicado en el período.</span>
+            </div>
+          </header>
+          <app-dashboard-line-chart
+            [series]="lineasFinancieras()"
+            [etiquetas]="etiquetasFinancieras()"
+            [moneda]="true"
+            descripcion="Evolución de ingresos confirmados y cobros aplicados"
+          />
+        </article>
+
+        <article class="chart-card">
+          <header class="card-heading">
+            <div>
+              <p>CARTERA</p>
+              <h2>Pendiente por vencimiento</h2>
+              <span>Saldo pendiente agrupado por fecha de vencimiento.</span>
+            </div>
+          </header>
+          <app-dashboard-line-chart
+            [series]="lineasCartera()"
+            [etiquetas]="etiquetasCartera()"
+            [moneda]="true"
+            descripcion="Cartera pendiente por fecha de vencimiento"
+          />
+        </article>
+
+        <article class="chart-card">
+          <header class="card-heading">
+            <div>
+              <p>ORIGEN</p>
+              <h2>Ingresos por origen</h2>
+              <span>Pagos confirmados según su origen financiero.</span>
+            </div>
+          </header>
+          <app-dashboard-bar-chart
+            [items]="barrasOrigenIngresos()"
+            [moneda]="true"
+            descripcion="Ingresos confirmados por origen financiero"
+          />
+        </article>
+
+        <article class="chart-card">
+          <header class="card-heading">
+            <div>
+              <p>COMERCIAL</p>
+              <h2>Importe cotizado</h2>
+              <span>Valor de las cotizaciones emitidas en el período.</span>
+            </div>
+          </header>
+          <app-dashboard-line-chart
+            [series]="lineasComerciales()"
+            [etiquetas]="etiquetasComerciales()"
+            [moneda]="true"
+            descripcion="Importe cotizado en el período"
+          />
+        </article>
+
+        <article class="chart-card">
+          <header class="card-heading">
+            <div>
+              <p>COTIZACIONES</p>
+              <h2>Distribución por estado</h2>
+              <span>Cantidad real de cotizaciones según su estado.</span>
+            </div>
+          </header>
+          <app-dashboard-bar-chart
+            [items]="barrasCotizaciones()"
+            descripcion="Cotizaciones agrupadas por estado"
+          />
+        </article>
+
+        <article class="chart-card chart-wide">
+          <header class="card-heading">
+            <div>
+              <p>OPERACIÓN</p>
+              <h2>Evolución operativa</h2>
+              <span>Registros creados o programados en los cinco módulos operativos.</span>
+            </div>
+          </header>
+          <app-dashboard-line-chart
+            [series]="lineasOperativas()"
+            [etiquetas]="etiquetasOperativas()"
+            descripcion="Evolución de registros operativos del período"
+          />
+        </article>
+      </section>
+
+      <!-- ========================================
+           RESUMEN OPERATIVO
+      ========================================= -->
+      <section class="operations-panel" aria-labelledby="operations-title">
+        <header class="section-heading">
+          <div>
+            <p>OPERACIÓN</p>
+            <h2 id="operations-title">Resumen por módulo</h2>
+            <span>Visitas, instalaciones, cotizaciones, órdenes y tickets por estado.</span>
+          </div>
+        </header>
+
+        @if (modulosOperativos().length) {
+          <div class="operations-grid">
+            @for (modulo of modulosOperativos(); track modulo.clave) {
+              <article class="operation-card">
+                <div class="operation-head">
+                  <span>{{ modulo.nombre }}</span>
+                  <strong>{{ modulo.total }}</strong>
+                </div>
+                <div class="status-track" aria-hidden="true">
+                  @for (estado of modulo.estados; track estado.estado) {
+                    @if (estado.cantidad > 0) {
+                      <span
+                        [style.width.%]="estado.porcentaje"
+                        [style.background]="estado.color"
+                        [attr.title]="estado.estado + ': ' + estado.cantidad"
+                      ></span>
+                    }
+                  }
+                </div>
+                <div class="status-list">
+                  @for (estado of modulo.estados; track estado.estado) {
+                    <span class="status-line">
+                      <i [style.background]="estado.color"></i>
+                      <small>{{ estado.estado }}</small>
+                      <strong>{{ estado.cantidad }}</strong>
+                    </span>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="empty-panel">
+            <strong>Sin información operativa</strong>
+            <span>No existen registros para el período seleccionado.</span>
+          </div>
+        }
+      </section>
+    } @else if (!cargando() && !error()) {
+      <section class="empty-panel empty-panel-large">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6" />
+        </svg>
+        <strong>No hay datos disponibles</strong>
+        <span>Seleccione otro período o intente actualizar la información.</span>
+      </section>
+    }
   </section>
-</section>
+</main>

@@ -2,6 +2,8 @@
    ESTRUCTURA DEL SIDEBAR
 ========================================== */
 :host {
+  position: relative;
+  z-index: 30;
   display: block;
   flex: 0 0 274px;
   height: 100%;
@@ -11,11 +13,16 @@
   display: flex;
   flex-direction: column;
   width: 274px;
-  height: 100vh;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   color: #b8c9e1;
   background: #0d2342;
+}
+
+.tablet-toggle-button,
+.mobile-close-button {
+  display: none;
 }
 
 /* ==========================================
@@ -308,11 +315,210 @@
 /* ==========================================
    RESPONSIVE Y ACCESIBILIDAD DE MOVIMIENTO
 ========================================== */
-@media (max-width: 760px) {
-  :host,
+@media (min-width: 761px) and (max-width: 1199px) {
+  :host {
+    flex: 0 0 76px;
+    width: 76px;
+  }
+
   .system-sidebar {
-    flex-basis: 240px;
-    width: 240px;
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 76px;
+    overflow: visible;
+    transition:
+      width 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .system-sidebar.tablet-expanded {
+    width: 274px;
+    box-shadow: 12px 0 28px rgba(7, 20, 39, 0.24);
+  }
+
+  .tablet-toggle-button {
+    position: absolute;
+    z-index: 2;
+    top: 10px;
+    right: -20px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 2px solid #f7f9fc;
+    border-radius: 50%;
+    color: #fff;
+    background: #2054d8;
+    box-shadow: 0 3px 9px rgba(7, 20, 39, 0.28);
+    cursor: pointer;
+  }
+
+  .tablet-toggle-button svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    transition: transform 0.18s ease;
+  }
+
+  .tablet-expanded .tablet-toggle-button svg {
+    transform: rotate(180deg);
+  }
+
+  .sidebar-brand {
+    padding: 0 18px;
+  }
+
+  .brand-copy,
+  .nav-item > span,
+  .nav-section-title,
+  .sidebar-user-copy {
+    width: 0;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    white-space: nowrap;
+    transition:
+      max-width 0.18s ease,
+      opacity 0.12s ease;
+  }
+
+  .nav-item {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 10px;
+  }
+
+  .clients-entry > .nav-item {
+    padding-right: 10px;
+  }
+
+  .clients-expander,
+  .clients-submenu {
+    display: none;
+  }
+
+  .sidebar-bottom {
+    padding: 12px 10px;
+  }
+
+  .sidebar-user {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .logout-button {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .tablet-expanded .sidebar-brand {
+    padding: 0 14px;
+  }
+
+  .tablet-expanded .brand-copy,
+  .tablet-expanded .nav-item > span,
+  .tablet-expanded .nav-section-title,
+  .tablet-expanded .sidebar-user-copy {
+    width: auto;
+    max-width: 220px;
+    opacity: 1;
+  }
+
+  .tablet-expanded .nav-item {
+    justify-content: flex-start;
+    gap: 15px;
+  }
+
+  .tablet-expanded .clients-entry > .nav-item {
+    padding-right: 40px;
+  }
+
+  .tablet-expanded .clients-expander {
+    display: grid;
+  }
+
+  .tablet-expanded .clients-submenu {
+    display: block;
+  }
+
+  .tablet-expanded .sidebar-user {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .tablet-expanded .sidebar-bottom {
+    padding: 17px 14px 14px;
+  }
+
+  .tablet-expanded .logout-button {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 760px) {
+  :host {
+    position: fixed;
+    z-index: 50;
+    inset: 0 auto 0 0;
+    width: min(86vw, 300px);
+    height: 100dvh;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-100%);
+    transition:
+      transform 0.2s ease,
+      visibility 0s linear 0.2s;
+  }
+
+  :host(.mobile-open) {
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;
+  }
+
+  .system-sidebar {
+    width: 100%;
+    height: 100%;
+    box-shadow: 12px 0 30px rgba(7, 20, 39, 0.3);
+  }
+
+  .sidebar-brand {
+    padding-right: 56px;
+  }
+
+  .mobile-close-button {
+    position: absolute;
+    z-index: 2;
+    top: 10px;
+    right: 10px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    color: #d9e5f7;
+    background: rgba(38, 82, 143, 0.38);
+    cursor: pointer;
+  }
+
+  .mobile-close-button svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.9;
   }
 
   .nav-item {
@@ -325,8 +531,28 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :host,
+  .system-sidebar,
   .nav-item,
-  .chevron {
+  .chevron,
+  .tablet-toggle-button svg {
     transition: none;
+  }
+}
+
+/* En el drawer táctil se amplían los controles secundarios. */
+@media (max-width: 760px) {
+  .clients-expander {
+    width: 44px;
+    height: 44px;
+  }
+
+  .nav-subitem {
+    min-height: 44px;
+  }
+
+  .logout-button {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

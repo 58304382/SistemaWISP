@@ -10,7 +10,7 @@ import {
 import { Observable, firstValueFrom, of } from 'rxjs';
 
 import { administratorGuard, moduleAccessGuard } from './access.guard';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../features/auth/services/auth.service';
 
 describe('guards de acceso', () => {
   const user = {
@@ -64,6 +64,25 @@ describe('guards de acceso', () => {
   }
 
   it('permite un módulo asignado y activo', async () => {
+    await expect(resolveGuard(runGuard(moduleAccessGuard))).resolves.toBe(true);
+  });
+
+  it('permite una ruta cuando el usuario posee uno de sus módulos alternativos', async () => {
+    auth.hasModule.mockImplementation((code: string) => code === 'pagos_internet');
+
+    await expect(
+      resolveGuard(
+        runGuard(moduleAccessGuard, {
+          modules: ['pagos_internet', 'pagos_instalaciones'],
+        }),
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('permite al Administrador las rutas protegidas por módulos', async () => {
+    auth.hasModule.mockReturnValue(false);
+    auth.isAdministrator.mockReturnValue(true);
+
     await expect(resolveGuard(runGuard(moduleAccessGuard))).resolves.toBe(true);
   });
 

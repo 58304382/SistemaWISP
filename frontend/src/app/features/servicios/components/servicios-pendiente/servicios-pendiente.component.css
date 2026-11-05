@@ -1,0 +1,38 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.pending-page {
+  min-height: 100%;
+  padding: 47px clamp(30px, 5vw, 76px);
+  box-sizing: border-box;
+  background: var(--paper);
+}
+
+.pending-page a {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pending-page h1 {
+  margin: 18px 0 0;
+  color: var(--ink);
+  font-size: 33px;
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+}
+
+.pending-page p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 650px) {
+  .pending-page {
+    padding: 29px 21px;
+  }
+}

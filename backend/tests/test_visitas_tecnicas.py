@@ -10,26 +10,30 @@ from unittest.mock import MagicMock, patch
 from pydantic import ValidationError
 
 from app.main import app
-from app.routes.visitas_tecnicas import _business_error
-from app.schemas.visita_tecnica import (
+from app.modules.visitas_tecnicas.routers.visitas_tecnicas import _business_error
+from app.modules.visitas_tecnicas.schemas.visita_tecnica import (
     EvaluacionVisitaFinalizar,
     PrimeraUbicacionVisitaCreate,
+    UbicacionVisitaUpdate,
     VisitaTecnicaCreate,
     VisitaTecnicaResponse,
     VisitaTecnicaUpdate,
 )
-from app.services.cotizaciones import EvaluacionConflictError
-from app.services.tareas import _visit_task
-from app.services.visitas_tecnicas import (
+from app.modules.cotizaciones.services.cotizaciones import EvaluacionConflictError
+from app.modules.tareas.services.tareas import _visit_task
+from app.modules.visitas_tecnicas.services.visitas_tecnicas import (
     UbicacionClienteInactivaError,
     UbicacionClienteNoPerteneceError,
     UbicacionClienteNotFoundError,
     UbicacionVisitaExistenteError,
+    RequisitosUbicacionVisitaError,
+    EstadoVisitaError,
     VisitaConflictError,
     VisitaNoAsignadaError,
     _locked_visit,
     _validate_client_location,
     _visit_response,
+    actualizar_ubicacion_visita,
     create_visita,
     finalizar_evaluacion,
     registrar_primera_ubicacion,
@@ -50,6 +54,7 @@ def evaluacion_final() -> EvaluacionVisitaFinalizar:
                 "unidad": "Metro",
             }
         ],
+        ubicacion_confirmada=True,
     )
 
 
@@ -57,16 +62,21 @@ class FinalizarEvaluacionTests(unittest.TestCase):
     """Verifica que visita, evaluacion y cotizacion compartan la transaccion."""
 
     @patch(
-        "app.services.visitas_tecnicas._committed_visit",
+        "app.modules.visitas_tecnicas.services.visitas_tecnicas._committed_visit",
         return_value={"estado": "Completada"},
     )
-    @patch("app.services.visitas_tecnicas.create_cotizacion_evaluacion")
-    @patch("app.services.visitas_tecnicas._locked_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.create_cotizacion_evaluacion")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
     def test_finaliza_y_crea_cotizacion_antes_del_unico_commit(
         self, locked_visit, create_quote, _committed_visit
     ) -> None:
         db = MagicMock()
-        visit = SimpleNamespace(id_empleado=17, estado="En Proceso")
+        visit = SimpleNamespace(
+            id_empleado=17,
+            id_cliente=5,
+            id_ubicacion=31,
+            estado="En Proceso",
+        )
         evaluation = SimpleNamespace(
             id_evaluacion=8,
             descripcion_trabajo="Anterior",
@@ -75,6 +85,13 @@ class FinalizarEvaluacionTests(unittest.TestCase):
             observacion_tecnica=None,
         )
         locked_visit.return_value = visit
+        db.get.return_value = SimpleNamespace(
+            id_cliente=5,
+            estado="Activo",
+            latitud=Decimal("14.6"),
+            longitud=Decimal("-90.5"),
+            foto_fachada="uploads/ubicaciones_clientes/ubicacion_31.webp",
+        )
         db.scalar.return_value = evaluation
 
         response = finalizar_evaluacion(
@@ -101,17 +118,29 @@ class FinalizarEvaluacionTests(unittest.TestCase):
         db.commit.assert_called_once()
         db.rollback.assert_not_called()
 
-    @patch("app.services.visitas_tecnicas._committed_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._committed_visit")
     @patch(
-        "app.services.visitas_tecnicas.create_cotizacion_evaluacion",
+        "app.modules.visitas_tecnicas.services.visitas_tecnicas.create_cotizacion_evaluacion",
         side_effect=EvaluacionConflictError,
     )
-    @patch("app.services.visitas_tecnicas._locked_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
     def test_cotizacion_existente_revierte_toda_la_finalizacion(
         self, locked_visit, _create_quote, committed_visit
     ) -> None:
         db = MagicMock()
-        locked_visit.return_value = SimpleNamespace(id_empleado=17, estado="En Proceso")
+        locked_visit.return_value = SimpleNamespace(
+            id_empleado=17,
+            id_cliente=5,
+            id_ubicacion=31,
+            estado="En Proceso",
+        )
+        db.get.return_value = SimpleNamespace(
+            id_cliente=5,
+            estado="Activo",
+            latitud=Decimal("14.6"),
+            longitud=Decimal("-90.5"),
+            foto_fachada="uploads/ubicaciones_clientes/ubicacion_31.webp",
+        )
         db.scalar.return_value = SimpleNamespace(id_evaluacion=8)
 
         with self.assertRaises(VisitaConflictError):
@@ -126,6 +155,44 @@ class FinalizarEvaluacionTests(unittest.TestCase):
         db.rollback.assert_called_once()
         db.commit.assert_not_called()
         committed_visit.assert_not_called()
+
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
+    def test_rechaza_finalizar_sin_confirmacion_del_marcador(self, locked_visit) -> None:
+        db = MagicMock()
+        locked_visit.return_value = SimpleNamespace(
+            id_empleado=17,
+            id_cliente=5,
+            id_ubicacion=31,
+            estado="En Proceso",
+        )
+        data = evaluacion_final().model_copy(update={"ubicacion_confirmada": False})
+
+        with self.assertRaises(RequisitosUbicacionVisitaError):
+            finalizar_evaluacion(db, 15, data, 17, 9)
+
+        db.commit.assert_not_called()
+
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
+    def test_rechaza_finalizar_sin_fachada(self, locked_visit) -> None:
+        db = MagicMock()
+        locked_visit.return_value = SimpleNamespace(
+            id_empleado=17,
+            id_cliente=5,
+            id_ubicacion=31,
+            estado="En Proceso",
+        )
+        db.get.return_value = SimpleNamespace(
+            id_cliente=5,
+            estado="Activo",
+            latitud=Decimal("14.6"),
+            longitud=Decimal("-90.5"),
+            foto_fachada=None,
+        )
+
+        with self.assertRaises(RequisitosUbicacionVisitaError):
+            finalizar_evaluacion(db, 15, evaluacion_final(), 17, 9)
+
+        db.commit.assert_not_called()
 
 
 class VisitaPropiedadTests(unittest.TestCase):
@@ -142,10 +209,10 @@ class VisitaPropiedadTests(unittest.TestCase):
             motivo_visita="Evaluar instalacion",
         )
 
-    @patch("app.services.visitas_tecnicas._committed_visit", return_value={"ok": True})
-    @patch("app.services.visitas_tecnicas._validate_active_technician")
-    @patch("app.services.visitas_tecnicas._validate_active_type")
-    @patch("app.services.visitas_tecnicas._validate_active_client")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._committed_visit", return_value={"ok": True})
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_technician")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_type")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_client")
     def test_crea_visita_con_propiedad_valida(
         self, _client, _type, _technician, _committed
     ) -> None:
@@ -160,10 +227,10 @@ class VisitaPropiedadTests(unittest.TestCase):
         db.get.assert_called_once()
         db.commit.assert_called_once()
 
-    @patch("app.services.visitas_tecnicas._committed_visit", return_value={"ok": True})
-    @patch("app.services.visitas_tecnicas._validate_active_technician")
-    @patch("app.services.visitas_tecnicas._validate_active_type")
-    @patch("app.services.visitas_tecnicas._validate_active_client")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._committed_visit", return_value={"ok": True})
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_technician")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_type")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_client")
     def test_crea_visita_sin_propiedad(
         self, _client, _type, _technician, _committed
     ) -> None:
@@ -195,10 +262,10 @@ class VisitaPropiedadTests(unittest.TestCase):
         with self.assertRaises(UbicacionClienteInactivaError):
             _validate_client_location(db, 18, 5)
 
-    @patch("app.services.visitas_tecnicas._committed_visit", return_value={"ok": True})
-    @patch("app.services.visitas_tecnicas._validate_active_technician")
-    @patch("app.services.visitas_tecnicas._validate_active_type")
-    @patch("app.services.visitas_tecnicas._validate_active_client")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._committed_visit", return_value={"ok": True})
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_technician")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_type")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_client")
     def test_actualiza_visita_con_propiedad(
         self, _client, _type, _technician, _committed
     ) -> None:
@@ -218,10 +285,10 @@ class VisitaPropiedadTests(unittest.TestCase):
         self.assertEqual(visit.id_ubicacion, 18)
         db.commit.assert_called_once()
 
-    @patch("app.services.visitas_tecnicas._committed_visit", return_value={"ok": True})
-    @patch("app.services.visitas_tecnicas._validate_active_technician")
-    @patch("app.services.visitas_tecnicas._validate_active_type")
-    @patch("app.services.visitas_tecnicas._validate_active_client")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._committed_visit", return_value={"ok": True})
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_technician")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_type")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._validate_active_client")
     def test_permite_retirar_propiedad_de_visita(
         self, _client, _type, _technician, _committed
     ) -> None:
@@ -293,20 +360,20 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
             direccion="Sector Norte",
             referencia="Frente al parque",
             observaciones="Portón azul",
+            latitud=Decimal("14.6349142"),
+            longitud=Decimal("-90.5068824"),
         )
 
-    def test_acepta_coordenadas_validas_y_ambas_nulas(self) -> None:
+    def test_exige_coordenadas_validas(self) -> None:
         with_coordinates = PrimeraUbicacionVisitaCreate(
             direccion="Sector Norte",
             latitud=Decimal("14.6349142"),
             longitud=Decimal("-90.5068824"),
         )
-        without_coordinates = PrimeraUbicacionVisitaCreate(direccion="Sector Norte")
-
         self.assertEqual(with_coordinates.latitud, Decimal("14.6349142"))
         self.assertEqual(with_coordinates.longitud, Decimal("-90.5068824"))
-        self.assertIsNone(without_coordinates.latitud)
-        self.assertIsNone(without_coordinates.longitud)
+        with self.assertRaises(ValidationError):
+            PrimeraUbicacionVisitaCreate(direccion="Sector Norte")
 
     def test_rechaza_un_solo_componente_de_coordenadas(self) -> None:
         for payload in (
@@ -334,11 +401,11 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
                 )
 
     @patch(
-        "app.services.visitas_tecnicas.get_ubicacion_cliente",
+        "app.modules.visitas_tecnicas.services.visitas_tecnicas.get_ubicacion_cliente",
         return_value={"id_ubicacion": 31, "numero_propiedad": 1},
     )
-    @patch("app.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
-    @patch("app.services.visitas_tecnicas._locked_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
     def test_coordenadas_validas_llegan_a_la_propiedad(
         self, locked_visit, create_location, _get_location
     ) -> None:
@@ -347,7 +414,7 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
             id_cliente=5,
             id_empleado=7,
             id_ubicacion=None,
-            estado="Programada",
+            estado="En Proceso",
         )
         create_location.return_value = (SimpleNamespace(id_ubicacion=31), None)
         data = PrimeraUbicacionVisitaCreate(
@@ -356,7 +423,9 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
             longitud=Decimal("-90.5068824"),
         )
 
-        registrar_primera_ubicacion(db, 15, data, current_employee_id=7)
+        registrar_primera_ubicacion(
+            db, 15, data, current_employee_id=7, image_content=b"fachada"
+        )
 
         location_data = create_location.call_args.args[1]
         self.assertEqual(location_data.latitud, Decimal("14.6349142"))
@@ -364,11 +433,11 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
         db.commit.assert_called_once()
 
     @patch(
-        "app.services.visitas_tecnicas.get_ubicacion_cliente",
+        "app.modules.visitas_tecnicas.services.visitas_tecnicas.get_ubicacion_cliente",
         return_value={"id_ubicacion": 31, "numero_propiedad": 1},
     )
-    @patch("app.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
-    @patch("app.services.visitas_tecnicas._locked_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
     def test_visita_sin_propiedad_crea_y_vincula_en_un_commit(
         self, locked_visit, create_location, _get_location
     ) -> None:
@@ -378,7 +447,7 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
             id_cliente=5,
             id_empleado=7,
             id_ubicacion=None,
-            estado="Programada",
+            estado="En Proceso",
         )
         location = SimpleNamespace(id_ubicacion=31, numero_propiedad=1)
         locked_visit.return_value = visit
@@ -393,14 +462,14 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
         location_data = create_location.call_args.args[1]
         self.assertEqual(location_data.id_cliente, 5)
         self.assertEqual(location_data.direccion, "Sector Norte")
-        self.assertIsNone(location_data.latitud)
-        self.assertIsNone(location_data.longitud)
+        self.assertEqual(location_data.latitud, Decimal("14.6349142"))
+        self.assertEqual(location_data.longitud, Decimal("-90.5068824"))
         self.assertEqual(create_location.call_args.args[2], b"fachada")
         db.commit.assert_called_once()
         db.rollback.assert_not_called()
 
-    @patch("app.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
-    @patch("app.services.visitas_tecnicas._locked_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
     def test_visita_con_propiedad_rechaza_segunda_creacion(
         self, locked_visit, create_location
     ) -> None:
@@ -409,7 +478,7 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
             id_cliente=5,
             id_empleado=7,
             id_ubicacion=31,
-            estado="Programada",
+            estado="En Proceso",
         )
 
         with self.assertRaises(UbicacionVisitaExistenteError):
@@ -418,9 +487,28 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
         create_location.assert_not_called()
         db.commit.assert_not_called()
 
-    @patch("app.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
-    @patch("app.services.visitas_tecnicas._locked_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
     def test_tecnico_no_asignado_no_puede_registrar(
+        self, locked_visit, create_location
+    ) -> None:
+        db = MagicMock()
+        locked_visit.return_value = SimpleNamespace(
+            id_cliente=5,
+            id_empleado=7,
+            id_ubicacion=None,
+            estado="En Proceso",
+        )
+
+        with self.assertRaises(VisitaNoAsignadaError):
+            registrar_primera_ubicacion(db, 15, self._data(), current_employee_id=9)
+
+        create_location.assert_not_called()
+        self.assertEqual(_business_error(VisitaNoAsignadaError()).status_code, 403)
+
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
+    def test_visita_programada_no_permite_registrar_ubicacion(
         self, locked_visit, create_location
     ) -> None:
         db = MagicMock()
@@ -431,15 +519,16 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
             estado="Programada",
         )
 
-        with self.assertRaises(VisitaNoAsignadaError):
-            registrar_primera_ubicacion(db, 15, self._data(), current_employee_id=9)
+        with self.assertRaises(EstadoVisitaError):
+            registrar_primera_ubicacion(
+                db, 15, self._data(), current_employee_id=7, image_content=b"fachada"
+            )
 
         create_location.assert_not_called()
-        self.assertEqual(_business_error(VisitaNoAsignadaError()).status_code, 403)
 
-    @patch("app.services.visitas_tecnicas.remove_image_file")
-    @patch("app.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
-    @patch("app.services.visitas_tecnicas._locked_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.remove_image_file")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
     def test_fallo_de_vinculacion_revierte_y_elimina_fotografia(
         self, locked_visit, create_location, remove_image
     ) -> None:
@@ -449,7 +538,7 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
             id_cliente=5,
             id_empleado=7,
             id_ubicacion=None,
-            estado="Programada",
+            estado="En Proceso",
         )
         saved_image = Path("fachada_31.webp")
         create_location.return_value = (
@@ -466,8 +555,8 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
         db.commit.assert_not_called()
         remove_image.assert_called_once_with(saved_image)
 
-    @patch("app.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
-    @patch("app.services.visitas_tecnicas._locked_visit")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas.create_ubicacion_cliente_in_transaction")
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
     def test_segunda_solicitud_bloqueada_detecta_vinculo_existente(
         self, locked_visit, create_location
     ) -> None:
@@ -477,7 +566,7 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
             id_cliente=5,
             id_empleado=7,
             id_ubicacion=31,
-            estado="Programada",
+            estado="En Proceso",
         )
 
         with self.assertRaises(UbicacionVisitaExistenteError):
@@ -545,6 +634,137 @@ class PrimeraUbicacionVisitaTests(unittest.TestCase):
         )
         self.assertEqual(task["latitud"], Decimal("14.6349142"))
         self.assertEqual(task["longitud"], Decimal("-90.5068824"))
+
+
+class ActualizarUbicacionVisitaTests(unittest.TestCase):
+    """Cubre correcciones autorizadas y denegadas durante la visita."""
+
+    @patch(
+        "app.modules.visitas_tecnicas.services.visitas_tecnicas.get_ubicacion_cliente",
+        return_value={"id_ubicacion": 31},
+    )
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
+    def test_tecnico_asignado_corrige_coordenadas_en_proceso(
+        self, locked_visit, _get_location
+    ) -> None:
+        db = MagicMock()
+        visit = SimpleNamespace(
+            id_cliente=5,
+            id_empleado=7,
+            id_ubicacion=31,
+            estado="En Proceso",
+        )
+        location = SimpleNamespace(
+            id_ubicacion=31,
+            id_cliente=5,
+            estado="Activo",
+            latitud=Decimal("14.5"),
+            longitud=Decimal("-90.4"),
+            foto_fachada="uploads/ubicaciones_clientes/ubicacion_31.webp",
+        )
+        locked_visit.return_value = visit
+        db.get.return_value = location
+
+        actualizar_ubicacion_visita(
+            db,
+            15,
+            UbicacionVisitaUpdate(latitud="14.6", longitud="-90.5"),
+            current_employee_id=7,
+        )
+
+        self.assertEqual(location.latitud, Decimal("14.6"))
+        self.assertEqual(location.longitud, Decimal("-90.5"))
+        db.commit.assert_called_once()
+
+    @patch(
+        "app.modules.visitas_tecnicas.services.visitas_tecnicas.get_ubicacion_cliente",
+        return_value={"id_ubicacion": 31},
+    )
+    @patch(
+        "app.modules.visitas_tecnicas.services.visitas_tecnicas.store_image",
+        return_value=(
+            "uploads/ubicaciones_clientes/ubicacion_31_nueva.webp",
+            Path("ubicacion_31_nueva.webp"),
+        ),
+    )
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
+    def test_tecnico_asignado_agrega_fachada_en_proceso(
+        self, locked_visit, store_image, _get_location
+    ) -> None:
+        db = MagicMock()
+        locked_visit.return_value = SimpleNamespace(
+            id_cliente=5,
+            id_empleado=7,
+            id_ubicacion=31,
+            estado="En Proceso",
+        )
+        location = SimpleNamespace(
+            id_ubicacion=31,
+            id_cliente=5,
+            estado="Activo",
+            latitud=Decimal("14.5"),
+            longitud=Decimal("-90.4"),
+            foto_fachada=None,
+        )
+        db.get.return_value = location
+
+        actualizar_ubicacion_visita(
+            db,
+            15,
+            UbicacionVisitaUpdate(latitud="14.6", longitud="-90.5"),
+            current_employee_id=7,
+            image_content=b"fachada",
+        )
+
+        store_image.assert_called_once_with(
+            b"fachada", "ubicaciones_clientes", "ubicacion", 31
+        )
+        self.assertEqual(
+            location.foto_fachada,
+            "uploads/ubicaciones_clientes/ubicacion_31_nueva.webp",
+        )
+
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
+    def test_otro_tecnico_no_puede_corregir_ubicacion(self, locked_visit) -> None:
+        db = MagicMock()
+        locked_visit.return_value = SimpleNamespace(
+            id_cliente=5,
+            id_empleado=7,
+            id_ubicacion=31,
+            estado="En Proceso",
+        )
+
+        with self.assertRaises(VisitaNoAsignadaError):
+            actualizar_ubicacion_visita(
+                db,
+                15,
+                UbicacionVisitaUpdate(latitud="14.6", longitud="-90.5"),
+                current_employee_id=9,
+            )
+
+        db.get.assert_not_called()
+        db.commit.assert_not_called()
+
+    @patch("app.modules.visitas_tecnicas.services.visitas_tecnicas._locked_visit")
+    def test_visita_completada_no_permite_corregir_ubicacion(self, locked_visit) -> None:
+        db = MagicMock()
+        locked_visit.return_value = SimpleNamespace(
+            id_cliente=5,
+            id_empleado=7,
+            id_ubicacion=31,
+            estado="Completada",
+        )
+
+        with self.assertRaises(EstadoVisitaError):
+            actualizar_ubicacion_visita(
+                db,
+                15,
+                UbicacionVisitaUpdate(latitud="14.6", longitud="-90.5"),
+                current_employee_id=7,
+            )
+
+        db.get.assert_not_called()
+        db.commit.assert_not_called()
 
 
 if __name__ == "__main__":

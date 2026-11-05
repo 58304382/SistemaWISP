@@ -1,0 +1,95 @@
+/* ==========================================
+   GRAFICA DE BARRAS HORIZONTALES
+========================================== */
+:host {
+  display: block;
+}
+
+.bar-list {
+  display: grid;
+  gap: 13px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(94px, 1.1fr) minmax(80px, 2.2fr) auto;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.bar-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bar-label {
+  overflow: hidden;
+  color: #46546a;
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-copy small {
+  overflow: hidden;
+  color: #8995a7;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef3f9;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  transition: width 0.35s ease;
+}
+
+.bar-value {
+  color: #26364e;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bar-empty {
+  display: grid;
+  min-height: 150px;
+  place-content: center;
+  justify-items: center;
+  padding: 22px;
+  border: 1px dashed #d5deea;
+  border-radius: 10px;
+  color: #7d8a9c;
+  text-align: center;
+  background: #fafcff;
+}
+
+.bar-empty strong {
+  color: #40506a;
+  font-size: 13px;
+}
+
+.bar-empty span {
+  margin-top: 5px;
+  font-size: 11px;
+}
+
+@media (max-width: 520px) {
+  .bar-row {
+    grid-template-columns: minmax(78px, 1fr) minmax(70px, 1.5fr) auto;
+    gap: 8px;
+  }
+}

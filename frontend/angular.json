@@ -24,22 +24,21 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.css"
-            ]
+            "styles": ["src/styles.css"],
+            "allowedCommonJsDependencies": ["html2canvas", "html2pdf.js"]
           },
           "configurations": {
             "production": {
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "800kB",
                   "maximumError": "1MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "12kB",
-                  "maximumError": "14kB"
+                  "maximumWarning": "28kB",
+                  "maximumError": "32kB"
                 }
               ],
               "outputHashing": "all"

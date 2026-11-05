@@ -1,0 +1,44 @@
+# Variables, credenciales y material sensible.
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*credentials*.json
+*secret*.json
+backups/
+
+# Control de versiones y configuración local.
+.git/
+.gitignore
+.gitattributes
+
+# Entornos virtuales y artefactos de Python.
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Pruebas, archivos temporales y datos persistentes.
+tests/
+uploads/
+*.log
+*.tmp
+
+# Archivos de desarrollo que no forman parte de la imagen.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Dockerfile
+.dockerignore

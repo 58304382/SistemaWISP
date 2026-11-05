@@ -3,12 +3,13 @@
 ========================================== */
 :host {
   display: block;
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 100%;
 }
 
 .inicio-shell {
   display: flex;
-  min-height: 100dvh;
+  min-height: 100%;
   background: #071426;
 }
 
@@ -19,7 +20,7 @@
   display: flex;
   flex: 0 0 220px;
   flex-direction: column;
-  min-height: 100dvh;
+  min-height: 100%;
   padding: 8px 0 16px;
   color: #d7dce5;
   background: #151d27;
@@ -189,7 +190,7 @@
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 100dvh;
+  min-height: 100%;
   flex: 1;
   place-items: center;
   overflow: hidden;
@@ -516,7 +517,8 @@
 
 @media (max-width: 650px) {
   .inicio-shell {
-    display: block;
+    display: flex;
+    flex-direction: column;
   }
   .sidebar {
     min-height: 0;
@@ -532,9 +534,7 @@
   .sidebar-bottom {
     margin-top: 12px;
   }
-  .inicio-content {
-    min-height: 680px;
-  }
+  /* El contenido crece con el shell para cubrir el área disponible. */
   .inicio-stage {
     padding: 28px 16px;
   }

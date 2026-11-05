@@ -8,20 +8,29 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from pydantic import ValidationError
+from fastapi import HTTPException
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import IntegrityError
 
-from app.schemas.ubicacion_cliente import (
+import app.models  # Registra relaciones ORM antes de instanciar ubicaciones.
+from app.modules.mapas.schemas.ubicacion_cliente import (
     UbicacionClienteCreate,
     UbicacionClienteResponse,
     UbicacionClienteUpdate,
 )
-from app.services.ubicaciones_cliente import (
+from app.modules.mapas.routers.ubicaciones_cliente import (
+    delete_ubicacion_route,
+    require_ubicaciones_administrator,
+)
+from app.modules.mapas.services.ubicaciones_cliente import (
+    CoordenadasUbicacionIncompletasError,
     PROPERTY_NUMBER_CONSTRAINT,
     UbicacionClienteConflictError,
     _response,
     create_ubicacion_cliente,
     create_ubicacion_cliente_in_transaction,
+    delete_ubicacion_cliente,
+    update_ubicacion_cliente,
 )
 
 
@@ -41,7 +50,7 @@ class UbicacionesClienteNumberingTests(unittest.TestCase):
         data = UbicacionClienteCreate(id_cliente=client_id)
 
         with patch(
-            "app.services.ubicaciones_cliente.get_ubicacion_cliente",
+            "app.modules.mapas.services.ubicaciones_cliente.get_ubicacion_cliente",
             return_value=expected,
         ):
             response = create_ubicacion_cliente(db, data)
@@ -104,6 +113,66 @@ class UbicacionesClienteNumberingTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             UbicacionClienteUpdate.model_validate({"numero_propiedad": 99})
 
+    def test_create_acepta_coordenadas_completas_o_ambas_nulas(self) -> None:
+        sin_coordenadas = UbicacionClienteCreate(id_cliente=7)
+        con_coordenadas = UbicacionClienteCreate(
+            id_cliente=7,
+            latitud=Decimal("14.6349142"),
+            longitud=Decimal("-90.5068824"),
+        )
+
+        self.assertIsNone(sin_coordenadas.latitud)
+        self.assertIsNone(sin_coordenadas.longitud)
+        self.assertEqual(con_coordenadas.latitud, Decimal("14.6349142"))
+        self.assertEqual(con_coordenadas.longitud, Decimal("-90.5068824"))
+
+    def test_create_rechaza_coordenadas_incompletas(self) -> None:
+        with self.assertRaises(ValidationError):
+            UbicacionClienteCreate(id_cliente=7, latitud=Decimal("14.6349142"))
+        with self.assertRaises(ValidationError):
+            UbicacionClienteCreate(id_cliente=7, longitud=Decimal("-90.5068824"))
+
+    def test_update_rechaza_coordenadas_incompletas(self) -> None:
+        with self.assertRaises(ValidationError):
+            UbicacionClienteUpdate(latitud=Decimal("14.6349142"))
+        with self.assertRaises(ValidationError):
+            UbicacionClienteUpdate(longitud=Decimal("-90.5068824"))
+
+    def test_update_acepta_par_valido_y_limpieza_completa(self) -> None:
+        coordinates = UbicacionClienteUpdate(
+            latitud=Decimal("14.6349142"),
+            longitud=Decimal("-90.5068824"),
+        )
+        empty_coordinates = UbicacionClienteUpdate(latitud=None, longitud=None)
+
+        self.assertEqual(coordinates.latitud, Decimal("14.6349142"))
+        self.assertEqual(coordinates.longitud, Decimal("-90.5068824"))
+        self.assertIsNone(empty_coordinates.latitud)
+        self.assertIsNone(empty_coordinates.longitud)
+
+    def test_rechaza_coordenadas_fuera_de_rango(self) -> None:
+        with self.assertRaises(ValidationError):
+            UbicacionClienteCreate(id_cliente=7, latitud=91, longitud=-90)
+        with self.assertRaises(ValidationError):
+            UbicacionClienteUpdate(latitud=14, longitud=-181)
+
+    def test_update_no_conserva_un_par_incompleto_heredado(self) -> None:
+        db = MagicMock()
+        location = SimpleNamespace(
+            id_ubicacion=12,
+            latitud=Decimal("14.6349142"),
+            longitud=None,
+        )
+
+        with self.assertRaises(CoordenadasUbicacionIncompletasError):
+            update_ubicacion_cliente(
+                db,
+                location,
+                UbicacionClienteUpdate(direccion="Sector Norte"),
+            )
+
+        db.commit.assert_not_called()
+
     def test_conflicto_de_numeracion_reintenta_una_vez_con_nueva_instancia(self) -> None:
         db = MagicMock()
         db.scalar.side_effect = [7, 1, 7, 2]
@@ -111,7 +180,7 @@ class UbicacionesClienteNumberingTests(unittest.TestCase):
         data = UbicacionClienteCreate(id_cliente=7)
 
         with patch(
-            "app.services.ubicaciones_cliente.get_ubicacion_cliente",
+            "app.modules.mapas.services.ubicaciones_cliente.get_ubicacion_cliente",
             return_value={"numero_propiedad": 2},
         ):
             response = create_ubicacion_cliente(db, data)
@@ -125,8 +194,8 @@ class UbicacionesClienteNumberingTests(unittest.TestCase):
         db.rollback.assert_called_once()
         db.commit.assert_called_once()
 
-    @patch("app.services.ubicaciones_cliente.remove_image_file")
-    @patch("app.services.ubicaciones_cliente.store_image")
+    @patch("app.modules.mapas.services.ubicaciones_cliente.remove_image_file")
+    @patch("app.modules.mapas.services.ubicaciones_cliente.store_image")
     def test_rollback_elimina_fotografia_y_no_reintenta_otro_conflicto(
         self,
         store_image,
@@ -152,7 +221,7 @@ class UbicacionesClienteNumberingTests(unittest.TestCase):
         self.assertEqual(db.add.call_count, 1)
         remove_image_file.assert_called_once_with(saved_image)
 
-    @patch("app.services.ubicaciones_cliente.store_image")
+    @patch("app.modules.mapas.services.ubicaciones_cliente.store_image")
     def test_helper_atomico_genera_numero_y_guarda_fachada_sin_commit(
         self, store_image
     ) -> None:
@@ -182,6 +251,61 @@ class UbicacionesClienteNumberingTests(unittest.TestCase):
             b"fachada", "ubicaciones_clientes", "ubicacion", 31
         )
         db.commit.assert_not_called()
+
+    @patch("app.modules.mapas.services.ubicaciones_cliente.remove_image_file")
+    @patch("app.modules.mapas.services.ubicaciones_cliente.safe_image_path")
+    def test_elimina_solo_ubicacion_y_luego_su_fachada(
+        self, safe_image_path, remove_image_file
+    ) -> None:
+        db = MagicMock()
+        location = SimpleNamespace(
+            id_ubicacion=12,
+            foto_fachada="uploads/ubicaciones_clientes/ubicacion_12.webp",
+        )
+        image_path = Path("uploads/ubicaciones_clientes/ubicacion_12.webp")
+        safe_image_path.return_value = image_path
+
+        delete_ubicacion_cliente(db, location)
+
+        db.delete.assert_called_once_with(location)
+        db.commit.assert_called_once()
+        remove_image_file.assert_called_once_with(image_path)
+
+    @patch("app.modules.mapas.services.ubicaciones_cliente.remove_image_file")
+    def test_relacion_impide_eliminar_ubicacion_y_conserva_fachada(self, remove_image_file) -> None:
+        db = MagicMock()
+        db.commit.side_effect = _integrity_error("fk_instalacion_ubicacion")
+        location = SimpleNamespace(id_ubicacion=12, foto_fachada=None)
+
+        with self.assertRaises(UbicacionClienteConflictError):
+            delete_ubicacion_cliente(db, location)
+
+        db.rollback.assert_called_once()
+        remove_image_file.assert_not_called()
+
+    def test_tecnico_no_puede_administrar_propiedades_desde_mapas(self) -> None:
+        employee = SimpleNamespace(rol=SimpleNamespace(nombre="Empleado"))
+        administrator = SimpleNamespace(rol=SimpleNamespace(nombre="Administrador"))
+
+        with self.assertRaises(HTTPException) as context:
+            require_ubicaciones_administrator(employee)
+
+        self.assertEqual(context.exception.status_code, 403)
+        self.assertIs(require_ubicaciones_administrator(administrator), administrator)
+
+    @patch("app.modules.mapas.routers.ubicaciones_cliente.delete_ubicacion_cliente")
+    @patch("app.modules.mapas.routers.ubicaciones_cliente.get_ubicacion_cliente_model")
+    def test_endpoint_informa_conflicto_con_visita_o_instalacion(
+        self, get_model, delete_service
+    ) -> None:
+        get_model.return_value = SimpleNamespace(id_ubicacion=12)
+        delete_service.side_effect = UbicacionClienteConflictError
+
+        with self.assertRaises(HTTPException) as context:
+            delete_ubicacion_route(12, SimpleNamespace(), MagicMock())
+
+        self.assertEqual(context.exception.status_code, 409)
+        self.assertIn("visita técnica o instalación", context.exception.detail)
 
 
 if __name__ == "__main__":

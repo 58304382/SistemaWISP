@@ -1,0 +1,90 @@
+<section class="support-page">
+  <header class="page-header">
+    <span class="kicker">ATENCIÓN AL CLIENTE</span>
+    <h1>Soporte Técnico</h1>
+    <p>Administra los tickets y el seguimiento de las solicitudes de soporte.</p>
+  </header>
+
+  <!-- Tarjetas de estado limitadas a título, cantidad e ícono, derivados de tickets persistidos. -->
+  <div class="summary-grid">
+    @for (item of resumen(); track item.estado) {
+      <article class="summary-card" [class.in-progress]="item.estado === 'En Proceso'" [class.completed]="item.estado === 'Completada'">
+        <span class="summary-icon" aria-hidden="true">{{ item.estado === 'Programada' ? '◷' : item.estado === 'En Proceso' ? '⚙' : '✓' }}</span>
+        <div><span>{{ item.estado }}</span><strong>{{ item.cantidad }}</strong></div>
+      </article>
+    }
+  </div>
+
+  @if (success()) { <p class="notice success" role="status">{{ success() }}</p> }
+  @if (error()) { <div class="notice error" role="alert">{{ error() }} <button type="button" (click)="loadTickets()">Reintentar</button></div> }
+  @if (catalogError()) { <div class="notice error" role="alert">{{ catalogError() }} <button type="button" (click)="loadCatalogs()">Recargar catálogos</button></div> }
+
+  <section class="tickets-panel" aria-label="Gestión de tickets">
+    <!-- Consulta y alta comparten la fila; el botón conserva permisos y validación de catálogos. -->
+    <div class="toolbar">
+      <label class="search-field"><span>Buscar ticket</span><input type="search" placeholder="Código, cliente, teléfono, asunto o técnico..." [value]="search()" (input)="filter($event, 'search')" /></label>
+      <label><span>Estado</span><select [value]="estado()" (change)="filter($event, 'estado')"><option value="">Todos</option>@for (item of estados; track item) { <option [value]="item">{{ item }}</option> }</select></label>
+      <button class="primary" type="button" [disabled]="!canManage() || loadingCatalogs() || !!catalogError()" (click)="openCreate()"><span aria-hidden="true">＋</span> Nuevo ticket</button>
+    </div>
+    <div class="table-scroll actions-sticky" [attr.aria-busy]="loading()">
+      <table>
+        <thead><tr><th>Código de ticket</th><th>Cliente</th><th>Asunto</th><th>Categoría</th><th>Técnico</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+          @for (ticket of filteredTickets(); track ticket.id_ticket) {
+            <tr>
+              <td class="ticket-code">{{ ticket.codigo }}</td><td>{{ ticket.cliente }}</td><td class="subject">{{ ticket.asunto }}</td><td>{{ ticket.categoria }}</td><td>{{ ticket.tecnico || 'Sin técnico asignado' }}</td><td>{{ ticket.fecha_apertura | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td><span class="status" [class.in-progress]="ticket.estado === 'En Proceso'" [class.completed]="ticket.estado === 'Completada'">{{ ticket.estado }}</span></td>
+              <td><div class="row-actions">
+                <button type="button" (click)="openDetail(ticket)"><span aria-hidden="true">◉</span> Ver</button>
+                @if (canEdit(ticket)) {
+                  <button type="button" (click)="openDetail(ticket, true)"><span aria-hidden="true">✎</span> Editar</button>
+                  <button class="danger-text" type="button" (click)="requestDelete(ticket)"><span aria-hidden="true">⌫</span> Eliminar</button>
+                }
+              </div></td>
+            </tr>
+          } @empty { <tr><td colspan="8" class="empty">{{ loading() ? 'Cargando tickets...' : error() ? 'No fue posible cargar el listado.' : 'No hay tickets que coincidan con los filtros.' }}</td></tr> }
+        </tbody>
+      </table>
+    </div>
+    <footer class="table-footer"><span>{{ filteredTickets().length }} de {{ tickets().length }} tickets</span>
+    </footer>
+  </section>
+</section>
+
+<!-- Un único contenedor modal, ancho en escritorio y apilado en móvil. -->
+@if (modal(); as currentModal) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <section class="ticket-modal" [class.delete-modal]="currentModal === 'delete'" role="dialog" aria-modal="true" aria-labelledby="ticket-modal-title" (click)="$event.stopPropagation()">
+      <header class="modal-header"><div><span class="kicker">SOPORTE TÉCNICO</span><h2 id="ticket-modal-title">{{ currentModal === 'form' ? editingId() ? 'Editar ticket' : 'Nuevo ticket' : currentModal === 'delete' ? 'Eliminar ticket' : 'Detalle del ticket' }}</h2></div><button type="button" class="close-button" aria-label="Cerrar modal" [disabled]="saving()" (click)="closeModal()">×</button></header>
+      @if (modalError()) { <p class="notice error" role="alert">{{ modalError() }}</p> }
+      @if (currentModal === 'form') {
+        <form [formGroup]="form" (ngSubmit)="save()">
+          <p class="form-note">El código se genera automáticamente. Estado inicial: Programada. Todos los campos son obligatorios excepto observaciones.</p>
+          @if (catalogError()) { <p class="notice error" role="alert">{{ catalogError() }}</p> }
+          <div class="form-grid">
+            <label class="wide"><span>Cliente *</span><select formControlName="id_cliente"><option [ngValue]="0">Seleccionar cliente</option>@for (item of clientes(); track item.id_cliente) { <option [ngValue]="item.id_cliente">{{ item.nombre }} · {{ item.telefono }}</option> }</select></label>
+            <label><span>Canal *</span><select formControlName="canal"><option value="Llamada">Llamada</option><option value="Presencial">Presencial</option></select></label>
+            <label><span>Categoría *</span><select formControlName="id_categoria"><option [ngValue]="0">Seleccionar categoría</option>@for (item of categorias(); track item.id_categoria) { <option [ngValue]="item.id_categoria">{{ item.nombre }}</option> }</select></label>
+            <label><span>Técnico asignado *</span><select formControlName="id_tecnico"><option [ngValue]="0">Seleccionar técnico activo</option>@for (item of tecnicos(); track item.id_empleado) { <option [ngValue]="item.id_empleado">{{ item.nombres }} {{ item.apellidos }}</option> }</select></label>
+            <label class="wide"><span>Asunto *</span><input formControlName="asunto" maxlength="200" placeholder="Motivo de la solicitud" /></label>
+            <label class="description"><span>Descripción *</span><textarea formControlName="descripcion" rows="4" placeholder="Describe el problema reportado por el cliente"></textarea></label>
+            <label class="observations"><span>Observaciones</span><textarea formControlName="observaciones" rows="4" placeholder="Indicaciones adicionales para la atención"></textarea></label>
+          </div>
+          @if (submitted() && form.invalid) { <p class="validation" role="alert">Selecciona cliente, categoría y técnico. Escribe un asunto de hasta 200 caracteres y una descripción con contenido.</p> }
+          <footer class="modal-footer"><button type="button" class="secondary" [disabled]="saving()" (click)="closeModal()">Cancelar</button><button type="submit" class="primary" [disabled]="saving() || loadingCatalogs() || !!catalogError()">{{ saving() ? 'Guardando...' : 'Guardar ticket' }}</button></footer>
+        </form>
+      } @else if (currentModal === 'view') {
+        @if (loadingDetail()) { <p class="empty" role="status">Consultando ticket e historial...</p> }
+        @if (detail(); as ticket) {
+          <!-- La vista de lectura se comparte con Tareas para conservar informe, historial e imagen. -->
+          <app-ticket-detalle [ticket]="ticket" />
+        }
+        <footer class="modal-footer"><button type="button" class="secondary" (click)="closeModal()">Cerrar</button></footer>
+      } @else {
+        <p>¿Eliminar el ticket <strong>{{ deleting()?.codigo }}</strong> de {{ deleting()?.cliente }}?</p>
+        <p class="form-note">Se eliminarán el ticket y su historial. Esta acción no se puede deshacer.</p>
+        <footer class="modal-footer"><button type="button" class="secondary" [disabled]="saving()" (click)="closeModal()">Cancelar</button><button type="button" class="danger" [disabled]="saving()" (click)="confirmDelete()">{{ saving() ? 'Eliminando...' : 'Eliminar ticket' }}</button></footer>
+      }
+    </section>
+  </div>
+}

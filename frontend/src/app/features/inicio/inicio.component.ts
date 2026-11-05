@@ -4,7 +4,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService } from '../auth/services/auth.service';
 
 // ==========================================
 // COMPONENTE INICIO

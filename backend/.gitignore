@@ -19,3 +19,6 @@ __pycache__/
 
 # Archivos de usuario
 uploads/
+
+# Respaldos locales y datos privados
+backups/

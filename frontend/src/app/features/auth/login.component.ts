@@ -5,10 +5,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EMPTY, catchError, finalize, switchMap } from 'rxjs';
+import { EMPTY, TimeoutError, catchError, finalize, switchMap } from 'rxjs';
 
-import { AuthService } from '../../core/services/auth.service';
 import { getApiErrorMessage } from '../../core/utils/api-error';
+import { AuthService } from './services/auth.service';
 
 // ==========================================
 // COMPONENTE LOGIN
@@ -54,6 +54,8 @@ export class LoginComponent implements OnInit {
   // AUTENTICACION
   // ==========================================
   submit(): void {
+    // Evita peticiones simultáneas que compitan por el token y el estado de carga.
+    if (this.isLoading()) return;
     this.errorMessage.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -68,7 +70,13 @@ export class LoginComponent implements OnInit {
           this.auth.loadCurrentUser().pipe(
             // /me es una ruta protegida: su 401 no significa credenciales incorrectas.
             catchError((error: unknown) => {
-              this.errorMessage.set(getApiErrorMessage(error));
+              // Un token sin /me validado no constituye un login completado.
+              this.auth.clearSession();
+              this.errorMessage.set(
+                error instanceof TimeoutError
+                  ? 'El servidor tardó demasiado en validar la sesión. Inténtalo nuevamente.'
+                  : getApiErrorMessage(error),
+              );
               return EMPTY;
             }),
           ),
@@ -100,6 +108,9 @@ export class LoginComponent implements OnInit {
   }
 
   private getLoginErrorMessage(error: unknown): string {
+    if (error instanceof TimeoutError) {
+      return 'El servidor tardó demasiado en responder. Comprueba la conexión e inténtalo nuevamente.';
+    }
     if (error instanceof HttpErrorResponse && error.status === 401) {
       return 'Usuario o contraseña incorrectos.';
     }

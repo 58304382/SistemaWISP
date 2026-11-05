@@ -1,0 +1,72 @@
+<!-- ========================================
+     GRAFICA DE LINEAS REUTILIZABLE
+========================================= -->
+<section class="chart-shell" [attr.aria-label]="descripcion()">
+  @if (hayDatos()) {
+    <svg
+      class="line-chart"
+      viewBox="0 0 660 240"
+      role="img"
+      [attr.aria-label]="descripcion()"
+    >
+      <!-- Rejilla horizontal y valores del eje Y -->
+      @for (marca of marcasY(); track $index) {
+        <line
+          class="grid-line"
+          [attr.x1]="54"
+          [attr.x2]="644"
+          [attr.y1]="marca.y"
+          [attr.y2]="marca.y"
+        />
+        <text class="axis-label axis-label-y" x="8" [attr.y]="marca.y + 3">
+          {{ marca.texto }}
+        </text>
+      }
+
+      <!-- Etiquetas del eje X -->
+      @for (etiqueta of etiquetasX(); track $index) {
+        <text class="axis-label axis-label-x" [attr.x]="etiqueta.x" [attr.y]="etiqueta.y">
+          {{ etiqueta.texto }}
+        </text>
+      }
+
+      <!-- Series reales enviadas por FastAPI -->
+      @for (linea of seriesGraficadas(); track linea.nombre) {
+        @if (linea.area) {
+          <path class="series-area" [attr.d]="linea.area" [attr.fill]="linea.color" />
+        }
+        <polyline
+          class="series-line"
+          [attr.points]="linea.puntos"
+          fill="none"
+          [attr.stroke]="linea.color"
+          stroke-width="2.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        @for (punto of linea.puntosArray; track $index) {
+          <circle [attr.cx]="punto.x" [attr.cy]="punto.y" r="3.2" [attr.fill]="linea.color">
+            <title>{{ linea.nombre }}: {{ formatearValor(punto.valor) }}</title>
+          </circle>
+        }
+      }
+    </svg>
+
+    <div class="chart-legend" aria-hidden="true">
+      @for (linea of seriesGraficadas(); track linea.nombre) {
+        <span class="legend-item">
+          <i [style.background]="linea.color"></i>
+          {{ linea.nombre }}
+        </span>
+      }
+    </div>
+  } @else {
+    <div class="chart-empty">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6" />
+      </svg>
+      <strong>Sin información para graficar</strong>
+      <span>No existen registros en el período seleccionado.</span>
+    </div>
+  }
+</section>

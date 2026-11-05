@@ -1,0 +1,121 @@
+<div class="providers-page">
+  <header class="providers-header">
+    <div class="providers-heading-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="m4 11 8-7 8 7M6.5 10.5V20h11v-9.5M10 20v-5h4v5" /></svg>
+    </div>
+    <div>
+      <h1>Proveedores</h1>
+      <p>Administre la información de sus proveedores.</p>
+    </div>
+  </header>
+
+  <main class="providers-content">
+    <div class="providers-toolbar">
+      <label class="provider-search" for="provider-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3" /><path d="m16 16 4.5 4.5" /></svg>
+        <input id="provider-search" type="search" [value]="searchTerm()" (input)="onSearch($event)" placeholder="Buscar por ID, proveedor, NIT, contacto, teléfono o correo..." />
+      </label>
+      <button class="primary-button" type="button" (click)="openCreate()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        Nuevo proveedor
+      </button>
+    </div>
+
+    @if (errorMessage() && !isFormOpen() && !deleteConfirmation()) {
+      <div class="inline-error" role="alert">{{ errorMessage() }}</div>
+    }
+
+    <div class="providers-table-card actions-sticky">
+      <table>
+        <thead><tr><th>ID</th><th>PROVEEDOR</th><th>NIT</th><th>CONTACTO</th><th>TELÉFONO</th><th>CORREO</th><th>ESTADO</th><th>ACCIONES</th></tr></thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr><td class="empty-state" colspan="8">Cargando proveedores...</td></tr>
+          } @else if (filteredProveedores().length) {
+            @for (proveedor of filteredProveedores(); track proveedor.id_proveedor) {
+              <tr>
+                <td class="provider-id">{{ proveedor.id_proveedor }}</td>
+                <td><strong>{{ proveedor.nombre }}</strong></td>
+                <td>{{ proveedor.nit || '—' }}</td>
+                <td>{{ proveedor.contacto || '—' }}</td>
+                <td>{{ proveedor.telefono || '—' }}</td>
+                <td>{{ proveedor.correo || '—' }}</td>
+                <td><span class="status-pill" [class.inactive]="proveedor.estado === 'Inactivo'">{{ proveedor.estado }}</span></td>
+                <td>
+                  <div class="provider-actions">
+                    <button class="action view" type="button" (click)="openDetails(proveedor)">
+                      <svg viewBox="0 0 24 24"><path d="M2.8 12s3.2-5.2 9.2-5.2 9.2 5.2 9.2 5.2-3.2 5.2-9.2 5.2S2.8 12 2.8 12Z"/><circle cx="12" cy="12" r="2.2"/></svg>Ver
+                    </button>
+                    <button class="action edit" type="button" [disabled]="processingId() === proveedor.id_proveedor" (click)="openEdit(proveedor)">
+                      <svg viewBox="0 0 24 24"><path d="m4 16.5-.8 4.3 4.3-.8L19 8.5 15.5 5zM14 6.5l3.5 3.5"/></svg>Editar
+                    </button>
+                    <button class="action delete" type="button" [disabled]="processingId() === proveedor.id_proveedor" (click)="requestDelete(proveedor)">
+                      <svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13"/></svg>Eliminar
+                    </button>
+                    <button class="action toggle" type="button" [disabled]="processingId() === proveedor.id_proveedor" (click)="toggleEstado(proveedor)">
+                      <svg viewBox="0 0 24 24"><path d="M12 3v9M7.5 5.5A8 8 0 1 0 16.5 5.5"/></svg>{{ proveedor.estado === 'Activo' ? 'Inactivar' : 'Activar' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          } @else {
+            <tr><td class="empty-state" colspan="8"><strong>No se encontraron proveedores</strong><span>Los proveedores registrados aparecerán aquí.</span></td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+@if (isFormOpen()) {
+  <div class="modal-backdrop" role="presentation" (click)="closeForm()">
+    <section class="provider-modal" role="dialog" aria-modal="true" aria-labelledby="provider-form-title" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div><p>CONFIGURACIÓN / PROVEEDORES</p><h2 id="provider-form-title">{{ editingProveedor() ? 'Editar proveedor' : 'Nuevo proveedor' }}</h2></div>
+        <button class="close-button" type="button" aria-label="Cerrar" (click)="closeForm()">×</button>
+      </header>
+      <p class="modal-description">{{ editingProveedor() ? 'Actualice la información del proveedor.' : 'Registre la información del nuevo proveedor.' }}</p>
+      @if (errorMessage()) { <div class="inline-error" role="alert">{{ errorMessage() }}</div> }
+      <form class="provider-form" [formGroup]="form" (ngSubmit)="saveProveedor()">
+        <label><span>Nombre *</span><input type="text" formControlName="nombre" maxlength="150" /></label>
+        <label><span>NIT</span><input type="text" formControlName="nit" maxlength="20" /></label>
+        <label><span>Contacto</span><input type="text" formControlName="contacto" maxlength="150" /></label>
+        <label><span>Teléfono</span><input type="tel" formControlName="telefono" maxlength="20" /></label>
+        <label><span>Correo</span><input type="email" formControlName="correo" maxlength="150" /></label>
+        <label><span>Departamento *</span><select formControlName="id_departamento" (change)="onDepartmentChange()"><option [ngValue]="0">Seleccione departamento</option>@for (departamento of departamentos(); track departamento.id_departamento) { <option [ngValue]="departamento.id_departamento">{{ departamento.nombre }}</option> }</select></label>
+        <label><span>Municipio *</span><select formControlName="id_municipio"><option [ngValue]="0">{{ isLoadingMunicipios() ? 'Cargando municipios...' : 'Seleccione municipio' }}</option>@for (municipio of municipios(); track municipio.id_municipio) { <option [ngValue]="municipio.id_municipio">{{ municipio.nombre }}</option> }</select></label>
+        <label><span>Estado</span><select formControlName="estado"><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select></label>
+        <label class="wide-field"><span>Dirección</span><textarea formControlName="direccion" rows="2"></textarea></label>
+        <label class="wide-field"><span>Observaciones</span><textarea formControlName="observaciones" rows="2"></textarea></label>
+        <div class="modal-actions"><button class="secondary-button" type="button" (click)="closeForm()">Cancelar</button><button class="primary-button" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Guardando...' : editingProveedor() ? 'Guardar cambios' : 'Guardar proveedor' }}</button></div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (selectedProveedor(); as proveedor) {
+  <div class="modal-backdrop" role="presentation" (click)="selectedProveedor.set(null)">
+    <section class="provider-modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="provider-detail-title" (click)="$event.stopPropagation()">
+      <header class="modal-header"><div><p>PROVEEDORES / DETALLE</p><h2 id="provider-detail-title">{{ proveedor.nombre }}</h2><span class="modal-subtitle">ID {{ proveedor.id_proveedor }}</span></div><button class="close-button" type="button" aria-label="Cerrar" (click)="selectedProveedor.set(null)">×</button></header>
+      <div class="detail-grid">
+        <div><span>NIT</span><strong>{{ proveedor.nit || 'No registrado' }}</strong></div><div><span>Contacto</span><strong>{{ proveedor.contacto || 'No registrado' }}</strong></div><div><span>Teléfono</span><strong>{{ proveedor.telefono || 'No registrado' }}</strong></div><div><span>Correo</span><strong>{{ proveedor.correo || 'No registrado' }}</strong></div><div><span>Departamento</span><strong>{{ departamentoNombre(proveedor.municipio.id_departamento) }}</strong></div><div><span>Municipio</span><strong>{{ proveedor.municipio.nombre }}</strong></div><div><span>Estado</span><strong>{{ proveedor.estado }}</strong></div><div class="detail-wide"><span>Dirección</span><strong>{{ proveedor.direccion || 'No registrada' }}</strong></div><div class="detail-wide"><span>Observaciones</span><strong>{{ proveedor.observaciones || 'Sin observaciones' }}</strong></div>
+      </div>
+      <div class="modal-actions"><button class="secondary-button" type="button" (click)="selectedProveedor.set(null)">Cerrar</button></div>
+    </section>
+  </div>
+}
+
+@if (deleteConfirmation(); as proveedor) {
+  <div class="modal-backdrop" role="presentation" (click)="deleteConfirmation.set(null)">
+    <section class="confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="provider-delete-title" (click)="$event.stopPropagation()">
+      <h2 id="provider-delete-title">¿Eliminar proveedor?</h2><p>Se eliminará <strong>{{ proveedor.nombre }}</strong> únicamente si no tiene relaciones. Si está en uso, puede inactivarlo.</p>
+      @if (errorMessage()) { <div class="inline-error" role="alert">{{ errorMessage() }}</div> }
+      <div class="modal-actions"><button class="secondary-button" type="button" [disabled]="processingId()" (click)="deleteConfirmation.set(null)">Cancelar</button><button class="danger-button" type="button" [disabled]="processingId()" (click)="confirmDelete()">{{ processingId() ? 'Eliminando...' : 'Eliminar' }}</button></div>
+    </section>
+  </div>
+}
+
+@if (notice(); as currentNotice) {
+  <div class="modal-backdrop notice-backdrop"><section class="confirmation-modal" role="dialog" aria-modal="true"><div class="success-icon">✓</div><h2>{{ currentNotice.title }}</h2><p>{{ currentNotice.message }}</p><button class="primary-button notice-button" type="button" (click)="notice.set(null)">Continuar</button></section></div>
+}

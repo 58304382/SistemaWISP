@@ -1,0 +1,32 @@
+<!-- ========================================
+     GRAFICA DE BARRAS REUTILIZABLE
+========================================= -->
+<section class="bar-chart" [attr.aria-label]="descripcion()">
+  @if (hayDatos()) {
+    <div class="bar-list">
+      @for (barra of barras(); track barra.etiqueta) {
+        <div class="bar-row">
+          <div class="bar-copy">
+            <span class="bar-label">{{ barra.etiqueta }}</span>
+            @if (barra.detalle) {
+              <small>{{ barra.detalle }}</small>
+            }
+          </div>
+          <div class="bar-track" aria-hidden="true">
+            <span
+              class="bar-fill"
+              [style.width.%]="barra.porcentaje"
+              [style.background]="barra.color"
+            ></span>
+          </div>
+          <strong class="bar-value">{{ barra.texto }}</strong>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="bar-empty">
+      <strong>Sin información para graficar</strong>
+      <span>No existen registros en el período seleccionado.</span>
+    </div>
+  }
+</section>

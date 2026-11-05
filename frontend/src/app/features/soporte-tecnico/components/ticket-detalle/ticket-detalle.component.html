@@ -1,0 +1,19 @@
+<!-- Mismo detalle persistido para administración y técnico; los informes se leen del historial. -->
+<dl class="detail-grid">
+  <div><dt>Código</dt><dd>{{ ticket.codigo }}</dd></div><div><dt>Estado</dt><dd><span class="status" [class.in-progress]="ticket.estado === 'En Proceso'" [class.completed]="ticket.estado === 'Completada'">{{ ticket.estado }}</span></dd></div><div><dt>Fecha de apertura</dt><dd>{{ ticket.fecha_apertura | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+  <div><dt>Cliente</dt><dd>{{ ticket.cliente }}</dd></div><div><dt>Teléfono</dt><dd>{{ ticket.telefono_cliente }}</dd></div><div><dt>Técnico asignado</dt><dd>{{ ticket.tecnico || 'Sin técnico asignado' }}</dd></div>
+  <div><dt>Canal</dt><dd>{{ ticket.canal }}</dd></div><div><dt>Categoría</dt><dd>{{ ticket.categoria }}</dd></div><div><dt>Asunto</dt><dd>{{ ticket.asunto }}</dd></div>
+  <div class="full"><dt>Descripción</dt><dd>{{ ticket.descripcion }}</dd></div><div class="full"><dt>Observaciones</dt><dd>{{ ticket.observaciones || 'Sin observaciones' }}</dd></div>
+  @if (ticket.fecha_inicio) { <div><dt>Fecha de inicio</dt><dd>{{ ticket.fecha_inicio | date:'dd/MM/yyyy HH:mm' }}</dd></div> }
+  @if (ticket.fecha_resolucion) { <div><dt>Fecha de resolución</dt><dd>{{ ticket.fecha_resolucion | date:'dd/MM/yyyy HH:mm' }}</dd></div> }
+</dl>
+<section class="history"><h3>Historial del ticket</h3>
+  @for (item of ticket.historial; track item.id_historial) {
+    <article><header><strong>{{ item.accion }}</strong><time>{{ item.fecha_hora | date:'dd/MM/yyyy HH:mm' }}</time></header><small>{{ item.usuario }} @if (item.estado_nuevo) { · {{ item.estado_anterior ? item.estado_anterior + ' → ' : '' }}{{ item.estado_nuevo }} }</small>
+      @if (item.observacion) { <p>{{ item.observacion }}</p> }
+      @if (item.trabajo_realizado) { <p><strong>Trabajo realizado:</strong> {{ item.trabajo_realizado }}</p> }
+      @if (item.resultado_solucion) { <p><strong>Resultado:</strong> {{ item.resultado_solucion }}</p> }
+      @if (evidenceUrl(item.evidencia_foto_ruta); as image) { <a [href]="image" target="_blank" rel="noopener noreferrer"><img [src]="image" alt="Fotografía de evidencia del soporte técnico" loading="lazy" /></a> }
+    </article>
+  } @empty { <p class="form-note">Sin historial registrado.</p> }
+</section>

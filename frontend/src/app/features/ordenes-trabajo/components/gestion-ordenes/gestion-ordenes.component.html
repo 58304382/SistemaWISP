@@ -1,0 +1,499 @@
+<div class="orders-page">
+  <!-- Encabezado alineado con las pantallas de gestión existentes. -->
+  <header class="orders-header">
+    <h1>Gestión de Órdenes de Trabajo</h1>
+    <p>
+      {{ orders().length }}
+      {{ orders().length === 1 ? 'orden registrada' : 'órdenes registradas' }}
+    </p>
+  </header>
+
+  <main class="orders-content">
+    @if (loadError()) {
+      <p class="page-message error" role="alert">{{ loadError() }}</p>
+    }
+    @if (actionMessage()) {
+      <p class="page-message success" role="status">{{ actionMessage() }}</p>
+    }
+    @if (actionError()) {
+      <p class="page-message error" role="alert">{{ actionError() }}</p>
+    }
+    <div class="orders-toolbar">
+      <label class="orders-search" for="order-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6" />
+          <path d="m15 15 5 5" />
+        </svg>
+        <input
+          id="order-search"
+          type="search"
+          placeholder="Buscar por cliente o técnico..."
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+        />
+      </label>
+      <select
+        class="orders-filter"
+        aria-label="Filtrar órdenes por estado"
+        [value]="statusFilter()"
+        (change)="onFilterChange($event)"
+      >
+        <option value="all">Todos</option>
+        <option value="Programada">Programada</option>
+        <option value="En Proceso">En Proceso</option>
+        <option value="Completada">Completada</option>
+      </select>
+      <button class="new-order-button" type="button" (click)="openCreate()">
+        <span aria-hidden="true">+</span> Nueva orden
+      </button>
+    </div>
+
+    <section class="orders-table-card" aria-label="Órdenes de trabajo">
+      @if (isLoading()) {
+        <div class="empty-state"><strong>Cargando órdenes de trabajo...</strong></div>
+      } @else if (!orders().length) {
+        <div class="empty-state">
+          <strong>Aún no hay órdenes de trabajo</strong
+          ><span>Crea la primera orden para comenzar.</span>
+        </div>
+      } @else if (!filteredOrders().length) {
+        <div class="empty-state">
+          <strong>No se encontraron órdenes</strong><span>Prueba con otro término o estado.</span>
+        </div>
+      } @else {
+        <div class="orders-table-scroll actions-sticky">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>CLIENTE</th>
+                <th>TIPO</th>
+                <th>FECHA</th>
+                <th>TÉCNICO</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (orden of filteredOrders(); track orden.id_orden) {
+                <tr>
+                  <td>
+                    <strong>{{ orden.id_orden }}</strong>
+                  </td>
+                  <td>{{ orden.nombre_cliente }}</td>
+                  <td>{{ orden.nombre_tipo_trabajo }}</td>
+                  <td>{{ orden.fecha_recepcion.slice(0, 10) }}</td>
+                  <td>{{ orden.nombre_tecnico }}</td>
+                  <td>
+                    <span
+                      class="status-pill"
+                      [class.in-progress]="orden.estado === 'En Proceso'"
+                      [class.completed]="orden.estado === 'Completada'"
+                      >{{ orden.estado }}</span
+                    >
+                  </td>
+                  <td class="order-actions">
+                    <button type="button" (click)="openView(orden)">Ver</button>
+                    @if (orden.puede_editar) {
+                      <button type="button" (click)="openEdit(orden)">Editar</button>
+                    }
+                    @if (orden.puede_eliminar) {
+                      <button
+                        class="delete"
+                        type="button"
+                        [disabled]="deletingOrdenId() !== null"
+                        (click)="requestDeleteOrden(orden)"
+                      >
+                        {{ deletingOrdenId() === orden.id_orden ? 'Eliminando...' : 'Eliminar' }}
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</div>
+
+@if (isModalOpen()) {
+  <div class="order-modal-backdrop" role="presentation" (click)="closeCreate()">
+    <section
+      class="order-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-form-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="order-modal-header">
+        <div>
+          <p>ÓRDENES DE TRABAJO</p>
+          <h2 id="order-form-title">
+            {{ editingOrden() ? 'Editar Orden de Trabajo' : 'Nueva Orden de Trabajo' }}
+          </h2>
+        </div>
+        <button type="button" aria-label="Cerrar" (click)="closeCreate()">×</button>
+      </header>
+      <form id="order-form" class="order-form" (submit)="submitOrden($event)">
+        @if (catalogError()) {
+          <p class="form-message" role="alert">{{ catalogError() }}</p>
+        }
+        <div class="form-field client-field">
+          <label for="order-client">Cliente *</label>
+          <select
+            id="order-client"
+            name="id_cliente"
+            [value]="selectedClientId() ?? ''"
+            (change)="onClienteChange($event)"
+            required
+          >
+            <option value="">Seleccione cliente</option>
+            @for (client of clients(); track client.id_cliente) {
+              <option [value]="client.id_cliente">{{ clientFullName(client) }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-field type-field">
+          <label for="order-type">Tipo de trabajo *</label>
+          <select
+            id="order-type"
+            name="id_tipo_trabajo"
+            [value]="selectedTipoId() ?? ''"
+            (change)="onTipoChange($event)"
+            required
+          >
+            <option value="">Seleccione tipo</option>
+            @for (tipo of tipos(); track tipo.id_tipo_trabajo) {
+              <option [value]="tipo.id_tipo_trabajo">{{ tipo.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-field technician-field">
+          <label for="order-technician">Técnico asignado *</label>
+          <select
+            id="order-technician"
+            name="id_empleado"
+            [value]="selectedTecnicoId() ?? ''"
+            (change)="onTecnicoChange($event)"
+            required
+          >
+            <option value="">Seleccione técnico</option>
+            @for (technician of technicians(); track technician.id_empleado) {
+              <option [value]="technician.id_empleado">
+                {{ technicianName(technician) }} · {{ technician.codigo }}
+              </option>
+            }
+          </select>
+        </div>
+        <section class="form-section info-section">
+          <h3>Información del trabajo</h3>
+          <div class="info-grid">
+            <div class="form-field title-field">
+              <label for="order-title">Título / Asunto *</label
+              ><input
+                id="order-title"
+                type="text"
+                [value]="titulo()"
+                (input)="onTextChange('titulo', $event)"
+                required
+              />
+            </div>
+            <div class="form-field description-field">
+              <label for="order-description">Descripción del trabajo *</label
+              ><textarea
+                id="order-description"
+                [value]="descripcion()"
+                (input)="onTextChange('descripcion', $event)"
+                required
+              ></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- Equipo físico recibido; el bloque es opcional, pero al capturarlo se
+             exigen tipo de equipo y problema reportado. -->
+        <section class="form-section equipment-section">
+          <h3>Datos del equipo recibido</h3>
+          <div class="equipment-grid">
+            <div class="form-field tipo-field">
+              <label for="equipo-tipo">Tipo de equipo</label
+              ><input
+                id="equipo-tipo"
+                type="text"
+                placeholder="Ej. Router, antena, UPS..."
+                [value]="equipoForm().tipo_equipo"
+                (input)="onEquipoChange('tipo_equipo', $event)"
+              />
+            </div>
+            <div class="form-field marca-field">
+              <label for="equipo-marca">Marca</label
+              ><input
+                id="equipo-marca"
+                type="text"
+                [value]="equipoForm().marca"
+                (input)="onEquipoChange('marca', $event)"
+              />
+            </div>
+            <div class="form-field modelo-field">
+              <label for="equipo-modelo">Modelo</label
+              ><input
+                id="equipo-modelo"
+                type="text"
+                [value]="equipoForm().modelo"
+                (input)="onEquipoChange('modelo', $event)"
+              />
+            </div>
+            <div class="form-field problema-field">
+              <label for="equipo-problema">Problema reportado *</label
+              ><textarea
+                id="equipo-problema"
+                [value]="equipoForm().problema_reportado"
+                (input)="onEquipoChange('problema_reportado', $event)"
+              ></textarea>
+            </div>
+            <div class="form-field accesorios-field">
+              <label for="equipo-accesorios">Accesorios recibidos</label
+              ><textarea
+                id="equipo-accesorios"
+                [value]="equipoForm().accesorios_recibidos"
+                (input)="onEquipoChange('accesorios_recibidos', $event)"
+              ></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section observations-section">
+          <h3>Observaciones</h3>
+          <div class="form-field observations-field">
+            <label for="order-observaciones">Observaciones adicionales</label
+            ><textarea
+              id="order-observaciones"
+              [value]="equipoForm().observaciones"
+              (input)="onEquipoChange('observaciones', $event)"
+            ></textarea>
+          </div>
+        </section>
+      </form>
+      @if (formError()) {
+        <p class="form-message" role="alert">{{ formError() }}</p>
+      }
+      <footer class="order-modal-actions">
+        <button class="secondary" type="button" [disabled]="isSaving()" (click)="closeCreate()">
+          Cancelar</button
+        ><button class="primary" type="submit" form="order-form" [disabled]="isSaving()">
+          {{ isSaving() ? 'Guardando...' : editingOrden() ? 'Guardar cambios' : 'Crear orden' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (viewedOrden(); as orden) {
+  <div class="order-modal-backdrop" role="presentation" (click)="closeView()">
+    <section
+      class="order-modal order-detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-detail-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="order-modal-header">
+        <div>
+          <p>ÓRDEN DE TRABAJO {{ orden.id_orden }}</p>
+          <h2 id="order-detail-title">{{ orden.titulo }}</h2>
+        </div>
+        <button type="button" aria-label="Cerrar detalle" (click)="closeView()">×</button>
+      </header>
+      <!-- El detalle presenta exclusivamente datos devueltos por la API. -->
+      <dl class="order-detail-grid">
+        <div>
+          <dt>Cliente</dt>
+          <dd>{{ orden.nombre_cliente }}</dd>
+        </div>
+        <div>
+          <dt>Teléfono</dt>
+          <dd>{{ viewedClientPhone() || 'No registrado' }}</dd>
+        </div>
+        <div>
+          <dt>Técnico asignado</dt>
+          <dd>{{ orden.nombre_tecnico }}</dd>
+        </div>
+        <div>
+          <dt>Tipo de trabajo</dt>
+          <dd>{{ orden.nombre_tipo_trabajo }}</dd>
+        </div>
+        <div>
+          <dt>Estado</dt>
+          <dd>{{ orden.estado }}</dd>
+        </div>
+        <div>
+          <dt>Fecha de recepción</dt>
+          <dd>{{ orden.fecha_recepcion.slice(0, 16).replace('T', ' ') }}</dd>
+        </div>
+        <div>
+          <dt>Fecha estimada</dt>
+          <dd>{{ orden.fecha_estimada || 'No definida' }}</dd>
+        </div>
+        <div class="wide">
+          <dt>Progreso de reparación</dt>
+          <dd>{{ viewedProgress(orden) }}</dd>
+        </div>
+        <div class="wide">
+          <dt>Descripción</dt>
+          <dd>{{ orden.descripcion }}</dd>
+        </div>
+      </dl>
+      @if (orden.equipo.length) {
+        <section class="order-equipment-readonly" aria-label="Equipo recibido">
+          <h3>Equipo recibido</h3>
+          <ul>
+            @for (item of orden.equipo; track item.id_equipo) {
+              <li>
+                <div>
+                  <strong>{{ item.tipo_equipo }}</strong>
+                  <span>{{ item.marca || 'Sin marca' }} · {{ item.modelo || 'Sin modelo' }}</span>
+                </div>
+                <p>{{ item.problema_reportado }}</p>
+                @if (item.numero_serie) {
+                  <small>N.º de serie: {{ item.numero_serie }}</small>
+                }
+                @if (item.observaciones) {
+                  <small>Observaciones: {{ item.observaciones }}</small>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+      @if (orden.evaluacion; as evaluacion) {
+        <section class="order-evaluation-readonly" aria-label="Evaluación técnica">
+          <h3>Evaluación técnica</h3>
+          <dl class="order-detail-grid">
+            <div class="wide">
+              <dt>Diagnóstico</dt>
+              <dd>{{ evaluacion.diagnostico }}</dd>
+            </div>
+            <div class="wide">
+              <dt>Trabajo propuesto</dt>
+              <dd>{{ evaluacion.trabajo_propuesto }}</dd>
+            </div>
+            <div class="wide">
+              <dt>Observaciones</dt>
+              <dd>{{ evaluacion.observaciones || 'Sin observaciones' }}</dd>
+            </div>
+          </dl>
+          @if (evaluacion.materiales.length) {
+            <div class="order-eval-materials-readonly">
+              <h4>Materiales evaluados</h4>
+              <ul>
+                @for (material of evaluacion.materiales; track material.id_detalle) {
+                  <li>
+                    <span>{{ material.descripcion }}</span>
+                    <small>{{ material.cantidad }} {{ material.unidad || '' }}</small>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+      }
+      @if (viewedCotizacion(); as cotizacion) {
+        <section class="order-quotation-readonly" aria-label="Cotización de la orden">
+          <h3>Cotización {{ cotizacion.numero_cotizacion }}</h3>
+          <dl class="order-detail-grid">
+            <div>
+              <dt>Estado</dt>
+              <dd>{{ cotizacion.estado }}</dd>
+            </div>
+            <div>
+              <dt>Total</dt>
+              <dd>{{ cotizacion.total | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</dd>
+            </div>
+            <div>
+              <dt>Proforma</dt>
+              <dd>{{ cotizacion.tiene_proforma ? 'Generada' : 'No generada' }}</dd>
+            </div>
+          </dl>
+          <ul class="order-quotation-details">
+            @for (detalle of cotizacion.detalles; track detalle.id_detalle) {
+              <li [class.pending-price]="detalle.precio_unitario === null">
+                <span>{{ detalle.descripcion }}</span>
+                <small>{{ detalle.cantidad }} {{ detalle.unidad || '' }}</small>
+                <strong>
+                  {{
+                    detalle.precio_unitario === null
+                      ? 'Precio pendiente de revisión'
+                      : (detalle.precio_unitario | currency: 'GTQ' : 'symbol-narrow' : '1.2-2')
+                  }}
+                </strong>
+              </li>
+            }
+          </ul>
+        </section>
+      } @else if (!isViewLoading() && !viewError()) {
+        <p class="approval-pending" role="status">
+          La orden todavía no tiene una cotización vinculada a su evaluación.
+        </p>
+      }
+      @if (viewError()) {
+        <p class="approval-pending" role="alert">{{ viewError() }}</p>
+      }
+      @if (orden.finalizacion; as finalizacion) {
+        <section class="order-finalization-readonly" aria-label="Finalización técnica">
+          <h3>Finalización técnica</h3>
+          <dl class="order-detail-grid">
+            <div class="wide">
+              <dt>Trabajo realizado</dt>
+              <dd>{{ finalizacion.trabajo_realizado }}</dd>
+            </div>
+            <div class="wide">
+              <dt>Resultado</dt>
+              <dd>{{ finalizacion.resultado_solucion }}</dd>
+            </div>
+            <div class="wide">
+              <dt>Observaciones finales</dt>
+              <dd>{{ finalizacion.observaciones_finales || 'Sin observaciones' }}</dd>
+            </div>
+          </dl>
+        </section>
+      } @else if (orden.aprobacion_comercial_pendiente) {
+        <p class="approval-pending" role="status">
+          La finalización permanece pendiente de aprobación comercial real.
+        </p>
+      }
+      <footer class="order-modal-actions">
+        <button class="primary" type="button" (click)="closeView()">Cerrar</button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (deleteConfirmation()) {
+  <div class="order-modal-backdrop" role="presentation" (click)="cancelDelete()">
+    <section
+      class="order-confirmation-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-delete-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="confirmation-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13" />
+        </svg>
+      </div>
+
+      <h2 id="order-delete-title">¿Eliminar orden de trabajo?</h2>
+
+      <p>¿Está seguro de que desea eliminar esta orden de trabajo?</p>
+
+      <div class="order-confirmation-actions">
+        <button class="secondary-button" type="button" (click)="cancelDelete()">Cancelar</button>
+
+        <button class="danger-button" type="button" (click)="confirmDelete()">Eliminar</button>
+      </div>
+    </section>
+  </div>
+}

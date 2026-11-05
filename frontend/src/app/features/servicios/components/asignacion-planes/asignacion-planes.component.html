@@ -1,0 +1,369 @@
+<div class="assignments-page">
+  <header class="assignments-header">
+    <a routerLink="/servicios">Servicios</a>
+    <div class="heading-row">
+      <span class="heading-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 7h15M4 12h12M4 17h8" /></svg>
+      </span>
+      <div>
+        <h1>Asignación de Planes</h1>
+        <p>Administre los planes de Internet asignados a los clientes.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="assignments-content">
+    <div class="assignments-toolbar">
+      <label class="assignment-search" for="assignment-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.8" cy="10.8" r="6.3" />
+          <path d="m16 16 4.5 4.5" />
+        </svg>
+        <input
+          id="assignment-search"
+          type="search"
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+          placeholder="Buscar por cliente o plan..."
+        />
+      </label>
+
+      <label class="state-filter">
+        <span>Estado</span>
+        <select [value]="estadoFiltro()" (change)="onEstadoFilter($event)">
+          <option value="Todos">Todos</option>
+          <option value="Activo">Activo</option>
+          <option value="Inactivo">Inactivo</option>
+        </select>
+      </label>
+
+      <button class="primary-button" type="button" (click)="openCreate()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        Nueva Asignación
+      </button>
+    </div>
+
+    @if (errorMessage() && !isFormOpen()) {
+      <div class="inline-error" role="alert">{{ errorMessage() }}</div>
+    }
+
+    <div class="assignments-table-card actions-sticky">
+      <table>
+        <thead>
+          <tr>
+            <th>CLIENTE</th>
+            <th>PLAN</th>
+            <th>PRECIO MENSUAL</th>
+            <th>FECHA DE INICIO</th>
+            <th>ESTADO</th>
+            <th>ACCIONES</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td class="empty-state" colspan="6">Cargando asignaciones...</td>
+            </tr>
+          } @else if (filteredAsignaciones().length) {
+            @for (asignacion of filteredAsignaciones(); track asignacion.id_asignacion) {
+              <tr>
+                <td>
+                  <strong>{{ clienteNombre(asignacion.cliente) }}</strong>
+                </td>
+                <td>
+                  <strong>{{ asignacion.plan.nombre }}</strong>
+                  <span class="cell-detail">{{ asignacion.plan.velocidad }}</span>
+                </td>
+                <td class="monthly-price">
+                  {{ asignacion.costo_mensual | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}
+                </td>
+                <td>{{ asignacion.fecha_inicio | date: 'dd/MM/yyyy' }}</td>
+                <td>
+                  <span class="status-pill" [class.inactive]="asignacion.estado === 'Inactivo'">
+                    {{ asignacion.estado }}
+                  </span>
+                </td>
+                <td>
+                  <div class="assignment-actions">
+                    <button
+                      class="action view"
+                      type="button"
+                      [disabled]="processingId() === asignacion.id_asignacion"
+                      (click)="openDetails(asignacion)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M2.8 12s3.2-5.2 9.2-5.2 9.2 5.2 9.2 5.2-3.2 5.2-9.2 5.2S2.8 12 2.8 12Z"
+                        />
+                        <circle cx="12" cy="12" r="2.2" />
+                      </svg>
+                      Ver
+                    </button>
+                    <button
+                      class="action edit"
+                      type="button"
+                      [disabled]="processingId() === asignacion.id_asignacion"
+                      (click)="openEdit(asignacion)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m4 16.5-.8 4.3 4.3-.8L19 8.5 15.5 5zM14 6.5l3.5 3.5" />
+                      </svg>
+                      Editar
+                    </button>
+                    <button
+                      class="action delete"
+                      type="button"
+                      [disabled]="processingId() === asignacion.id_asignacion"
+                      (click)="requestDelete(asignacion)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13" />
+                      </svg>
+                      Eliminar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          } @else {
+            <tr>
+              <td class="empty-state" colspan="6">
+                <strong>No se encontraron asignaciones</strong>
+                <span>Las asignaciones registradas aparecerán aquí.</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+@if (isFormOpen()) {
+  <div class="modal-backdrop" role="presentation" (click)="closeForm()">
+    <section
+      class="assignment-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assignment-form-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <div>
+          <p>SERVICIOS / ASIGNACIÓN DE PLANES</p>
+          <h2 id="assignment-form-title">
+            {{ editingAsignacion() ? 'Editar asignación' : 'Nueva asignación' }}
+          </h2>
+        </div>
+        <button class="close-button" type="button" aria-label="Cerrar" (click)="closeForm()">
+          ×
+        </button>
+      </header>
+      <p class="modal-description">
+        Seleccione el cliente y el plan. El precio mensual se obtiene automáticamente.
+      </p>
+
+      @if (errorMessage()) {
+        <div class="inline-error" role="alert">{{ errorMessage() }}</div>
+      }
+
+      <form class="assignment-form" [formGroup]="form" (ngSubmit)="saveAsignacion()">
+        <div class="client-field">
+          <label for="assignment-client">Cliente *</label>
+          <div class="client-search-control">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.8" cy="10.8" r="6.3" />
+              <path d="m16 16 4.5 4.5" />
+            </svg>
+            <input
+              id="assignment-client"
+              type="search"
+              autocomplete="off"
+              role="combobox"
+              aria-controls="assignment-client-results"
+              [attr.aria-expanded]="isClientDropdownOpen()"
+              [value]="clientSearch()"
+              placeholder="Buscar por nombres o apellidos..."
+              (input)="onClientSearch($event)"
+              (focus)="openClientDropdown()"
+              (blur)="closeClientDropdown()"
+            />
+          </div>
+          @if (isClientDropdownOpen()) {
+            <div id="assignment-client-results" class="client-results" role="listbox">
+              @for (cliente of filteredClients(); track cliente.id_cliente) {
+                <button
+                  type="button"
+                  role="option"
+                  [attr.aria-selected]="form.controls.id_cliente.value === cliente.id_cliente"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="selectClient(cliente)"
+                >
+                  <strong>{{ clienteNombre(cliente) }}</strong>
+                  @if (cliente.estado === 'Inactivo') {
+                    <span>Inactivo</span>
+                  }
+                </button>
+              } @empty {
+                <p>No se encontraron clientes.</p>
+              }
+            </div>
+          }
+          @if (submitted() && form.controls.id_cliente.invalid) {
+            <small>Seleccione un cliente.</small>
+          }
+        </div>
+
+        <label>
+          <span>Plan de Internet *</span>
+          <select formControlName="id_plan" (change)="onPlanChange()">
+            <option [ngValue]="0">Seleccione plan</option>
+            @for (plan of planes(); track plan.id) {
+              <option [ngValue]="plan.id">{{ plan.nombre }} - {{ plan.velocidad }}</option>
+            }
+          </select>
+          @if (submitted() && form.controls.id_plan.invalid) {
+            <small>Seleccione un plan activo.</small>
+          }
+        </label>
+
+        <label>
+          <span>Precio mensual</span>
+          <input type="text" [value]="formattedSelectedPrice()" readonly aria-readonly="true" />
+        </label>
+
+        <label>
+          <span>Fecha de inicio *</span>
+          <input type="date" formControlName="fecha_inicio" />
+          @if (submitted() && form.controls.fecha_inicio.invalid) {
+            <small>Ingrese una fecha válida.</small>
+          }
+        </label>
+
+        <label>
+          <span>Estado *</span>
+          <select formControlName="estado">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </label>
+
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" (click)="closeForm()">Cancelar</button>
+          <button class="primary-button" type="submit" [disabled]="isSaving()">
+            {{ isSaving() ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (selectedAsignacion(); as asignacion) {
+  <div class="modal-backdrop" role="presentation" (click)="selectedAsignacion.set(null)">
+    <section
+      class="assignment-modal detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assignment-detail-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <div>
+          <p>SERVICIOS / DETALLE</p>
+          <h2 id="assignment-detail-title">{{ clienteNombre(asignacion.cliente) }}</h2>
+        </div>
+        <button
+          class="close-button"
+          type="button"
+          aria-label="Cerrar"
+          (click)="selectedAsignacion.set(null)"
+        >
+          ×
+        </button>
+      </header>
+      <div class="detail-grid">
+        <div>
+          <span>Cliente</span><strong>{{ clienteNombre(asignacion.cliente) }}</strong>
+        </div>
+        <div>
+          <span>Plan</span><strong>{{ asignacion.plan.nombre }}</strong>
+        </div>
+        <div>
+          <span>Velocidad</span><strong>{{ asignacion.plan.velocidad }}</strong>
+        </div>
+        <div>
+          <span>Precio mensual</span>
+          <strong>{{
+            asignacion.costo_mensual | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+          }}</strong>
+        </div>
+        <div>
+          <span>Fecha de inicio</span
+          ><strong>{{ asignacion.fecha_inicio | date: 'dd/MM/yyyy' }}</strong>
+        </div>
+        <div>
+          <span>Estado</span><strong>{{ asignacion.estado }}</strong>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary-button" type="button" (click)="selectedAsignacion.set(null)">
+          Cerrar
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (deleteConfirmation(); as asignacion) {
+  <div class="modal-backdrop" role="presentation" (click)="cancelDelete()">
+    <section
+      class="confirmation-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assignment-delete-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="assignment-delete-title">¿Eliminar asignación?</h2>
+      <p>
+        Se eliminará únicamente la asignación de
+        <strong>{{ clienteNombre(asignacion.cliente) }}</strong>. El cliente y el plan se
+        conservarán.
+      </p>
+      @if (errorMessage()) {
+        <div class="inline-error" role="alert">{{ errorMessage() }}</div>
+      }
+      <div class="modal-actions">
+        <button
+          class="secondary-button"
+          type="button"
+          [disabled]="processingId() !== null"
+          (click)="cancelDelete()"
+        >
+          Cancelar
+        </button>
+        <button
+          class="danger-button"
+          type="button"
+          [disabled]="processingId() !== null"
+          (click)="confirmDelete()"
+        >
+          {{ processingId() !== null ? 'Eliminando...' : 'Eliminar' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (notice(); as currentNotice) {
+  <div class="modal-backdrop notice-backdrop">
+    <section class="confirmation-modal" role="dialog" aria-modal="true">
+      <div class="success-icon">✓</div>
+      <h2>{{ currentNotice.title }}</h2>
+      <p>{{ currentNotice.message }}</p>
+      <button class="primary-button notice-button" type="button" (click)="notice.set(null)">
+        Continuar
+      </button>
+    </section>
+  </div>
+}

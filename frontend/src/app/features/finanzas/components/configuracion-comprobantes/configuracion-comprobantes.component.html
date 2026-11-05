@@ -1,0 +1,184 @@
+<main class="receipt-config-page">
+  <header class="receipt-config-header">
+    <nav class="receipt-config-breadcrumb" aria-label="Ruta de navegación">
+      <a routerLink="/configuracion">Configuración</a>
+      <span aria-hidden="true">/</span>
+      <a routerLink="/configuracion/mantenimiento">Mantenimiento</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">Factura / Comprobante</span>
+    </nav>
+    <div class="receipt-config-title-row">
+      <div>
+        <h1>Factura / Comprobante</h1>
+        <p>
+          Configure los datos institucionales que aparecerán en los comprobantes térmicos de 58 mm.
+        </p>
+      </div>
+      <span class="receipt-config-version">
+        Versión {{ version() ?? 'nueva' }} · {{ estado() }}
+      </span>
+    </div>
+  </header>
+
+  <section class="receipt-config-content" aria-label="Configuración de comprobantes">
+    @if (cargando()) {
+      <p class="receipt-config-status" role="status">Cargando configuración...</p>
+    }
+    @if (successMessage()) {
+      <p class="receipt-config-success" role="status">{{ successMessage() }}</p>
+    }
+    @if (errorMessage()) {
+      <p class="receipt-config-error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <div class="receipt-config-grid">
+      <form class="receipt-config-card" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+        <div class="receipt-config-section-heading">
+          <h2>Datos de la empresa</h2>
+          <p>Información que se imprime en el encabezado del ticket.</p>
+        </div>
+
+        <div class="receipt-config-fields">
+          <label class="receipt-config-field receipt-config-field-wide">
+            <span>Nombre comercial *</span>
+            <input
+              formControlName="nombre_comercial"
+              maxlength="150"
+              autocomplete="organization"
+              placeholder="Multiservicios Tale"
+            />
+            <small>Máximo 150 caracteres.</small>
+          </label>
+
+          <label class="receipt-config-field receipt-config-field-wide">
+            <span>Descripción</span>
+            <input
+              formControlName="descripcion_empresa"
+              maxlength="200"
+              placeholder="Servicios de Internet y telecomunicaciones"
+            />
+            <small>Máximo 200 caracteres.</small>
+          </label>
+
+          <label class="receipt-config-field receipt-config-field-wide">
+            <span>Dirección</span>
+            <input
+              formControlName="direccion"
+              maxlength="300"
+              autocomplete="street-address"
+              placeholder="Dirección de la empresa"
+            />
+            <small>Máximo 300 caracteres.</small>
+          </label>
+
+          <label class="receipt-config-field">
+            <span>Teléfono</span>
+            <input
+              formControlName="telefono"
+              maxlength="30"
+              autocomplete="tel"
+              placeholder="2222-2222"
+            />
+            <small>Máximo 30 caracteres.</small>
+          </label>
+        </div>
+
+        <div class="receipt-config-section-heading receipt-config-section-spacing">
+          <h2>Mensaje y nota fiscal</h2>
+          <p>Textos impresos al final del comprobante.</p>
+        </div>
+
+        <div class="receipt-config-fields">
+          <label class="receipt-config-field receipt-config-field-wide">
+            <span>Mensaje final</span>
+            <textarea
+              formControlName="mensaje_final"
+              rows="3"
+              placeholder="¡Gracias por su preferencia!"
+            ></textarea>
+          </label>
+
+          <label class="receipt-config-field receipt-config-field-wide">
+            <span>Nota fiscal</span>
+            <input formControlName="nota_fiscal" maxlength="200" placeholder="Opcional" />
+            <small>Máximo 200 caracteres.</small>
+          </label>
+        </div>
+
+        <div class="receipt-config-actions">
+          <button type="submit" class="receipt-config-save" [disabled]="guardando() || cargando()">
+            {{ guardando() ? 'Guardando...' : 'Guardar configuración' }}
+          </button>
+          <button
+            type="button"
+            class="receipt-config-cancel"
+            [disabled]="guardando()"
+            (click)="cancelar()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+
+      <section class="receipt-config-preview-card" aria-labelledby="receipt-preview-title">
+        <div class="receipt-config-section-heading">
+          <h2 id="receipt-preview-title">Vista previa</h2>
+          <p>Ticket térmico de 58 mm con datos de ejemplo.</p>
+        </div>
+
+        <div class="receipt-preview-scroll">
+          <article class="receipt-preview-ticket" aria-label="Vista previa del comprobante">
+            <header class="receipt-preview-company">
+              <strong>{{ vistaPrevia().nombre }}</strong>
+              <span>{{ vistaPrevia().descripcion }}</span>
+              <span>{{ vistaPrevia().direccion }}</span>
+              <span>Tel. {{ vistaPrevia().telefono }}</span>
+            </header>
+
+            <div class="receipt-preview-rule"></div>
+            <p class="receipt-preview-title">COMPROBANTE DE PAGO</p>
+            <p class="receipt-preview-number">COB-000000</p>
+            <p class="receipt-preview-date">03/11/2026 10:00</p>
+
+            <dl class="receipt-preview-data">
+              <div>
+                <dt>Cliente</dt>
+                <dd>Cliente de ejemplo</dd>
+              </div>
+              <div>
+                <dt>Plan / velocidad</dt>
+                <dd>Plan Hogar · 20 Mbps</dd>
+              </div>
+              <div>
+                <dt>Método de pago</dt>
+                <dd>Efectivo</dd>
+              </div>
+            </dl>
+
+            <div class="receipt-preview-rule"></div>
+            <div class="receipt-preview-periods-heading">
+              <span>PERÍODO PAGADO</span>
+              <span>IMPORTE</span>
+            </div>
+            <div class="receipt-preview-period">
+              <span>noviembre de 2026</span>
+              <strong>Q225.00</strong>
+            </div>
+
+            <div class="receipt-preview-rule"></div>
+            <div class="receipt-preview-total">
+              <span>TOTAL PAGADO</span>
+              <strong>Q225.00</strong>
+            </div>
+
+            <div class="receipt-preview-rule"></div>
+            <p class="receipt-preview-message">{{ vistaPrevia().mensaje }}</p>
+            @if (vistaPrevia().nota) {
+              <p class="receipt-preview-note">{{ vistaPrevia().nota }}</p>
+            }
+          </article>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>

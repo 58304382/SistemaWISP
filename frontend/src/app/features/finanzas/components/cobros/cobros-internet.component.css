@@ -1,0 +1,449 @@
+/* ==========================================
+   MENSUALIDADES VISUALES DE INTERNET
+   ========================================== */
+.internet-services-card {
+  margin-bottom: 18px;
+}
+.monthly-generation-controls {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+.monthly-generation-controls label {
+  display: grid;
+  gap: 3px;
+  color: #65758a;
+  font-size: 8px;
+}
+.monthly-generation-controls input {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid #c9d6e6;
+  border-radius: 7px;
+  color: #253850;
+  background: #fff;
+  font: inherit;
+  font-size: 9px;
+}
+.monthly-generation-controls .new-payment-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+.modal-generation-controls {
+  justify-content: flex-end;
+}
+.feedback-success {
+  color: #226746;
+  background: #e7f7ee;
+}
+.due-day-editor input {
+  width: 76px;
+  padding: 7px 8px;
+  border: 1px solid #c9d6e6;
+  border-radius: 6px;
+  color: #253850;
+  background: #fff;
+  font: inherit;
+  font-size: 10px;
+}
+.due-day-editor input:focus {
+  outline: 2px solid #3978ca;
+  outline-offset: 1px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================
+   ADMINISTRACIÓN DE VENCIMIENTOS
+   ========================================== */
+.due-dates-modal {
+  width: min(1420px, 96vw);
+}
+.due-dates-modal .payment-modal-header {
+  grid-template-columns: auto 1fr auto;
+}
+.due-dates-modal-body {
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+  background: #f5f8fc;
+}
+.due-dates-panel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #dfe7f1;
+  border-radius: 13px;
+  background: #fff;
+}
+.due-dates-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.due-dates-toolbar .modal-search {
+  width: min(420px, 100%);
+  margin-top: 0;
+}
+.due-dates-panel > .feedback {
+  margin: 0 0 12px;
+}
+.due-dates-modal-footer .monthly-generation-controls {
+  align-items: center;
+}
+.due-dates-modal-footer .monthly-generation-controls label {
+  grid-template-columns: auto 145px;
+  align-items: center;
+  gap: 8px;
+}
+.due-dates-modal-footer .monthly-generation-controls input {
+  min-height: 37px;
+}
+.due-dates-modal-footer .new-payment-button {
+  min-height: 37px;
+  padding: 0 17px;
+  font-size: 10px;
+}
+/* Tabla compacta del modal, con encabezado único y desplazamiento adaptable. */
+.due-dates-table-scroll {
+  overflow-x: auto;
+  border: 1px solid #dfe7f1;
+  border-radius: 10px;
+  background: #fff;
+}
+.due-dates-table {
+  min-width: 930px;
+  table-layout: auto;
+}
+.due-dates-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 11px;
+  background: #edf3fa;
+}
+.due-dates-table td {
+  padding: 10px 11px;
+  background: #fff;
+  white-space: nowrap;
+}
+.due-dates-table tbody tr:nth-child(even) td {
+  background: #f9fbfd;
+}
+.due-dates-table td:first-child {
+  min-width: 150px;
+}
+.due-dates-table td:last-child {
+  min-width: 120px;
+}
+.due-dates-table .row-actions {
+  justify-content: flex-end;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.internet-periods {
+  display: grid;
+  gap: 12px;
+  margin-top: 11px;
+}
+.internet-period-group {
+  overflow: hidden;
+  border: 1px solid #dfe7f1;
+  border-radius: 11px;
+  background: #fff;
+}
+.internet-period-group > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border-bottom: 1px solid #e7edf4;
+  background: #f8fafd;
+}
+.period-group-icon {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
+  color: #b45a31;
+  background: #fff0e7;
+  font-size: 12px;
+  font-weight: 900;
+}
+.period-group-icon.advance {
+  color: #267152;
+  background: #e3f6ec;
+  font-size: 19px;
+}
+.internet-period-group h4,
+.internet-period-group p {
+  margin: 0;
+}
+.internet-period-group h4 {
+  color: #253850;
+  font-size: 10px;
+}
+.internet-period-group p {
+  margin-top: 2px;
+  color: #7a8798;
+  font-size: 8px;
+}
+.internet-period-group header > strong {
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #4e6989;
+  background: #e9eff6;
+  font-size: 7px;
+  white-space: nowrap;
+}
+.advance-group {
+  border-color: #cfe6d9;
+}
+.advance-group > header {
+  border-bottom-color: #dceee4;
+  background: #f4fbf7;
+}
+.internet-month-list {
+  display: grid;
+  gap: 6px;
+  padding: 7px;
+}
+.internet-month-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto minmax(110px, 1.2fr) minmax(75px, 0.7fr) minmax(82px, 0.8fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 7px 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #fbfcfe;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.internet-month-row:hover {
+  border-color: #b8cce6;
+  background: #f7faff;
+}
+.internet-month-row:focus-within {
+  outline: 2px solid #3978ca;
+  outline-offset: 2px;
+}
+.internet-month-row.selected {
+  border-color: #6c9fdf;
+  background: #eef5ff;
+  box-shadow: inset 3px 0 #2c73d2;
+}
+.internet-month-row.paid {
+  opacity: 0.72;
+  cursor: default;
+}
+.internet-month-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.internet-month-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #3976c7;
+  background: #eaf2fd;
+}
+.internet-month-icon svg {
+  width: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.internet-month-main,
+.internet-month-detail {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.internet-month-main strong,
+.internet-month-detail strong {
+  color: #263950;
+  font-size: 9px;
+}
+.internet-month-main small,
+.internet-month-detail small {
+  overflow: hidden;
+  color: #7a8798;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.internet-month-detail strong {
+  font-weight: 750;
+}
+.internet-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: end;
+  padding: 5px 7px;
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.internet-status i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.internet-status[data-status='PENDIENTE'] {
+  color: #9a641a;
+  background: #fff1d7;
+}
+.internet-status[data-status='VENCIDO'] {
+  color: #b23d3d;
+  background: #fde7e7;
+}
+.internet-status[data-status='PAGADO'] {
+  color: #247451;
+  background: #ddf5e8;
+}
+.selected-period-mark {
+  position: absolute;
+  top: -5px;
+  right: 10px;
+  min-width: 35px;
+  color: #2a69bc;
+  font-size: 6px;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+.internet-period-empty {
+  padding: 18px;
+  color: #7c899b;
+  font-size: 9px;
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .internet-month-row {
+    grid-template-columns: auto auto minmax(100px, 1fr) minmax(75px, 0.7fr) auto;
+  }
+  .internet-month-detail.due-date {
+    grid-column: 3 / 5;
+    grid-row: 2;
+  }
+  .internet-status {
+    grid-column: 5;
+    grid-row: 1 / 3;
+  }
+}
+@media (max-width: 650px) {
+  .due-dates-modal {
+    width: 100%;
+  }
+  .due-dates-modal-body {
+    padding: 12px;
+    overflow: visible;
+  }
+  .due-dates-panel {
+    padding: 12px;
+  }
+  .due-dates-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .due-dates-toolbar .modal-search {
+    width: 100%;
+  }
+  .due-dates-table {
+    min-width: 860px;
+  }
+  .monthly-generation-controls {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .due-dates-modal-footer .monthly-generation-controls label {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .monthly-generation-controls .new-payment-button {
+    min-height: 34px;
+  }
+  .internet-period-group > header {
+    align-items: start;
+  }
+  .internet-period-group p {
+    line-height: 1.35;
+  }
+  .internet-month-row {
+    grid-template-columns: auto auto minmax(100px, 1fr) auto;
+    gap: 7px;
+  }
+  .internet-month-main {
+    grid-column: 3;
+  }
+  .internet-month-detail {
+    grid-column: 3;
+  }
+  .internet-month-detail.due-date {
+    grid-column: 3;
+    grid-row: auto;
+  }
+  .internet-status {
+    grid-column: 4;
+    grid-row: 1 / 4;
+  }
+}
+@media (max-width: 420px) {
+  .internet-period-group > header {
+    grid-template-columns: auto 1fr;
+  }
+  .internet-period-group header > strong {
+    display: none;
+  }
+  .internet-month-row {
+    grid-template-columns: auto 1fr auto;
+  }
+  .internet-month-icon {
+    display: none;
+  }
+  .internet-month-main,
+  .internet-month-detail,
+  .internet-month-detail.due-date {
+    grid-column: 2;
+  }
+  .internet-status {
+    grid-column: 3;
+  }
+}
+
+/* El editor de vencimientos conserva un objetivo táctil cómodo. */
+@media (max-width: 650px) {
+  .due-day-editor input,
+  .due-dates-table .row-actions button {
+    min-height: 44px;
+  }
+}

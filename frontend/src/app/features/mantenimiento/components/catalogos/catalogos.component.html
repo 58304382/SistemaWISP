@@ -1,0 +1,41 @@
+<!-- ========================================
+     ENCABEZADO Y RUTA DE CATALOGOS
+========================================= -->
+<div class="catalogs-page">
+  <header class="catalogs-header">
+    <nav class="catalogs-breadcrumb" aria-label="Ruta de navegación">
+      <a routerLink="/configuracion">Configuración</a>
+      <span aria-hidden="true">/</span>
+      <a routerLink="/configuracion/mantenimiento">Mantenimiento del Sistema</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">Catálogos</span>
+    </nav>
+    <h1>Catálogos</h1>
+    <p class="page-description">
+      Administre los catálogos utilizados por los módulos del sistema.
+    </p>
+  </header>
+
+  <!-- ========================================
+       MENU LATERAL Y EDITOR REUTILIZADO EN LA MISMA PANTALLA
+  ========================================= -->
+  <section class="catalogs-content" aria-label="Catálogos disponibles">
+    <nav class="catalog-menu" aria-label="Seleccionar catálogo">
+      <p>CATÁLOGOS DEL SISTEMA</p>
+      @for (item of catalogos; track item.clave) {
+        <button type="button" [class.selected]="seleccionado() === item.clave"
+          [attr.aria-pressed]="seleccionado() === item.clave" [disabled]="bloqueado()"
+          (click)="seleccionar(item.clave)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+          {{ item.titulo }}
+        </button>
+      }
+    </nav>
+    <div class="catalog-panel">
+      <!-- La clave destruye el panel anterior y cancela sus peticiones pendientes. -->
+      @for (clave of [seleccionado()]; track clave) {
+        <app-tipos-instalacion [catalogo]="clave" [embebido]="true" (ocupado)="bloqueado.set($event)" />
+      }
+    </div>
+  </section>
+</div>

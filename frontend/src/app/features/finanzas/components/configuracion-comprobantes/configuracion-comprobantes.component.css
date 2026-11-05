@@ -1,0 +1,409 @@
+:host {
+  display: block;
+  min-height: 100%;
+  color: #17263b;
+  background: #f4f7fb;
+}
+
+.receipt-config-page {
+  min-height: 100%;
+  padding-bottom: 48px;
+}
+
+.receipt-config-header {
+  padding: 30px clamp(24px, 4vw, 58px) 24px;
+  border-bottom: 1px solid #e0e7f0;
+  background: #fff;
+}
+
+.receipt-config-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 16px;
+  color: #7a899c;
+  font-size: 11px;
+}
+
+.receipt-config-breadcrumb a {
+  color: #316abe;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.receipt-config-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.receipt-config-title-row h1 {
+  margin: 0;
+  font-size: clamp(25px, 3vw, 32px);
+  letter-spacing: -0.04em;
+}
+
+.receipt-config-title-row p {
+  max-width: 720px;
+  margin: 7px 0 0;
+  color: #718096;
+  font-size: 13px;
+}
+
+.receipt-config-version {
+  flex: 0 0 auto;
+  padding: 7px 11px;
+  border: 1px solid #cddcf0;
+  border-radius: 999px;
+  color: #2d6ec6;
+  background: #edf4fd;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.receipt-config-content {
+  padding: 22px clamp(24px, 4vw, 58px);
+}
+
+.receipt-config-status,
+.receipt-config-success,
+.receipt-config-error {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.receipt-config-status {
+  color: #315b8c;
+  background: #edf5ff;
+}
+
+.receipt-config-success {
+  color: #226746;
+  background: #e7f7ee;
+}
+
+.receipt-config-error {
+  color: #953c3c;
+  background: #fff0f0;
+}
+
+.receipt-config-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.receipt-config-card,
+.receipt-config-preview-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #dfe6ef;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 9px 28px rgba(26, 47, 76, 0.06);
+}
+
+.receipt-config-section-heading h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.receipt-config-section-heading p {
+  margin: 4px 0 0;
+  color: #7a899c;
+  font-size: 10px;
+}
+
+.receipt-config-section-spacing {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #edf1f5;
+}
+
+.receipt-config-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  margin-top: 13px;
+}
+
+.receipt-config-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: #455263;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.receipt-config-field-wide {
+  grid-column: 1 / -1;
+}
+
+.receipt-config-field input,
+.receipt-config-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d5dfeb;
+  border-radius: 8px;
+  outline: 0;
+  color: #26384f;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+}
+
+.receipt-config-field input {
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+.receipt-config-field textarea {
+  min-height: 70px;
+  padding: 9px 10px;
+  resize: vertical;
+}
+
+.receipt-config-field input:focus,
+.receipt-config-field textarea:focus {
+  border-color: #5d8fd8;
+  box-shadow: 0 0 0 3px rgba(45, 112, 211, 0.09);
+}
+
+.receipt-config-field small {
+  color: #8794a5;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.receipt-config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid #edf1f5;
+}
+
+.receipt-config-save,
+.receipt-config-cancel {
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.receipt-config-save {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(110deg, #216dcc, #347fe6);
+  box-shadow: 0 6px 14px rgba(34, 105, 204, 0.2);
+}
+
+.receipt-config-cancel {
+  border: 1px solid #d2dce8;
+  color: #52647a;
+  background: #fff;
+}
+
+.receipt-config-save:disabled,
+.receipt-config-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.receipt-preview-scroll {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  padding: 14px;
+  overflow-x: auto;
+  border: 1px dashed #d5dfeb;
+  border-radius: 11px;
+  background: #f7f9fc;
+}
+
+/* Vista previa monocromática de 58 mm, consistente con el ticket real. */
+.receipt-preview-ticket {
+  width: 58mm;
+  min-width: 58mm;
+  box-sizing: border-box;
+  padding: 5mm;
+  border: 1px solid #000;
+  color: #000;
+  background: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 8.5px;
+  line-height: 1.3;
+}
+
+.receipt-preview-company {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+}
+
+.receipt-preview-company strong {
+  font-size: 10.5px;
+  text-transform: uppercase;
+}
+
+.receipt-preview-company span {
+  font-size: 7.5px;
+}
+
+.receipt-preview-rule {
+  margin: 2.5mm 0;
+  border-top: 1px dashed #000;
+}
+
+.receipt-preview-title {
+  margin: 0;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.receipt-preview-number,
+.receipt-preview-date {
+  margin: 1mm 0 0;
+  text-align: center;
+}
+
+.receipt-preview-number {
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.receipt-preview-date {
+  font-size: 7px;
+}
+
+.receipt-preview-data {
+  display: grid;
+  gap: 1mm;
+  margin: 2mm 0;
+}
+
+.receipt-preview-data div,
+.receipt-preview-period,
+.receipt-preview-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+}
+
+.receipt-preview-data dt {
+  font-size: 6.8px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.receipt-preview-data dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.receipt-preview-periods-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+  font-size: 6.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.receipt-preview-period {
+  padding: 0.6mm 0;
+}
+
+.receipt-preview-period strong {
+  white-space: nowrap;
+}
+
+.receipt-preview-total {
+  padding-top: 1.5mm;
+  border-top: 1px solid #000;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.receipt-preview-message {
+  margin: 0;
+  font-size: 7.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.receipt-preview-note {
+  margin: 2mm 0 0;
+  font-size: 6px;
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .receipt-config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-config-preview-card {
+    order: 2;
+  }
+}
+
+@media (max-width: 650px) {
+  .receipt-config-header,
+  .receipt-config-content {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .receipt-config-title-row {
+    flex-direction: column;
+  }
+
+  .receipt-config-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-config-field-wide {
+    grid-column: auto;
+  }
+
+  .receipt-config-actions {
+    flex-direction: column-reverse;
+  }
+
+  .receipt-config-save,
+  .receipt-config-cancel {
+    width: 100%;
+  }
+
+  .receipt-preview-scroll {
+    justify-content: flex-start;
+    padding: 10px;
+  }
+}
+
+/* Controles de configuración con objetivo táctil en teléfono. */
+@media (max-width: 650px) {
+  .receipt-config-field input,
+  .receipt-config-save,
+  .receipt-config-cancel {
+    min-height: 44px;
+  }
+}

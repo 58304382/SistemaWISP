@@ -1,0 +1,49 @@
+<!-- Formulario horizontal con un único flujo de validación para cámara o galería del dispositivo. -->
+<div class="support-backdrop" (click)="cancel()">
+  <section class="support-modal" role="dialog" aria-modal="true" aria-labelledby="finish-support-title" (click)="$event.stopPropagation()">
+    <header><div><span>SOPORTE TÉCNICO</span><h2 id="finish-support-title">Finalizar soporte</h2><p>{{ cliente }}</p></div><button type="button" class="secondary" aria-label="Cerrar finalización" [disabled]="saving()" (click)="cancel()">×</button></header>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="support-form-grid">
+        <label><span>Trabajo realizado *</span><textarea formControlName="trabajo_realizado" rows="5" placeholder="Describe el trabajo realizado"></textarea></label>
+        <label><span>Resultado de la solución *</span><textarea formControlName="resultado_solucion" rows="5" placeholder="Indica la solución y el resultado verificado"></textarea></label>
+        <label><span>Observaciones</span><textarea formControlName="observaciones" rows="4" placeholder="Información adicional (opcional)"></textarea></label>
+        <!-- Mismo patrón de Instalaciones: inputs ocultos para cámara/galería y una sola evidencia validada. -->
+        <div class="photo-field" role="group" aria-labelledby="support-evidence-label">
+          <span id="support-evidence-label">Fotografía de evidencia *</span>
+          <input #cameraEvidence id="support-camera-evidence" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" capture="environment" [disabled]="saving()" aria-label="Tomar fotografía de evidencia" (change)="onPhotoChange($event)" />
+          <input #galleryEvidence id="support-gallery-evidence" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" [disabled]="saving()" aria-label="Seleccionar imagen de evidencia" (change)="onPhotoChange($event)" />
+          @if (preview(); as image) {
+            <div class="evidence-preview">
+              <img [src]="image" alt="Vista previa de la fotografía de evidencia" />
+              <strong>{{ photo()?.name }}</strong>
+              <button class="evidence-remove" type="button" [disabled]="saving()" (click)="removePhoto(cameraEvidence, galleryEvidence)">Eliminar fotografía</button>
+            </div>
+          }
+          <div class="evidence-options">
+            <label for="support-camera-evidence" [attr.aria-disabled]="saving()">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 6.5 9.5 4h5L16 6.5h3A2 2 0 0 1 21 8.5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z" />
+                <circle cx="12" cy="13" r="3.5" />
+              </svg>
+              Tomar fotografía
+            </label>
+            <label for="support-gallery-evidence" [attr.aria-disabled]="saving()">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="8.5" cy="9" r="1.5" />
+                <path d="m3 17 4.5-4.5 3.5 3.5 2.5-2.5L21 18" />
+              </svg>
+              Seleccionar imagen
+            </label>
+          </div>
+          <small>JPG, PNG o WEBP. Máximo 5 MB. Puedes cambiar la fotografía con cualquiera de las dos opciones.</small>
+          @if (validatingPhoto()) { <small role="status">Validando imagen...</small> }
+          @if (photoError()) { <span class="error" role="alert">{{ photoError() }}</span> }
+        </div>
+      </div>
+      @if (submitted() && form.invalid) { <p class="error" role="alert">Trabajo realizado y Resultado de la solución son obligatorios y deben contener texto.</p> }
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      <footer><button class="secondary" type="button" [disabled]="saving()" (click)="cancel()">Cancelar</button><button class="primary" type="submit" [disabled]="saving() || validatingPhoto()">{{ saving() ? 'Guardando...' : 'Finalizar soporte' }}</button></footer>
+    </form>
+  </section>
+</div>

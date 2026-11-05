@@ -1,0 +1,37 @@
+<!-- ========================================
+     ENCABEZADO DE SERVICIOS
+========================================= -->
+<div class="services-page">
+  <header class="services-header">
+    <h1>Servicios</h1>
+    <p class="page-description">
+      Administre los servicios de Internet y el control de mensualidades de los clientes
+    </p>
+  </header>
+
+  <!-- Cada acceso conserva una ruta propia para desarrollar sus funciones por separado. -->
+  <section class="services-content" aria-label="Opciones de servicios">
+    <a class="services-option" routerLink="/servicios/internet">
+      <span class="services-icon internet-services-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M3.5 9.5a13 13 0 0 1 17 0" />
+          <path d="M6.8 13a8.2 8.2 0 0 1 10.4 0" />
+          <path d="M10.1 16.5a3.2 3.2 0 0 1 3.8 0" />
+          <circle cx="12" cy="20" r="1" fill="currentColor" stroke="none" />
+        </svg>
+      </span>
+      <span class="services-option-label">Servicios de Internet</span>
+    </a>
+
+    <a class="services-option" routerLink="/servicios/mensualidades">
+      <span class="services-icon monthly-services-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+          <path d="M8 3v4M16 3v4M3.5 10h17" />
+          <path d="M8 14h2M14 14h2M8 17.5h2M14 17.5h2" />
+        </svg>
+      </span>
+      <span class="services-option-label">Asignación de Planes</span>
+    </a>
+  </section>
+</div>

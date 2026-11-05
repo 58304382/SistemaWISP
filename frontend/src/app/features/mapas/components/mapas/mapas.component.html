@@ -1,0 +1,660 @@
+<div class="maps-page">
+  <header class="maps-header">
+    <div>
+      <span class="maps-kicker">{{
+        isVisitContext() ? 'VISITA TÉCNICA' : isInstallationContext() ? 'INSTALACIÓN' : 'COBERTURA GEOGRÁFICA'
+      }}</span>
+      <h1>MAPAS</h1>
+      <p>
+        @if (visitContextTask() || installationContextTask(); as task) {
+          {{ task.cliente }}
+          @if (task.numero_propiedad !== null) {
+            · Propiedad {{ task.numero_propiedad }}
+          }
+        } @else {
+          Ubicación de propiedades de clientes y antenas
+        }
+      </p>
+    </div>
+    @if (isTaskContext()) {
+      <div class="visit-context-actions">
+        @if (visitContextTask()?.id_ubicacion === null && canEditVisitLocation()) {
+          <button type="button" (click)="prepareVisitLocationRegistration()">
+            Registrar ubicación
+          </button>
+        }
+        <button type="button" class="secondary" (click)="goBackToTasks()">Volver a tareas</button>
+      </div>
+    } @else {
+      <div class="maps-legend" aria-label="Tipos de marcador">
+        <span><i class="property-dot"></i>Propiedades</span>
+        <span><i class="antenna-dot"></i>Antenas</span>
+      </div>
+    }
+  </header>
+
+  <main class="maps-content">
+    @if (!isTaskContext()) {
+      <div class="maps-toolbar">
+        <div class="maps-search">
+          <label class="maps-search-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6" />
+              <path d="m15 15 5 5" />
+            </svg>
+            <input
+              type="search"
+              placeholder="Buscar cliente, propiedad o antena..."
+              aria-label="Buscar cliente, propiedad o antena"
+              aria-autocomplete="list"
+              [value]="searchTerm()"
+              (focus)="openSearchResults()"
+              (input)="onSearch($event)"
+            />
+          </label>
+          @if (searchResultsOpen()) {
+            <div class="search-results" role="listbox" aria-label="Resultados de ubicación">
+              @for (item of searchResults(); track item.kind + ':' + item.id) {
+                <button type="button" role="option" (click)="selectSearchResult(item)">
+                  <span class="result-kind" [class.antenna]="item.kind === 'antenna'">
+                    {{ item.kind === 'property' ? 'Cliente' : 'Antena' }}
+                  </span>
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ item.subtitle }}</small>
+                  @if (!hasCoordinates(item)) {
+                    <small class="without-coordinates">Sin coordenadas registradas</small>
+                  }
+                </button>
+              } @empty {
+                <p>No se encontraron clientes, propiedades o antenas.</p>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="map-filters" aria-label="Filtrar ubicaciones">
+          <button type="button" [class.active]="filter() === 'all'" (click)="setFilter('all')">
+            Todos
+          </button>
+          <button
+            type="button"
+            [class.active]="filter() === 'clients'"
+            (click)="setFilter('clients')"
+          >
+            Clientes
+          </button>
+          <button
+            type="button"
+            [class.active]="filter() === 'antennas'"
+            (click)="setFilter('antennas')"
+          >
+            Antenas
+          </button>
+        </div>
+
+        @if (canManageMap()) {
+          <button class="add-location" type="button" (click)="prepareAddLocation()">
+            + Agregar ubicación
+          </button>
+        }
+      </div>
+    }
+
+    @if (propertiesError()) {
+      <p class="maps-alert error" role="alert">{{ propertiesError() }}</p>
+    }
+    @if (antennasError()) {
+      <p class="maps-alert error" role="alert">{{ antennasError() }}</p>
+    }
+    @if (actionMessage()) {
+      <p class="maps-alert" role="status">{{ actionMessage() }}</p>
+    }
+
+    <section class="map-stage" aria-label="Mapa de propiedades y antenas">
+      <div #mapContainer class="map-canvas"></div>
+
+      <div class="map-view-selector" role="group" aria-label="Vista del mapa">
+        <button
+          type="button"
+          [class.active]="mapType() === 'roadmap'"
+          [attr.aria-pressed]="mapType() === 'roadmap'"
+          (click)="setMapType('roadmap')"
+        >
+          Mapa
+        </button>
+        <button
+          type="button"
+          [class.active]="mapType() === 'satellite'"
+          [attr.aria-pressed]="mapType() === 'satellite'"
+          (click)="setMapType('satellite')"
+        >
+          Satélite
+        </button>
+        <button
+          type="button"
+          [class.active]="mapType() === 'terrain'"
+          [attr.aria-pressed]="mapType() === 'terrain'"
+          (click)="setMapType('terrain')"
+        >
+          Relieve
+        </button>
+      </div>
+
+      @if (coordinateSelectionActive()) {
+        <div class="coordinate-toolbar" role="status">
+          <div>
+            <strong>CONFIRMAR UBICACIÓN</strong>
+            <span>Verifica que el marcador esté sobre la vivienda o antena.</span>
+            <span>Haz clic en el mapa para colocar o ajustar el marcador provisional.</span>
+            @if (gpsAccuracy() !== null) {
+              <small>Precisión estimada: {{ gpsAccuracy() }} m.</small>
+              <small class="coordinate-warning">
+                La ubicación detectada puede ser aproximada. Verifica el marcador antes de confirmar
+              </small>
+            }
+            @if (selectionCoordinates(); as point) {
+              <div class="provisional-coordinates">
+                <small>Latitud: {{ point.latitud }}</small>
+                <small>Longitud: {{ point.longitud }}</small>
+              </div>
+            } @else {
+              <small>Coordenadas pendientes</small>
+            }
+          </div>
+          <div class="coordinate-actions">
+            <button type="button" class="secondary" (click)="cancelCoordinateSelection()">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              [disabled]="!selectionCoordinates()"
+              (click)="confirmCoordinates()"
+            >
+              Confirmar ubicación
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isLoadingMap()) {
+        <div class="map-state"><strong>Cargando Google Maps...</strong></div>
+      } @else if (mapError()) {
+        <div class="map-state map-error" role="alert">
+          <strong>Mapa no disponible</strong>
+          <span>{{ mapError() }}</span>
+          <button type="button" (click)="retryMap()">Reintentar</button>
+        </div>
+      }
+
+      @if (!isLoadingData() && !propertiesError() && !antennasError() && !visibleItems().length) {
+        <div class="map-empty">No hay ubicaciones que coincidan con la búsqueda.</div>
+      }
+
+      @if (selectedItem(); as item) {
+        <article class="map-detail-card">
+          <button
+            class="detail-close"
+            type="button"
+            aria-label="Cerrar información"
+            (click)="closeSelection()"
+          >
+            ×
+          </button>
+          @if (imageUrl(item.image); as image) {
+            <img
+              [src]="image"
+              [alt]="item.kind === 'property' ? 'Fachada de la propiedad' : 'Antena'"
+            />
+          }
+          <div class="detail-copy">
+            <span class="detail-type" [class.antenna]="item.kind === 'antenna'">
+              {{ item.kind === 'property' ? 'PROPIEDAD DE CLIENTE' : 'ANTENA' }}
+            </span>
+            <h2>{{ item.title }}</h2>
+            <strong>{{ item.subtitle }}</strong>
+            <small>{{ item.status }}</small>
+            @if (item.address?.trim(); as address) {
+              <p>{{ address }}</p>
+            }
+            @if (item.reference?.trim(); as reference) {
+              <p>{{ reference }}</p>
+            }
+            <div class="detail-actions">
+              <button type="button" (click)="showDetails(item)">
+                {{ item.kind === 'property' ? 'Ver propiedad' : 'Ver detalles' }}
+              </button>
+              @if (isVisitContext() && item.kind === 'property' && canEditVisitLocation()) {
+                <button type="button" (click)="editVisitLocation(item)">Corregir ubicación</button>
+              }
+              @if (canManageMap() && !isVisitContext()) {
+                <button
+                  type="button"
+                  (click)="item.kind === 'property' ? editProperty(item) : editAntenna(item)"
+                >
+                  Editar
+                </button>
+                <button class="delete-action" type="button" (click)="requestDelete(item)">
+                  Eliminar
+                </button>
+              }
+              @if (hasCoordinates(item)) {
+                <button type="button" (click)="prepareDirections(item)">Cómo llegar</button>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </section>
+
+    <footer class="maps-summary">
+      <span>{{ visibleItems().length }} ubicaciones visibles</span>
+      <span>{{ properties().length }} propiedades registradas</span>
+      @if (!isTaskContext()) {
+        <span>{{ antennas().length }} antenas registradas</span>
+      }
+    </footer>
+  </main>
+
+  @if (deleteConfirmation(); as itemToDelete) {
+    <div
+      class="property-modal-backdrop delete-confirmation-backdrop"
+      role="presentation"
+      (click)="cancelDelete()"
+    >
+      <section
+        class="delete-confirmation-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="map-delete-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="delete-confirmation-icon" aria-hidden="true">!</div>
+        <h2 id="map-delete-title">
+          ¿Eliminar {{ itemToDelete.kind === 'property' ? 'propiedad' : 'antena' }}?
+        </h2>
+        <p>
+          Se eliminará <strong>{{ itemToDelete.title }} · {{ itemToDelete.subtitle }}</strong
+          >.
+          @if (itemToDelete.kind === 'property') {
+            El cliente y sus demás propiedades se conservarán.
+          }
+        </p>
+        @if (deleteError()) {
+          <p class="delete-confirmation-error" role="alert">{{ deleteError() }}</p>
+        }
+        <footer class="delete-confirmation-actions">
+          <button
+            type="button"
+            class="secondary"
+            [disabled]="!!deletingItemKey()"
+            (click)="cancelDelete()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="danger"
+            [disabled]="!!deletingItemKey()"
+            (click)="confirmDelete()"
+          >
+            {{ deletingItemKey() ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  @if (isPropertyFormOpen() && !coordinateSelectionActive()) {
+    <div class="property-modal-backdrop" (click)="closePropertyForm()">
+      <section
+        class="property-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="property-form-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="property-modal-header">
+          <div>
+            <span>UBICACIONES GEOGRÁFICAS</span>
+            <h2 id="property-form-title">
+              @if (isVisitContext()) {
+                {{ editingProperty() ? 'Corregir ubicación' : 'Registrar propiedad' }}
+              } @else {
+                {{
+                  editingProperty() || selectedAntenna() ? 'Editar ubicación' : 'Agregar ubicación'
+                }}
+              }
+            </h2>
+          </div>
+          <button
+            type="button"
+            aria-label="Cerrar formulario"
+            [disabled]="isSavingProperty()"
+            (click)="closePropertyForm()"
+          >
+            ×
+          </button>
+        </header>
+
+        <form [formGroup]="propertyForm" (ngSubmit)="saveLocation()">
+          <div class="location-form-grid">
+            @if (!isVisitContext()) {
+              <div class="form-field type-field">
+                <label for="location-type">Tipo de ubicación</label>
+                <select
+                  id="location-type"
+                  required
+                  [value]="locationFormType()"
+                  [disabled]="isDirectPropertyEdit() || !!selectedAntenna()"
+                  (change)="onLocationTypeChange($event)"
+                >
+                  <option value="client">Cliente</option>
+                  <option value="antenna">Antena</option>
+                </select>
+              </div>
+            }
+
+            @if (locationFormType() === 'client') {
+              <div class="form-field search-entity-field">
+                <label for="property-client">Buscar cliente existente</label>
+                <div class="client-search-control">
+                  <input
+                    id="property-client"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="Buscar por nombre, DPI o teléfono"
+                    [value]="clientSearch()"
+                    [disabled]="isVisitContext() || isLoadingClients() || isDirectPropertyEdit()"
+                    (input)="onClientSearch($event)"
+                  />
+                  @if (selectedClient() && !isVisitContext()) {
+                    <button type="button" (click)="changeClient()">Cambiar</button>
+                  }
+                </div>
+                @if (filteredClients().length) {
+                  <div class="client-results" role="listbox">
+                    @for (client of filteredClients(); track client.id_cliente) {
+                      <button type="button" role="option" (click)="selectClient(client)">
+                        <strong>{{ client.nombres }} {{ client.apellidos }}</strong>
+                        <small
+                          >#{{ client.id_cliente }} · {{ client.dpi || 'Sin DPI' }} ·
+                          {{ client.telefono }}</small
+                        >
+                      </button>
+                    }
+                  </div>
+                }
+                @if (isLoadingClients()) {
+                  <small>Cargando clientes...</small>
+                }
+                @if (clientsError()) {
+                  <small class="field-error">{{ clientsError() }}</small>
+                }
+              </div>
+
+              @if (directEditingProperty(); as property) {
+                <div class="form-field property-selector-field">
+                  <label for="property-selection">Propiedad</label>
+                  <select id="property-selection" disabled>
+                    <option>Propiedad {{ property.numero_propiedad }}</option>
+                  </select>
+                  <small>Cliente y numeración asignados por FastAPI.</small>
+                </div>
+              } @else if (selectedClient()) {
+                <div class="form-field property-selector-field">
+                  <label for="property-selection">Propiedad del cliente</label>
+                  <select
+                    id="property-selection"
+                    [value]="selectedPropertyOption() ?? ''"
+                    [disabled]="isVisitContext() || isLoadingClientProperties()"
+                    (change)="onPropertySelection($event)"
+                  >
+                    <option value="" disabled>Seleccionar opción</option>
+                    <option value="new">Nueva propiedad</option>
+                    @for (property of clientProperties(); track property.id_ubicacion) {
+                      <option [value]="property.id_ubicacion">
+                        Propiedad {{ property.numero_propiedad }} ·
+                        {{
+                          property.latitud === null ? 'Ubicación pendiente' : 'Ubicación registrada'
+                        }}
+                      </option>
+                    }
+                  </select>
+                  <small>
+                    @if (isLoadingClientProperties()) {
+                      Consultando propiedades...
+                    } @else {
+                      Selecciona una existente para consultarla o Nueva propiedad para registrar
+                      otra.
+                    }
+                  </small>
+                </div>
+              }
+
+              @if (selectedClient()) {
+                <div class="client-geography-row">
+                  <div class="form-field">
+                    <label for="client-department">Departamento</label>
+                    <input
+                      id="client-department"
+                      type="text"
+                      readonly
+                      [value]="selectedDepartmentName()"
+                      placeholder="Sin departamento registrado"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="client-municipality">Municipio</label>
+                    <input
+                      id="client-municipality"
+                      type="text"
+                      readonly
+                      [value]="selectedMunicipalityName()"
+                      placeholder="Sin municipio registrado"
+                    />
+                  </div>
+                  @if (departmentsError()) {
+                    <small class="field-error geography-error">{{ departmentsError() }}</small>
+                  }
+                </div>
+              }
+            } @else {
+              <div class="form-field search-entity-field">
+                <label for="antenna-search">Nombre de la antena</label>
+                <div class="client-search-control">
+                  <input
+                    id="antenna-search"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="Nombre de la antena"
+                    required
+                    maxlength="150"
+                    [value]="antennaSearch()"
+                    [disabled]="isLoadingSelection() || !!selectedAntenna()"
+                    (input)="onAntennaSearch($event)"
+                  />
+                </div>
+                @if (isLoadingSelection()) {
+                  <small>Cargando antena...</small>
+                }
+              </div>
+            }
+
+            <div class="form-field address-field">
+              <label for="property-address">Dirección</label>
+              <input
+                id="property-address"
+                type="text"
+                maxlength="500"
+                formControlName="direccion"
+                [readOnly]="isVisitContext() && !!editingProperty()"
+              />
+            </div>
+
+            <div class="form-field reference-field">
+              <label for="property-reference">Referencia</label>
+              <input
+                id="property-reference"
+                type="text"
+                maxlength="500"
+                formControlName="referencia"
+                [readOnly]="isVisitContext() && !!editingProperty()"
+              />
+            </div>
+          </div>
+
+          <section class="location-section coordinates-section">
+            <div class="section-heading">
+              <span>UBICACIÓN GEOGRÁFICA</span>
+              <strong [class.pending]="coordinateStatus() === 'pending'">
+                @if (coordinateStatus() === 'registered') {
+                  ✓ Ubicación registrada
+                } @else if (coordinateStatus() === 'selected') {
+                  ✓ Ubicación confirmada
+                } @else {
+                  Ubicación pendiente
+                }
+              </strong>
+            </div>
+            <div class="location-methods">
+              <button
+                type="button"
+                [disabled]="isCapturingLocation()"
+                (click)="useCurrentLocation()"
+              >
+                {{ isCapturingLocation() ? 'Obteniendo ubicación...' : 'Usar mi ubicación' }}
+              </button>
+              <button type="button" (click)="selectCoordinatesOnMap()">Seleccionar en mapa</button>
+              @if (!isVisitContext()) {
+                <button
+                  type="button"
+                  [class.active]="receivedLocationOpen()"
+                  [attr.aria-expanded]="receivedLocationOpen()"
+                  (click)="receivedLocationOpen.set(!receivedLocationOpen())"
+                >
+                  Ubicación recibida
+                </button>
+              }
+            </div>
+            @if (receivedLocationOpen()) {
+              <div class="received-location-panel">
+                <strong>UBICACIÓN RECIBIDA</strong>
+                <label>
+                  Enlace de Google Maps
+                  <input
+                    #receivedLocationLink
+                    type="url"
+                    placeholder="Pega el enlace de la ubicación compartida desde Google Maps."
+                    [value]="receivedLocationUrl()"
+                    aria-describedby="received-location-error"
+                    (input)="
+                      receivedLocationUrl.set(receivedLocationLink.value);
+                      receivedLocationError.set('')
+                    "
+                  />
+                </label>
+                <button
+                  type="button"
+                  [disabled]="!canProcessReceivedLocation()"
+                  (click)="obtainReceivedCoordinates()"
+                >
+                  {{
+                    isResolvingReceivedLocation()
+                      ? 'Obteniendo coordenadas...'
+                      : 'Obtener coordenadas'
+                  }}
+                </button>
+                @if (receivedLocationError()) {
+                  <small id="received-location-error" class="field-error" role="alert">
+                    {{ receivedLocationError() }}
+                  </small>
+                }
+              </div>
+            }
+            <div class="coordinate-readout">
+              <label>
+                Latitud
+                <input type="text" readonly [value]="coordinates()?.latitud ?? ''" />
+              </label>
+              <label>
+                Longitud
+                <input type="text" readonly [value]="coordinates()?.longitud ?? ''" />
+              </label>
+            </div>
+            @if (geolocationError()) {
+              <small class="field-error" role="alert">{{ geolocationError() }}</small>
+            }
+            @if (locationFormType() === 'antenna' && !coordinates()) {
+              <small class="field-error">Las antenas requieren coordenadas.</small>
+            }
+          </section>
+
+          <section class="location-section photo-section">
+            <span>
+              {{
+                locationFormType() === 'client'
+                  ? 'FOTOGRAFÍA DE FACHADA'
+                  : 'FOTOGRAFÍA DE ANTENA/SITIO'
+              }}
+            </span>
+            <div class="photo-row">
+              <div class="facade-preview">
+                @if (facadePreview(); as preview) {
+                  <img
+                    [src]="preview"
+                    [alt]="
+                      locationFormType() === 'client' ? 'Fachada de la propiedad' : 'Antena o sitio'
+                    "
+                  />
+                } @else {
+                  <div>
+                    <strong>Sin fotografía</strong><small>JPEG, PNG o WEBP · Máximo 5 MB</small>
+                  </div>
+                }
+              </div>
+              <div class="facade-actions">
+                <label>
+                  {{ facadePreview() ? 'Cambiar' : 'Adjuntar' }}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    (change)="onFacadeSelected($event)"
+                  />
+                </label>
+                @if (facadeFile() || (facadePreview() && !isVisitContext())) {
+                  <button type="button" (click)="removeFacade()">
+                    {{ isVisitContext() ? 'Descartar cambio' : 'Eliminar' }}
+                  </button>
+                }
+              </div>
+            </div>
+          </section>
+
+          @if (propertyFormError()) {
+            <p class="property-form-error" role="alert">{{ propertyFormError() }}</p>
+          }
+
+          <footer class="property-modal-actions">
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="isSavingProperty()"
+              (click)="closePropertyForm()"
+            >
+              Cancelar
+            </button>
+            <button type="submit" [disabled]="isSavingProperty()">
+              @if (isSavingProperty()) {
+                Guardando...
+              } @else if (isVisitContext()) {
+                {{ editingProperty() ? 'Guardar corrección' : 'Registrar propiedad' }}
+              } @else {
+                Guardar ubicación
+              }
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+</div>

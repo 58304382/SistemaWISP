@@ -1,0 +1,1013 @@
+@if (isInstallations) {
+  <!-- ========================================
+       GESTION DE INSTALACIONES
+  ========================================= -->
+  <div class="installations-page">
+    <!-- ENCABEZADO -->
+    <header class="installations-header">
+      <div>
+        <h1>Gestión de Instalaciones</h1>
+        <p>
+          {{ installations().length }}
+          {{
+            installations().length === 1 ? 'instalación registrada' : 'instalaciones registradas'
+          }}
+        </p>
+      </div>
+    </header>
+
+    <section class="installations-content">
+      @if (installationActionError() && !isDeleteInstallationModalOpen()) {
+        <p class="installation-error" role="alert">{{ installationActionError() }}</p>
+      }
+      <!-- BUSCADOR, FILTRO Y ACCION PRINCIPAL -->
+      <div class="installations-toolbar">
+        <label class="installation-search" for="installation-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="10.8" cy="10.8" r="6.3" />
+            <path d="m16 16 4.5 4.5" />
+          </svg>
+          <input
+            id="installation-search"
+            type="search"
+            placeholder="Buscar por cliente, técnico..."
+            autocomplete="off"
+            [value]="installationSearch()"
+            (input)="onInstallationSearch($event)"
+          />
+        </label>
+
+        <div class="installation-status-filter">
+          <select
+            aria-label="Filtrar instalaciones por estado"
+            [value]="installationStatusFilter()"
+            (change)="onInstallationStatusFilter($event)"
+          >
+            <option value="all">Todos</option>
+            <option value="PROGRAMADA">Programada</option>
+            <option value="EN PROCESO">En proceso</option>
+            <option value="COMPLETADA">Completada</option>
+          </select>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m7 10 5 5 5-5" />
+          </svg>
+        </div>
+
+        <button class="new-installation-button" type="button" (click)="openInstallationModal()">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          <span>Nueva Instalación</span>
+        </button>
+      </div>
+
+      <!-- TABLA DE INSTALACIONES -->
+      <div class="installations-table-card">
+        <div class="installations-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>CLIENTE</th>
+                <th>FECHA</th>
+                <th>HORA</th>
+                <th>TÉCNICO</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (filteredInstallations().length) {
+                @for (installation of filteredInstallations(); track installation.id_instalacion) {
+                  <tr>
+                    <td data-label="ID">{{ installation.id_instalacion }}</td>
+                    <td class="installation-client" data-label="Cliente">
+                      {{ installation.cliente }}
+                    </td>
+                    <td data-label="Fecha">{{ installation.fecha_programada }}</td>
+                    <td data-label="Hora">{{ installation.hora_programada }}</td>
+                    <td data-label="Técnico">
+                      <div class="installation-technicians-list">
+                        @for (technician of installation.tecnicos; track technician.id_empleado) {
+                          <span>
+                            <strong>{{ technician.nombres }} {{ technician.apellidos }}</strong>
+                            — {{ technician.es_encargado ? 'Encargado' : 'Apoyo' }}
+                          </span>
+                        }
+                      </div>
+                    </td>
+                    <td data-label="Estado">
+                      <span
+                        class="installation-status-pill"
+                        [class.status-progress]="installation.estado === 'EN PROCESO'"
+                        [class.status-complete]="installation.estado === 'COMPLETADA'"
+                      >
+                        {{
+                          installation.estado === 'EN PROCESO'
+                            ? 'En proceso'
+                            : installation.estado === 'PROGRAMADA'
+                              ? 'Programada'
+                              : 'Completada'
+                        }}
+                      </span>
+                    </td>
+                    <td data-label="Acciones">
+                      <div class="installation-actions">
+                        <button
+                          class="installation-action edit"
+                          type="button"
+                          title="Ver instalación"
+                          aria-label="Ver instalación"
+                          [disabled]="isLoadingInstallation() === +installation.id_instalacion"
+                          (click)="openViewInstallation(+installation.id_instalacion)"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                            <circle cx="12" cy="12" r="2.5" />
+                          </svg>
+                        </button>
+                        <button
+                          class="installation-action edit"
+                          type="button"
+                          title="Editar instalación"
+                          aria-label="Editar instalación"
+                          [disabled]="isLoadingInstallation() === +installation.id_instalacion"
+                          (click)="openEditInstallation(+installation.id_instalacion)"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="m4 16.5-.8 4.3 4.3-.8L19 8.5 15.5 5zM14 6.5l3.5 3.5" />
+                          </svg>
+                        </button>
+                        <button
+                          class="installation-action delete"
+                          type="button"
+                          title="Eliminar instalación"
+                          aria-label="Eliminar instalación"
+                          (click)="requestDeleteInstallation(installation)"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M5 7h14M10 11v6M14 11v6M9 7V4h6v3M7 7l1 13h8l1-13" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              } @else {
+                <tr>
+                  <td class="installations-empty" colspan="7">
+                    <strong>No se encontraron instalaciones</strong>
+                    <span>Prueba con otros filtros o términos de búsqueda.</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========================================
+       MODAL VISUAL DE NUEVA INSTALACION
+  ========================================= -->
+  @if (isInstallationModalOpen()) {
+    <div class="installation-modal-backdrop" role="presentation" (click)="closeInstallationModal()">
+      <section
+        class="installation-modal installation-detail-modal installation-administration-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="installation-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="installation-modal-header">
+          <div>
+            <p>INSTALACIONES</p>
+            <h2 id="installation-title">
+              {{
+                editingInstallationId() === null ? 'Programar Instalación' : 'Editar Instalación'
+              }}
+            </h2>
+          </div>
+          <button
+            class="installation-close-button"
+            type="button"
+            aria-label="Cerrar modal"
+            (click)="closeInstallationModal()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <p class="installation-modal-description">
+          {{
+            editingInstallationId() === null
+              ? 'Prepara la información de la visita técnica del cliente.'
+              : 'Actualiza la información de la visita técnica del cliente.'
+          }}
+        </p>
+
+        <form id="installation-form" class="installation-form" (submit)="saveInstallation($event)">
+          <div class="installation-form-field installation-client-field">
+            <label for="installation-client">Cliente *</label>
+            <input type="hidden" name="id_cliente" [value]="selectedClientId() ?? ''" />
+            @if (selectedClient(); as client) {
+              <div class="installation-selected-client-card">
+                <div class="installation-selected-client-item">
+                  <span>ID</span>
+                  <strong>{{ clientCode(client) }}</strong>
+                </div>
+                <div class="installation-selected-client-item installation-selected-client-name">
+                  <span>Nombre</span>
+                  <strong>{{ clientFullName(client) }}</strong>
+                </div>
+                <div class="installation-selected-client-item">
+                  <span>Teléfono</span>
+                  <strong>{{ client.telefono || 'No registrado' }}</strong>
+                </div>
+                <div class="installation-selected-client-item installation-selected-client-address">
+                  <span>Dirección</span>
+                  <strong>{{ client.direccion || 'No registrada' }}</strong>
+                </div>
+                <button
+                  class="installation-selected-client-change"
+                  type="button"
+                  (click)="changeClient()"
+                >
+                  Cambiar
+                </button>
+              </div>
+            } @else {
+              <div class="installation-client-control">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <circle cx="10.8" cy="10.8" r="6.3" />
+                  <path d="m16 16 4.5 4.5" />
+                </svg>
+                <input
+                  id="installation-client"
+                  type="search"
+                  [value]="clientSearch()"
+                  placeholder="Buscar por nombre, código o teléfono..."
+                  autocomplete="off"
+                  role="combobox"
+                  [attr.aria-expanded]="isClientDropdownOpen()"
+                  aria-controls="installation-client-results"
+                  (input)="onClientSearch($event)"
+                  (focus)="openClientDropdown()"
+                  (blur)="closeClientDropdown()"
+                />
+              </div>
+              @if (isClientDropdownOpen() && clientSearch().trim()) {
+                <div
+                  id="installation-client-results"
+                  class="installation-client-results"
+                  role="listbox"
+                >
+                  @if (isLoadingClients()) {
+                    <p class="installation-client-result-message">Cargando clientes...</p>
+                  } @else if (clientLoadError()) {
+                    <p class="installation-client-result-message">{{ clientLoadError() }}</p>
+                  } @else if (filteredClients().length) {
+                    @for (client of filteredClients(); track client.id_cliente) {
+                      <button
+                        class="installation-client-result"
+                        type="button"
+                        role="option"
+                        (mousedown)="$event.preventDefault()"
+                        (click)="selectClient(client)"
+                      >
+                        <strong>{{ clientCode(client) }}</strong>
+                        <span>{{ clientFullName(client) }}</span>
+                        <small>{{ client.telefono }}</small>
+                      </button>
+                    }
+                  } @else {
+                    <p class="installation-client-result-message">No se encontraron clientes</p>
+                  }
+                </div>
+              }
+            }
+          </div>
+          @if (selectedClient()) {
+            <!-- Seleccionar la fuente carga la evaluación; no se copian accesorios a otra tabla. -->
+            <div class="installation-form-field installation-client-field">
+              <label for="installation-visit">Visita con cotización COMPLETADA *</label>
+              <select
+                id="installation-visit"
+                [value]="selectedVisitId() ?? ''"
+                [disabled]="cargandoVisitas()"
+                (change)="onVisitSelection($event)"
+              >
+                <option value="">
+                  {{ cargandoVisitas() ? 'Consultando visitas...' : 'Seleccione una visita' }}
+                </option>
+                @if (
+                  puedeConservarOrigen() && !selectedVisit() && installationSource()?.id_visita
+                ) {
+                  <option [value]="installationSource()!.id_visita">
+                    Visita actual #{{ installationSource()!.id_visita }}
+                  </option>
+                }
+                @for (visita of visitasDisponibles(); track visita.id_visita) {
+                  <option [value]="visita.id_visita">
+                    Visita #{{ visita.id_visita }} · {{ visita.numero_cotizacion }}
+                  </option>
+                }
+              </select>
+              @if (errorVisitas()) {
+                <p class="installation-error" role="alert">{{ errorVisitas() }}</p>
+              }
+              @if (
+                !cargandoVisitas() &&
+                !errorVisitas() &&
+                !visitasDisponibles().length &&
+                !puedeConservarOrigen()
+              ) {
+                <p>No hay visitas con cotización COMPLETADA para este cliente.</p>
+              }
+              @if (selectedVisit() || (puedeConservarOrigen() && installationSource()?.visita)) {
+                <p><strong>Descripción del trabajo</strong></p>
+                <p>{{ descripcionVisita() || 'Sin descripción registrada' }}</p>
+                <p><strong>Materiales / accesorios de la visita</strong></p>
+                <ul>
+                  @for (material of materialesVisita(); track material.id_detalle) {
+                    <li>
+                      {{ material.descripcion }} · {{ material.cantidad }} {{ material.unidad }}
+                    </li>
+                  } @empty {
+                    <li>Sin materiales registrados.</li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+          <div class="installation-form-field installation-date-field">
+            <label for="installation-date">
+              {{ editingInstallationId() === null ? 'Fecha *' : 'Fecha programada *' }}
+            </label>
+            <input
+              id="installation-date"
+              type="date"
+              [value]="installationDate()"
+              (input)="onInstallationDateChange($event)"
+              required
+            />
+          </div>
+          <div class="installation-form-field installation-time-field">
+            <label for="installation-time">
+              {{ editingInstallationId() === null ? 'Hora *' : 'Hora programada *' }}
+            </label>
+            <input
+              id="installation-time"
+              type="time"
+              [value]="installationTime()"
+              (input)="onInstallationTimeChange($event)"
+              required
+            />
+          </div>
+          <!-- La selección múltiple representa las filas reales de instalacion_tecnicos. -->
+          <div class="installation-form-field installation-technicians-field">
+            <div
+              class="installation-technician-controls"
+              [class.single-control]="selectedTechnicianIds().length < 2"
+            >
+              <div>
+                <label for="installation-technicians">Técnicos asignados *</label>
+                <details id="installation-technicians" class="installation-multiselect">
+                  <summary>{{ technicianSelectionLabel() }}</summary>
+                  <div class="installation-technician-options">
+                    @if (isLoadingTechnicians()) {
+                      <p>Cargando técnicos...</p>
+                    } @else if (technicianLoadError()) {
+                      <p>{{ technicianLoadError() }}</p>
+                    } @else if (!technicians().length) {
+                      <p>No hay técnicos activos disponibles</p>
+                    } @else {
+                      @for (technician of technicians(); track technician.id_empleado) {
+                        <label class="installation-technician-option">
+                          <input
+                            type="checkbox"
+                            [checked]="selectedTechnicianIds().includes(technician.id_empleado)"
+                            (change)="onTechnicianSelectionChange(technician.id_empleado, $event)"
+                          />
+                          <span>{{ technicianFullName(technician) }}</span>
+                        </label>
+                      }
+                    }
+                  </div>
+                </details>
+                @if (selectedTechnicians().length === 1) {
+                  <small class="installation-lead-note">
+                    {{ technicianFullName(selectedTechnicians()[0]) }} — Encargado
+                  </small>
+                }
+              </div>
+
+              @if (selectedTechnicianIds().length >= 2) {
+                <div>
+                  <label for="installation-lead-technician">Técnico encargado *</label>
+                  <select
+                    id="installation-lead-technician"
+                    [value]="leadTechnicianId() ?? ''"
+                    (change)="onLeadTechnicianChange($event)"
+                    required
+                  >
+                    <option value="">Seleccione encargado</option>
+                    @for (technician of selectedTechnicians(); track technician.id_empleado) {
+                      <option
+                        [value]="technician.id_empleado"
+                        [selected]="technician.id_empleado === leadTechnicianId()"
+                      >
+                        {{ technicianFullName(technician) }}
+                      </option>
+                    }
+                  </select>
+                </div>
+              }
+            </div>
+          </div>
+          <div class="installation-form-field installation-notes-field">
+            <label for="installation-notes">Observaciones</label>
+            <textarea
+              id="installation-notes"
+              placeholder="Notas adicionales para el técnico..."
+              [value]="installationObservations()"
+              (input)="onInstallationObservationsChange($event)"
+            ></textarea>
+          </div>
+        </form>
+
+        <div class="installation-modal-actions">
+          @if (installationError()) {
+            <p class="installation-error" role="alert">{{ installationError() }}</p>
+          }
+          <button
+            class="installation-primary-button"
+            type="submit"
+            form="installation-form"
+            [disabled]="isSavingInstallation()"
+          >
+            {{
+              isSavingInstallation()
+                ? 'Guardando...'
+                : editingInstallationId() === null
+                  ? 'Programar instalación'
+                  : 'Guardar cambios'
+            }}
+          </button>
+          <button
+            class="installation-secondary-button"
+            type="button"
+            (click)="closeInstallationModal()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (isSuccessModalOpen()) {
+    <div class="installation-modal-backdrop" role="presentation" (click)="closeSuccessModal()">
+      <section
+        class="installation-modal installation-success-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="installation-success-title"
+        (click)="$event.stopPropagation()"
+      >
+        <p class="installation-success-label">INSTALACIONES</p>
+        <h2 id="installation-success-title">{{ installationSuccessTitle() }}</h2>
+        <p>{{ installationSuccessMessage() }}</p>
+        <button class="installation-primary-button" type="button" (click)="closeSuccessModal()">
+          Continuar
+        </button>
+      </section>
+    </div>
+  }
+  @if (isViewInstallationModalOpen()) {
+    <div
+      class="installation-modal-backdrop"
+      role="presentation"
+      (click)="closeViewInstallationModal()"
+    >
+      <section
+        class="installation-modal installation-readonly-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="installation-detail-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="installation-modal-header">
+          <div>
+            <p>INSTALACIONES</p>
+            <h2 id="installation-detail-title">Detalle de Instalación</h2>
+          </div>
+          <button
+            class="installation-close-button"
+            type="button"
+            aria-label="Cerrar detalle"
+            (click)="closeViewInstallationModal()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+        @if (selectedInstallation(); as installation) {
+          <!-- Resumen de programación y tarjetas compactas por sección.
+               Se presenta la respuesta ya cargada; no se agregan consultas ni controles de edición. -->
+          <div class="installation-detail-layout">
+            <section
+              class="installation-detail-card installation-detail-programming"
+              aria-label="Programación de la instalación"
+            >
+              <div class="installation-detail-card-header">
+                <div class="installation-detail-card-heading">
+                  <span class="installation-detail-card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+                      <path d="M7.5 3v4M16.5 3v4M3.5 9.5h17M8 13h2M14 13h2M8 16.5h2M14 16.5h2" />
+                    </svg>
+                  </span>
+                  <h3>Programación</h3>
+                </div>
+                <span class="installation-detail-status" [attr.data-status]="installation.estado">
+                  {{ installation.estado }}
+                </span>
+              </div>
+              <dl class="installation-detail-fields">
+                <div class="installation-detail-field">
+                  <dt>Instalación</dt>
+                  <dd>#{{ installation.id_instalacion }}</dd>
+                </div>
+                <div class="installation-detail-field">
+                  <dt>Fecha programada</dt>
+                  <dd>{{ installation.fecha_programada | date: 'dd/MM/yyyy' }}</dd>
+                </div>
+                <div class="installation-detail-field">
+                  <dt>Hora</dt>
+                  <dd>{{ formatInstallationTime(installation.hora_programada) }}</dd>
+                </div>
+                <div class="installation-detail-field">
+                  <dt>Fecha de registro</dt>
+                  <dd>{{ installation.fecha_registro | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                </div>
+                <div class="installation-detail-field wide">
+                  <dt>Observaciones de instalación</dt>
+                  <dd>{{ installation.observaciones || 'Sin observaciones' }}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <div class="task-detail-columns">
+              <section
+                class="order-detail-section installation-detail-card installation-detail-client"
+                aria-label="Cliente de la instalación"
+              >
+                <div class="installation-detail-card-header">
+                  <div class="installation-detail-card-heading">
+                    <span class="installation-detail-card-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <circle cx="12" cy="8" r="3.5" />
+                        <path d="M4.5 20c.8-3.4 3.8-5.5 7.5-5.5s6.7 2.1 7.5 5.5" />
+                      </svg>
+                    </span>
+                    <h3>Cliente</h3>
+                  </div>
+                </div>
+                <dl class="installation-detail-fields">
+                  <div class="installation-detail-field">
+                    <dt>ID</dt>
+                    <dd>{{ installation.cliente.id_cliente }}</dd>
+                  </div>
+                  <div class="installation-detail-field">
+                    <dt>Nombre</dt>
+                    <dd>{{ installation.cliente.nombre }}</dd>
+                  </div>
+                  <div class="installation-detail-field">
+                    <dt>Teléfono</dt>
+                    <dd>{{ installation.cliente.telefono || 'No registrado' }}</dd>
+                  </div>
+                  <div class="installation-detail-field">
+                    <dt>DPI</dt>
+                    <dd>{{ installation.cliente.dpi || 'No registrado' }}</dd>
+                  </div>
+                  <div class="installation-detail-field wide">
+                    <dt>Correo</dt>
+                    <dd>{{ installation.cliente.correo || 'No registrado' }}</dd>
+                  </div>
+                  <div class="installation-detail-field wide">
+                    <dt>Dirección</dt>
+                    <dd>{{ installation.cliente.direccion }}</dd>
+                  </div>
+                  <div class="installation-detail-field">
+                    <dt>Municipio</dt>
+                    <dd>{{ installation.cliente.municipio }}</dd>
+                  </div>
+                  <div class="installation-detail-field">
+                    <dt>Estado</dt>
+                    <dd>{{ installation.cliente.estado || 'No registrado' }}</dd>
+                  </div>
+                  <div class="installation-detail-field wide">
+                    <dt>Referencia</dt>
+                    <dd>{{ installation.cliente.referencia || 'Sin referencia' }}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section
+                class="order-detail-section installation-detail-card installation-detail-visit"
+                aria-label="Visita técnica de la instalación"
+              >
+                <div class="installation-detail-card-header">
+                  <div class="installation-detail-card-heading">
+                    <span class="installation-detail-card-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <path
+                          d="M8 5H6.5A2.5 2.5 0 0 0 4 7.5v11A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-11A2.5 2.5 0 0 0 17.5 5H16"
+                        />
+                        <rect x="8" y="3" width="8" height="4" rx="1.5" />
+                        <path d="m8.5 13 2.2 2.2 4.8-5" />
+                      </svg>
+                    </span>
+                    <h3>Visita técnica</h3>
+                  </div>
+                </div>
+                @if (installation.visita; as visita) {
+                  <dl class="installation-detail-fields">
+                    <div class="installation-detail-field">
+                      <dt>Visita</dt>
+                      <dd>#{{ visita.id_visita }}</dd>
+                    </div>
+                    <div class="installation-detail-field">
+                      <dt>Tipo</dt>
+                      <dd>{{ visita.tipo_instalacion }}</dd>
+                    </div>
+                    <div class="installation-detail-field">
+                      <dt>Fecha</dt>
+                      <dd>
+                        {{ (visita.fecha_programada | date: 'dd/MM/yyyy') || 'No registrada' }}
+                        {{ visita.hora_programada?.slice(0, 5) }}
+                      </dd>
+                    </div>
+                    <div class="installation-detail-field">
+                      <dt>Estado</dt>
+                      <dd>{{ visita.estado || 'No registrado' }}</dd>
+                    </div>
+                    <div class="installation-detail-field wide">
+                      <dt>Técnico de visita</dt>
+                      <dd>{{ visita.nombre_tecnico || 'No registrado' }}</dd>
+                    </div>
+                    <div class="installation-detail-field wide">
+                      <dt>Motivo</dt>
+                      <dd>{{ visita.motivo_visita || 'No registrado' }}</dd>
+                    </div>
+                    <div class="installation-detail-field wide">
+                      <dt>Indicaciones</dt>
+                      <dd>{{ visita.indicaciones || 'Sin indicaciones' }}</dd>
+                    </div>
+                    <div class="installation-detail-field wide">
+                      <dt>Observaciones</dt>
+                      <dd>{{ visita.observaciones || 'Sin observaciones' }}</dd>
+                    </div>
+                  </dl>
+                  @if (installationImageUrl(visita.foto_referencia); as foto) {
+                    <figure class="installation-detail-photo">
+                      <a
+                        [href]="foto"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Ampliar fotografía de referencia de la visita"
+                      >
+                        <img
+                          [src]="foto"
+                          alt="Fotografía de referencia de la visita"
+                          loading="lazy"
+                        />
+                        <span class="installation-detail-photo-action">Ampliar</span>
+                      </a>
+                    </figure>
+                  }
+                } @else {
+                  <p class="installation-detail-empty">Sin visita técnica vinculada.</p>
+                }
+              </section>
+
+              <section
+                class="order-detail-section installation-detail-card installation-detail-evaluation"
+                aria-label="Evaluación de la instalación"
+              >
+                <div class="installation-detail-card-header">
+                  <div class="installation-detail-card-heading">
+                    <span class="installation-detail-card-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <path
+                          d="M6 3.5h8l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5A1.5 1.5 0 0 1 6.5 3.5Z"
+                        />
+                        <path d="M14 3.5V8h4M8.5 12h7M8.5 15.5h7M8.5 19h4" />
+                      </svg>
+                    </span>
+                    <h3>Evaluación y trabajo</h3>
+                  </div>
+                </div>
+                @if (installation.visita; as visita) {
+                  @if (visita.id_evaluacion || visita.descripcion_evaluacion) {
+                    <!-- Bloque azul claro para destacar la descripción del trabajo aprobada. -->
+                    <div class="installation-detail-highlight">
+                      <span class="installation-detail-highlight-label"
+                        >Descripción del trabajo</span
+                      >
+                      <p>{{ visita.descripcion_evaluacion || 'Sin descripción registrada' }}</p>
+                    </div>
+                    <dl class="installation-detail-fields">
+                      @if (visita.id_evaluacion) {
+                        <div class="installation-detail-field">
+                          <dt>Evaluación</dt>
+                          <dd>#{{ visita.id_evaluacion }}</dd>
+                        </div>
+                      }
+                      <div class="installation-detail-field">
+                        <dt>Técnicos recomendados</dt>
+                        <dd>{{ visita.tecnicos_recomendados ?? 'No registrado' }}</dd>
+                      </div>
+                      <div class="installation-detail-field wide">
+                        <dt>Condiciones del lugar</dt>
+                        <dd>{{ visita.condiciones_lugar || 'No registradas' }}</dd>
+                      </div>
+                      <div class="installation-detail-field wide">
+                        <dt>Observación técnica</dt>
+                        <dd>{{ visita.observacion_tecnica || 'Sin observaciones' }}</dd>
+                      </div>
+                    </dl>
+                    <div class="installation-detail-subsection">
+                      <h4>Materiales / accesorios</h4>
+                      <ul class="order-detail-materials installation-detail-list">
+                        @for (material of visita.materiales ?? []; track material.id_detalle) {
+                          <li>
+                            <span>{{ material.descripcion }}</span>
+                            <small>{{ material.cantidad }} {{ material.unidad }}</small>
+                          </li>
+                        } @empty {
+                          <li>Sin materiales registrados.</li>
+                        }
+                      </ul>
+                    </div>
+                  } @else {
+                    <p class="installation-detail-empty">Sin evaluación registrada.</p>
+                  }
+                } @else {
+                  <p class="installation-detail-empty">Sin evaluación vinculada.</p>
+                }
+              </section>
+
+              <section
+                class="order-detail-section installation-detail-card installation-detail-location"
+                aria-label="Ubicación de la instalación"
+              >
+                <div class="installation-detail-card-header">
+                  <div class="installation-detail-card-heading">
+                    <span class="installation-detail-card-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <path d="M12 21s6.5-5.7 6.5-11A6.5 6.5 0 0 0 5.5 10c0 5.3 6.5 11 6.5 11Z" />
+                        <circle cx="12" cy="10" r="2.3" />
+                      </svg>
+                    </span>
+                    <h3>Ubicación</h3>
+                  </div>
+                </div>
+                @if (installation.ubicacion; as ubicacion) {
+                  <dl class="installation-detail-fields">
+                    <div class="installation-detail-field">
+                      <dt>Propiedad</dt>
+                      <dd>
+                        {{ ubicacion.numero_propiedad ?? 'No registrada' }} · ID
+                        {{ ubicacion.id_ubicacion }}
+                      </dd>
+                    </div>
+                    <div class="installation-detail-field">
+                      <dt>Estado</dt>
+                      <dd>{{ ubicacion.estado || 'No registrado' }}</dd>
+                    </div>
+                    <div class="installation-detail-field wide">
+                      <dt>Dirección</dt>
+                      <dd>{{ ubicacion.direccion || 'No registrada' }}</dd>
+                    </div>
+                    <div class="installation-detail-field wide">
+                      <dt>Referencia</dt>
+                      <dd>{{ ubicacion.referencia || 'Sin referencia' }}</dd>
+                    </div>
+                    <div class="installation-detail-field wide">
+                      <dt>Observaciones</dt>
+                      <dd>{{ ubicacion.observaciones || 'Sin observaciones' }}</dd>
+                    </div>
+                  </dl>
+                  @if (installationImageUrl(ubicacion.foto_fachada); as fachada) {
+                    <figure class="installation-detail-photo">
+                      <a
+                        [href]="fachada"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Ampliar fotografía de la fachada"
+                      >
+                        <img
+                          [src]="fachada"
+                          alt="Fachada de la propiedad de la instalación"
+                          loading="lazy"
+                        />
+                        <span class="installation-detail-photo-action">Ampliar</span>
+                      </a>
+                    </figure>
+                  }
+                } @else {
+                  <p class="installation-detail-empty">Sin ubicación vinculada.</p>
+                }
+              </section>
+
+              <section
+                class="order-detail-section installation-detail-card installation-detail-technicians"
+                aria-label="Técnicos asignados a la instalación"
+              >
+                <div class="installation-detail-card-header">
+                  <div class="installation-detail-card-heading">
+                    <span class="installation-detail-card-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <circle cx="9" cy="8" r="3" />
+                        <path d="M3.5 19c.7-3 3.1-4.8 5.5-4.8s4.8 1.8 5.5 4.8" />
+                        <path d="M16.5 7.5a3.5 3.5 0 0 1 0 7M17 14.2c2 .4 3.5 2 4 4.8" />
+                      </svg>
+                    </span>
+                    <h3>Técnicos asignados</h3>
+                  </div>
+                </div>
+                <ul class="order-detail-equipment installation-detail-list">
+                  @for (tecnico of installation.tecnicos; track tecnico.id_empleado) {
+                    <li class="installation-detail-technician">
+                      <strong>{{ tecnico.nombres }} {{ tecnico.apellidos }}</strong>
+                      <span>{{ tecnico.codigo }}</span>
+                      <span class="installation-detail-technician-role">{{
+                        tecnico.es_encargado ? 'Encargado' : 'Apoyo'
+                      }}</span>
+                      <p>{{ tecnico.nombre_puesto }} · {{ tecnico.estado }}</p>
+                    </li>
+                  } @empty {
+                    <li>Sin técnicos asignados.</li>
+                  }
+                </ul>
+              </section>
+
+              @if (
+                installation.estado === 'Completada' ||
+                installation.fecha_finalizacion ||
+                installation.observaciones_tecnicas ||
+                installation.evidencia_fotografica
+              ) {
+                <section
+                  class="order-detail-section installation-detail-card installation-detail-finalization"
+                  aria-label="Finalización de la instalación"
+                >
+                  <div class="installation-detail-card-header">
+                    <div class="installation-detail-card-heading">
+                      <span class="installation-detail-card-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                          <circle cx="12" cy="12" r="8.5" />
+                          <path d="m8.5 12.2 2.3 2.3 4.7-5" />
+                        </svg>
+                      </span>
+                      <h3>Finalización registrada</h3>
+                    </div>
+                  </div>
+                  <div class="installation-detail-finalization-body">
+                    <dl class="installation-detail-fields">
+                      <div class="installation-detail-field wide">
+                        <dt>Fecha</dt>
+                        <dd>
+                          {{
+                            (installation.fecha_finalizacion | date: 'dd/MM/yyyy HH:mm') ||
+                              'No registrada'
+                          }}
+                        </dd>
+                      </div>
+                      <div class="installation-detail-field wide">
+                        <dt>Observaciones técnicas</dt>
+                        <dd>{{ installation.observaciones_tecnicas || 'Sin observaciones' }}</dd>
+                      </div>
+                    </dl>
+                    <!-- FastAPI devuelve /uploads/...; la imagen se amplía en una pestaña nueva.
+                         Una evidencia ausente no genera una imagen con src vacío. -->
+                    @if (installationImageUrl(installation.evidencia_fotografica); as evidencia) {
+                      <figure class="installation-detail-photo">
+                        <a
+                          [href]="evidencia"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Ampliar evidencia fotográfica de finalización"
+                        >
+                          <img
+                            [src]="evidencia"
+                            alt="Evidencia fotográfica de finalización"
+                            loading="lazy"
+                          />
+                          <span class="installation-detail-photo-action">Ampliar</span>
+                        </a>
+                      </figure>
+                    } @else {
+                      <p class="installation-detail-empty">Sin evidencia registrada</p>
+                    }
+                  </div>
+                </section>
+              }
+            </div>
+          </div>
+        }
+        <div class="installation-modal-actions installation-actions installation-single-action">
+          <button
+            class="installation-secondary-button"
+            type="button"
+            (click)="closeViewInstallationModal()"
+          >
+            Cerrar
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+  @if (isDeleteInstallationModalOpen()) {
+    <div
+      class="installation-modal-backdrop"
+      role="presentation"
+      (click)="closeDeleteInstallationModal()"
+    >
+      <section
+        class="installation-modal installation-success-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="installation-delete-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="installation-modal-header">
+          <div>
+            <p>INSTALACIONES</p>
+            <h2 id="installation-delete-title">Eliminar instalación</h2>
+          </div>
+          <button
+            class="installation-close-button"
+            type="button"
+            aria-label="Cerrar confirmación"
+            (click)="closeDeleteInstallationModal()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+        @if (pendingDeleteInstallation(); as installation) {
+          <p class="installation-delete-message">
+            ¿Está seguro de que desea eliminar esta instalación?
+          </p>
+          <p class="installation-delete-reference">
+            ID {{ installation.id_instalacion }} · {{ installation.cliente }}
+          </p>
+          <p class="installation-delete-warning">Esta acción no se puede deshacer.</p>
+        }
+        @if (installationActionError()) {
+          <p class="installation-error" role="alert">{{ installationActionError() }}</p>
+        }
+        <div class="installation-modal-actions">
+          <button
+            class="installation-secondary-button"
+            type="button"
+            (click)="closeDeleteInstallationModal()"
+          >
+            Cancelar
+          </button>
+          <button
+            class="installation-action delete"
+            type="button"
+            [disabled]="isDeletingInstallation() !== null"
+            (click)="confirmDeleteInstallation()"
+          >
+            {{ isDeletingInstallation() !== null ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+} @else {
+  <!-- ========================================
+       VISTA BASE DE MAPA DE CLIENTES
+  ========================================= -->
+  <div class="client-view-page">
+    <header class="client-view-header">
+      <a class="back-link" routerLink="/clientes">← Volver a Módulo de Clientes</a>
+      <h1>{{ title }}</h1>
+      <p>{{ description }}</p>
+    </header>
+
+    <section class="client-view-placeholder">
+      <p>Este módulo está preparado para su próxima implementación.</p>
+    </section>
+  </div>
+}

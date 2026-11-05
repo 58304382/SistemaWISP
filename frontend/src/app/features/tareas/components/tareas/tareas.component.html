@@ -1,0 +1,1052 @@
+<div class="tasks-page">
+  <!-- Encabezado compacto: contexto del tablero y resumen de estados en una sola franja. -->
+  <header class="tasks-header">
+    <div>
+      <div class="tasks-title">
+        <span class="tasks-title-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M9 5H6.5A1.5 1.5 0 0 0 5 6.5v13A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 5H15"
+            />
+            <rect x="9" y="3" width="6" height="4" rx="1" />
+            <path d="m8.5 14 2.2 2.2 4.8-5" />
+          </svg>
+        </span>
+        <h1>Tareas</h1>
+      </div>
+      <p>Consulta y seguimiento de los trabajos técnicos programados.</p>
+    </div>
+    <div class="status-counters" aria-label="Resumen de tareas por estado">
+      <span class="scheduled"
+        ><i></i><strong>{{ statusCounts().Programada }}</strong> Programadas</span
+      >
+      <span class="in-progress"
+        ><i></i><strong>{{ statusCounts()['En Proceso'] }}</strong> En Proceso</span
+      >
+      <span class="completed"
+        ><i></i><strong>{{ statusCounts().Completada }}</strong> Completadas</span
+      >
+    </div>
+  </header>
+
+  <main class="tasks-content">
+    <!-- Los filtros mantienen un único tablero, incluido el soporte asignado al técnico autenticado. -->
+    <div class="tasks-toolbar">
+      <label class="tasks-search" for="task-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6" />
+          <path d="m15 15 5 5" />
+        </svg>
+        <input
+          id="task-search"
+          type="search"
+          placeholder="Buscar por cliente, técnico o fecha..."
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+        />
+      </label>
+      <label class="task-filter"
+        ><span>Tipo:</span
+        ><select
+          [value]="typeFilter()"
+          (change)="onTypeFilter($event)"
+          aria-label="Filtrar por tipo"
+        >
+          <option value="all">Todos</option>
+          <option value="Instalación">Instalación</option>
+          <option value="Visita Técnica">Visita Técnica</option>
+          <option value="Orden de Trabajo">Orden de Trabajo</option>
+          <option value="Soporte Técnico">Soporte Técnico</option>
+        </select></label
+      >
+      <label class="task-filter"
+        ><span>Proceso:</span
+        ><select
+          [value]="statusFilter()"
+          (change)="onStatusFilter($event)"
+          aria-label="Filtrar por proceso"
+        >
+          <option value="all">Todos</option>
+          <option value="Programada">Programada</option>
+          <option value="En Proceso">En Proceso</option>
+          <option value="Completada">Completada</option>
+        </select></label
+      >
+    </div>
+
+    @if (loadError()) {
+      <p role="alert">{{ loadError() }}</p>
+    }
+    @if (actionMessage()) {
+      <p class="task-success-message" role="status">{{ actionMessage() }}</p>
+    }
+
+    @if (!tasks().length) {
+      <section class="tasks-empty">
+        @if (isLoadingTasks()) {
+          <strong>Cargando tareas...</strong>
+          <p>Consultando las visitas técnicas programadas.</p>
+        } @else {
+          <strong>Aún no hay tareas disponibles</strong>
+          <p>El tablero mostrará aquí instalaciones y visitas técnicas programadas.</p>
+        }
+      </section>
+    } @else if (!taskGroups().length) {
+      <section class="tasks-empty">
+        <strong>No se encontraron tareas</strong>
+        <p>Prueba con otros filtros o términos de búsqueda.</p>
+      </section>
+    } @else {
+      <!-- Cada sección representa un día; el orden del componente garantiza HOY, MAÑANA y fechas posteriores. -->
+      <div class="task-groups">
+        @for (group of taskGroups(); track group.fecha) {
+          <section class="task-day">
+            <header class="day-heading">
+              <h2>{{ group.etiqueta }}</h2>
+              <span
+                >{{ group.tareas.length }}
+                {{ group.tareas.length === 1 ? 'tarea' : 'tareas' }}</span
+              >
+            </header>
+            <div class="day-tasks">
+              @for (task of group.tareas; track task.tipo + ':' + task.id) {
+                <!-- Una sola arquitectura adapta acciones y responsables según tipo, estado y bloqueo. -->
+                <article class="task-card" [class.task-card-locked]="task.bloqueada">
+                  <div class="task-card-heading">
+                    <span class="task-type">{{ task.tipo }}</span>
+                    <div class="task-state">
+                      @if (task.bloqueada) {
+                        <span
+                          class="task-lock"
+                          title="Tarea bloqueada"
+                          aria-label="Tarea bloqueada"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="5" y="10" width="14" height="10" rx="2" />
+                            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                          </svg>
+                        </span>
+                      }
+                      <span
+                        class="task-status"
+                        [class.in-progress]="task.estado === 'En Proceso'"
+                        [class.completed]="task.estado === 'Completada'"
+                        >{{ task.estado }}</span
+                      >
+                    </div>
+                  </div>
+                  <div class="task-card-details">
+                    <div class="task-time">
+                      <span>Hora</span><strong>{{ task.hora }}</strong>
+                    </div>
+                    <div>
+                      <span>Cliente</span><strong>{{ task.cliente }}</strong>
+                    </div>
+                    <div>
+                      <span>{{
+                        task.tipo === 'Soporte Técnico' ? 'Categoría' : task.tipo === 'Orden de Trabajo' ? 'Tipo de trabajo' : 'Tipo de instalación'
+                      }}</span
+                      ><strong>{{ task.tipoInstalacion }}</strong>
+                    </div>
+                    <div>
+                      <span>{{ technicianLabel(task) }}</span
+                      ><strong>{{ technicianDisplay(task) }}</strong>
+                    </div>
+                  </div>
+                  @if (task.tipo === 'Visita Técnica') {
+                    <section class="task-location" aria-label="Ubicación de la visita">
+                      @if (!hasGeographicCoordinates(task)) {
+                        <div class="location-status missing">
+                          <strong>Ubicación no registrada</strong>
+                          <span
+                            >La propiedad se registrará con los datos confirmados en campo.</span
+                          >
+                        </div>
+                        @if (task.puedeRealizarAcciones && task.estado === 'En Proceso') {
+                          <button type="button" (click)="goToVisitMap(task)">
+                            Registrar ubicación
+                          </button>
+                        }
+                      } @else {
+                        <button type="button" (click)="goToVisitMap(task)">Ver en mapa</button>
+                      }
+                    </section>
+                  } @else if (task.tipo === 'Instalación') {
+                    <!-- Datos de la evaluación de visita, no observaciones administrativas copiadas. -->
+                    <section class="task-location" aria-label="Información técnica de la instalación">
+                      <div class="location-status registered">
+                        <strong>Descripción del trabajo</strong><span>{{ task.descripcion || 'Sin descripción registrada' }}</span>
+                        <strong>Materiales / accesorios</strong>
+                        <ul>@for (material of task.materiales ?? []; track material.id_detalle) {
+                          <li>{{ material.descripcion }} · {{ material.cantidad }} {{ material.unidad }}</li>
+                        } @empty { <li>Sin materiales registrados.</li> }</ul>
+                      </div>
+                    </section>
+                    <section class="task-location" aria-label="Ubicación de la instalación">
+                      @if (task.id_ubicacion === null) {
+                        <div class="location-status missing">
+                          <strong>Inconsistencia de ubicación</strong>
+                          <span>La instalación no tiene una propiedad vinculada.</span>
+                        </div>
+                      } @else {
+                        <div class="location-status registered">
+                          <strong
+                            >Ubicación registrada · Propiedad {{ task.numeroPropiedad }}</strong
+                          >
+                          @if (task.direccionPropiedad?.trim(); as address) {
+                            <span>{{ address }}</span>
+                          }
+                          @if (task.referenciaPropiedad?.trim(); as reference) {
+                            <small>{{ reference }}</small>
+                          }
+                        </div>
+                        @if (facadeUrl(task.fotoFachada); as facade) {
+                          <img [src]="facade" alt="Fachada de la propiedad" />
+                        }
+                        @if (hasGeographicCoordinates(task)) {
+                          <button
+                            type="button"
+                            data-action="directions"
+                            [disabled]="task.puedeVer === false"
+                            (click)="prepareDirections(task)"
+                          >
+                            📍 Cómo llegar
+                          </button>
+                        }
+                      }
+                    </section>
+                  } @else if (task.tipo === 'Soporte Técnico') {
+                    <section class="task-location" aria-label="Descripción del soporte">
+                      <div class="location-status registered"><strong>{{ task.codigoTicket }}</strong><span>{{ task.descripcion }}</span></div>
+                    </section>
+                  } @else {
+                    <section class="task-location" aria-label="Descripción de la orden">
+                      <div class="location-status registered">
+                        <strong>{{ task.descripcion }}</strong>
+                        @if (task.tipoInstalacion.trim(); as workType) {
+                          <span>{{ workType }}</span>
+                        }
+                      </div>
+                    </section>
+                  }
+                  <!-- Ver siempre representa los datos originales; las demás acciones dependen del flujo. -->
+                  <div class="task-actions">
+                    <div class="task-actions-secondary">
+                      <button
+                        type="button"
+                        [disabled]="task.puedeVer === false"
+                        (click)="openTaskDetails(task)"
+                      >
+                        Ver
+                      </button>
+                    </div>
+
+                    @if (task.tipo === 'Visita Técnica') {
+                      @if (task.puedeRealizarAcciones) {
+                        @if (task.estado === 'Programada') {
+                          <button
+                            class="task-primary-action"
+                            type="button"
+                            (click)="openVisitEvaluation(task)"
+                          >
+                            Realizar evaluación
+                          </button>
+                        } @else if (task.estado === 'En Proceso') {
+                          <button
+                            class="task-primary-action"
+                            type="button"
+                            (click)="openVisitEvaluation(task)"
+                          >
+                            Continuar evaluación
+                          </button>
+                        }
+                      } @else if (!task.esResponsable) {
+                        <span class="task-locked-message">Acciones técnicas bloqueadas</span>
+                      }
+                    } @else if (task.tipo === 'Orden de Trabajo') {
+                      @if (task.puedeRealizarAcciones) {
+                        @if (task.estado === 'Programada') {
+                          <button
+                            class="task-primary-action"
+                            type="button"
+                            (click)="openOrderStart(task)"
+                          >
+                            Iniciar
+                          </button>
+                        } @else if (task.estado === 'En Proceso') {
+                          <!-- Cotización COMPLETADA en Cobros habilita la entrega, también con pendiente Q0.00. -->
+                          @if (task.puedeFinalizarOrden) {
+                            <button class="task-primary-action" type="button" (click)="openOrderFinalizacion(task)">
+                              Finalizar orden
+                            </button>
+                          } @else {
+                          @switch (etapaOrden(task)) {
+                            @case ('registrar') {
+                              <button
+                                class="task-primary-action"
+                                type="button"
+                                (click)="openOrderEvaluation(task)"
+                              >
+                                Registrar evaluación
+                              </button>
+                            }
+                            @case ('rechazado') {
+                              <span class="task-locked-message" role="status">
+                                Trabajo rechazado · la reparación no está autorizada.
+                              </span>
+                            }
+                            @case ('esperando') {
+                              <span class="task-locked-message" role="status">
+                                Esperando cotización: se autoriza al aceptar la cotización.
+                              </span>
+                            }
+                            @case ('continuar') {
+                              <button
+                                class="task-primary-action"
+                                type="button"
+                                (click)="continuarTrabajo(task)"
+                              >
+                                Continuar trabajo
+                              </button>
+                            }
+                            @case ('en_ejecucion') {
+                              <span class="task-locked-message">Entrega pendiente de registro en Cobros.</span>
+                              @if (puedeActualizarCotizacion(task)) {
+                                <button
+                                  type="button"
+                                  (click)="openTrabajoAdicional(task)"
+                                >
+                                  Actualizar cotización
+                                </button>
+                              }
+                              @if (estaTrabajoAdicionalEnRevision(task)) {
+                                <span class="task-locked-message" role="status">
+                                  Trabajo adicional en revisión comercial.
+                                </span>
+                              } @else if (task.trabajoAdicionalRechazado) {
+                                <span class="task-locked-message" role="status">
+                                  El trabajo adicional fue rechazado; puedes continuar lo ya
+                                  autorizado.
+                                </span>
+                              }
+                            }
+                            @case ('finalizado') {
+                              @if (puedeActualizarCotizacion(task)) {
+                                <button
+                                  type="button"
+                                  (click)="openTrabajoAdicional(task)"
+                                >
+                                  Actualizar cotización
+                                </button>
+                              }
+                              @if (estaTrabajoAdicionalEnRevision(task)) {
+                                <span class="task-locked-message" role="status">
+                                  Trabajo adicional en revisión comercial.
+                                </span>
+                              } @else if (task.trabajoAdicionalRechazado) {
+                                <span class="task-locked-message" role="status">
+                                  El trabajo adicional fue rechazado; puedes continuar lo ya
+                                  autorizado.
+                                </span>
+                              } @else {
+                                <span class="task-locked-message" role="status">
+                                   Registre el cobro para autorizar la entrega y finalizar la orden.
+                                </span>
+                              }
+                            }
+                          }
+                          }
+                        }
+                      } @else if (!task.esResponsable) {
+                        <span class="task-locked-message">Acciones técnicas bloqueadas</span>
+                      }
+                    } @else if (task.tipo === 'Soporte Técnico') {
+                      <!-- El servidor valida otra vez asignación y transición al ejecutar cada acción. -->
+                      @if (task.puedeRealizarAcciones && task.esResponsable && !task.bloqueada) {
+                        @if (task.estado === 'Programada') {
+                          <button class="task-primary-action" type="button" [disabled]="startingSupportId() !== null" (click)="startSupport(task)">{{ startingSupportId() === task.id_ticket ? 'Iniciando...' : 'Iniciar soporte' }}</button>
+                        } @else if (task.estado === 'En Proceso') {
+                          <button class="task-primary-action" type="button" (click)="openCompleteSupport(task)">Finalizar soporte</button>
+                        }
+                      }
+                    } @else if (!task.bloqueada && task.puedeRealizarAcciones) {
+                      @if (task.estado === 'Programada') {
+                        <button
+                          class="task-primary-action"
+                          type="button"
+                          (click)="openStartInstallation(task)"
+                        >
+                          Iniciar
+                        </button>
+                      } @else if (task.estado === 'En Proceso') {
+                        <button
+                          class="task-primary-action"
+                          type="button"
+                          (click)="openCompleteInstallation(task)"
+                        >
+                          Completar instalación
+                        </button>
+                      }
+                    } @else if (task.tipo === 'Instalación' && task.estado !== 'Completada') {
+                      <span class="task-locked-message">Acciones técnicas bloqueadas</span>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+<!-- Confirmación previa al inicio persistido mediante el endpoint existente. -->
+@if (installationToStart(); as installation) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeStartInstallation()">
+    <section
+      class="start-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="start-installation-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <span>INSTALACIÓN</span>
+        <h2 id="start-installation-title">Iniciar instalación</h2>
+      </header>
+      <dl>
+        <div>
+          <dt>Cliente:</dt>
+          <dd>{{ installation.cliente }}</dd>
+        </div>
+        <div>
+          <dt>Hora programada:</dt>
+          <dd>{{ installation.hora }}</dd>
+        </div>
+      </dl>
+      <p class="start-warning">
+        Al confirmar, la instalación pasará de Programada a En Proceso.
+      </p>
+      <footer>
+        <button class="modal-cancel" type="button" [disabled]="startingInstallationId() !== null" (click)="closeStartInstallation()">
+          Cancelar
+        </button>
+        <button class="modal-confirm" type="button" [disabled]="startingInstallationId() !== null" (click)="confirmStartInstallation()">
+          {{ startingInstallationId() !== null ? 'Iniciando...' : 'Confirmar inicio' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+<!-- Un único componente adapta edición o lectura según el estado de la visita seleccionada. -->
+@if (visitForEvaluation(); as visit) {
+  <app-evaluacion-visita
+    [task]="visit"
+    (closed)="closeVisitEvaluation()"
+    (progressed)="onVisitEvaluationProgressed($event)"
+    (saved)="onVisitEvaluationSaved($event)"
+  />
+}
+
+<!-- El cierre técnico vive en Tareas y no modifica la evaluación de visitas. -->
+@if (supportToComplete(); as support) {
+  <app-finalizar-soporte [idTicket]="support.id_ticket!" [cliente]="support.cliente" (closed)="supportToComplete.set(null)" (saved)="onSupportCompleted($event)" />
+}
+
+<!-- Lectura compartida con Soporte Técnico: mismo informe, historial y evidencia. -->
+@if (supportDetailId() !== null) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeSupportDetails()">
+    <section class="start-modal task-detail-modal" role="dialog" aria-modal="true" aria-labelledby="support-task-detail-title" (click)="$event.stopPropagation()" (document:keydown.escape)="closeSupportDetails()">
+      <header><span>SOPORTE TÉCNICO</span><h2 id="support-task-detail-title">Detalle del ticket</h2></header>
+      @if (loadingSupportDetail()) { <p role="status">Consultando ticket e historial...</p> }
+      @if (supportDetailError()) { <p role="alert">{{ supportDetailError() }}</p> }
+      @if (viewedSupport(); as ticket) { <app-ticket-detalle [ticket]="ticket" /> }
+      <footer><button class="modal-cancel" type="button" (click)="closeSupportDetails()">Cerrar</button></footer>
+    </section>
+  </div>
+}
+
+@if (installationToComplete(); as installation) {
+  <app-completar-instalacion [task]="installation" (closed)="closeCompleteInstallation()" (saved)="onInstallationCompleted($event)" />
+}
+
+<!-- Confirmación de inicio de una orden; al confirmar, la API bloquea edición y eliminación. -->
+@if (orderToStart(); as order) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeOrderStart()">
+    <section
+      class="start-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-start-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <span>ORDEN DE TRABAJO</span>
+        <h2 id="order-start-title">Iniciar orden</h2>
+      </header>
+      <dl>
+        <div>
+          <dt>Cliente:</dt>
+          <dd>{{ order.cliente }}</dd>
+        </div>
+        <div>
+          <dt>Título:</dt>
+          <dd>{{ order.descripcion }}</dd>
+        </div>
+      </dl>
+      <p class="start-warning">
+        Al iniciar la orden pasará a En Proceso y se bloquearán las ediciones posteriores.
+      </p>
+      <footer>
+        <button
+          class="modal-cancel"
+          type="button"
+          [disabled]="startingOrderId() !== null"
+          (click)="closeOrderStart()"
+        >
+          Cancelar
+        </button>
+        <button
+          class="modal-confirm"
+          type="button"
+          [disabled]="startingOrderId() !== null"
+          (click)="confirmOrderStart()"
+        >
+          {{ startingOrderId() === order.id ? 'Iniciando...' : 'Iniciar orden' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+<!-- Reutiliza la estructura horizontal del detalle de Tareas; todas las secciones son de lectura. -->
+@if (installationDetailId(); as idInstalacion) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeInstallationDetails()">
+    <section class="start-modal task-detail-modal" role="dialog" aria-modal="true" aria-labelledby="installation-task-detail-title" (click)="$event.stopPropagation()" (document:keydown.escape)="closeInstallationDetails()">
+      <header>
+        <span>INSTALACIÓN #{{ idInstalacion }}</span>
+        <h2 id="installation-task-detail-title">Detalle de instalación</h2>
+        <button type="button" aria-label="Cerrar detalle de instalación" (click)="closeInstallationDetails()">×</button>
+      </header>
+      @if (loadingInstallationDetail()) { <p role="status">Consultando detalle de la instalación...</p> }
+      @if (installationDetailError()) { <p class="task-locked-message" role="alert">{{ installationDetailError() }}</p> }
+      @if (viewedInstallation(); as installation) {
+        <dl class="task-detail-grid">
+          <div><dt>Estado</dt><dd>{{ installation.estado }}</dd></div>
+          <div><dt>Fecha programada</dt><dd>{{ installation.fecha_programada | date: 'dd/MM/yyyy' }}</dd></div>
+          <div><dt>Hora</dt><dd>{{ installation.hora_programada.slice(0, 5) }}</dd></div>
+          <div><dt>Fecha de registro</dt><dd>{{ installation.fecha_registro | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+          <div class="wide"><dt>Observaciones de instalación</dt><dd>{{ installation.observaciones || 'Sin observaciones' }}</dd></div>
+        </dl>
+        <div class="task-detail-columns">
+          <section class="order-detail-section" aria-label="Cliente de la instalación">
+            <h3>Cliente</h3>
+            <p><strong>ID:</strong> {{ installation.cliente.id_cliente }}</p>
+            <p><strong>Nombre:</strong> {{ installation.cliente.nombre }}</p>
+            <p><strong>Teléfono:</strong> {{ installation.cliente.telefono || 'No registrado' }}</p>
+            <p><strong>DPI:</strong> {{ installation.cliente.dpi || 'No registrado' }}</p>
+            <p><strong>Correo:</strong> {{ installation.cliente.correo || 'No registrado' }}</p>
+            <p><strong>Dirección:</strong> {{ installation.cliente.direccion }}</p>
+            <p><strong>Municipio:</strong> {{ installation.cliente.municipio }}</p>
+            <p><strong>Referencia:</strong> {{ installation.cliente.referencia || 'Sin referencia' }}</p>
+            <p><strong>Estado:</strong> {{ installation.cliente.estado || 'No registrado' }}</p>
+          </section>
+          <section class="order-detail-section" aria-label="Visita técnica de la instalación">
+            <h3>Visita técnica</h3>
+            @if (installation.visita; as visita) {
+              <p><strong>Visita:</strong> #{{ visita.id_visita }}</p>
+              <p><strong>Tipo:</strong> {{ visita.tipo_instalacion }}</p>
+              <p><strong>Fecha:</strong> {{ (visita.fecha_programada | date: 'dd/MM/yyyy') || 'No registrada' }} {{ visita.hora_programada?.slice(0, 5) }}</p>
+              <p><strong>Estado:</strong> {{ visita.estado || 'No registrado' }}</p>
+              <p><strong>Técnico de visita:</strong> {{ visita.nombre_tecnico || 'No registrado' }}</p>
+              <p><strong>Motivo:</strong> {{ visita.motivo_visita || 'No registrado' }}</p>
+              <p><strong>Indicaciones:</strong> {{ visita.indicaciones || 'Sin indicaciones' }}</p>
+              <p><strong>Observaciones:</strong> {{ visita.observaciones || 'Sin observaciones' }}</p>
+              @if (facadeUrl(visita.foto_referencia); as foto) { <img class="installation-detail-image" [src]="foto" alt="Fotografía de referencia de la visita" /> }
+            } @else { <p>Sin visita técnica vinculada.</p> }
+          </section>
+          <section class="order-detail-section" aria-label="Evaluación de la instalación">
+            <h3>Evaluación y trabajo</h3>
+            @if (installation.visita; as visita) {
+              @if (visita.id_evaluacion || visita.descripcion_evaluacion) {
+                @if (visita.id_evaluacion) { <p><strong>Evaluación:</strong> #{{ visita.id_evaluacion }}</p> }
+                <p><strong>Descripción del trabajo:</strong> {{ visita.descripcion_evaluacion }}</p>
+                <p><strong>Técnicos recomendados:</strong> {{ visita.tecnicos_recomendados ?? 'No registrado' }}</p>
+                <p><strong>Condiciones del lugar:</strong> {{ visita.condiciones_lugar || 'No registradas' }}</p>
+                <p><strong>Observación técnica:</strong> {{ visita.observacion_tecnica || 'Sin observaciones' }}</p>
+                <h4>Materiales / accesorios</h4>
+                <ul class="order-detail-materials">@for (material of visita.materiales ?? []; track material.id_detalle) {
+                  <li><span>{{ material.descripcion }}</span><small>{{ material.cantidad }} {{ material.unidad }}</small></li>
+                } @empty { <li>Sin materiales registrados.</li> }</ul>
+              } @else { <p>Sin evaluación registrada.</p> }
+            } @else { <p>Sin evaluación vinculada.</p> }
+          </section>
+          <section class="order-detail-section" aria-label="Ubicación de la instalación">
+            <h3>Ubicación</h3>
+            @if (installation.ubicacion; as ubicacion) {
+              <p><strong>Propiedad:</strong> {{ ubicacion.numero_propiedad ?? 'No registrada' }} · ID {{ ubicacion.id_ubicacion }}</p>
+              <p><strong>Dirección:</strong> {{ ubicacion.direccion || 'No registrada' }}</p>
+              <p><strong>Referencia:</strong> {{ ubicacion.referencia || 'Sin referencia' }}</p>
+              <p><strong>Observaciones:</strong> {{ ubicacion.observaciones || 'Sin observaciones' }}</p>
+              <p><strong>Estado:</strong> {{ ubicacion.estado || 'No registrado' }}</p>
+              @if (facadeUrl(ubicacion.foto_fachada); as fachada) { <img class="installation-detail-image" [src]="fachada" alt="Fachada de la propiedad de la instalación" /> }
+              @if (installationMapUrl(); as mapa) { <a class="installation-detail-map" [href]="mapa" target="_blank" rel="noopener noreferrer">Ver ubicación en mapa</a> }
+            } @else { <p>Sin ubicación vinculada.</p> }
+          </section>
+          <section class="order-detail-section" aria-label="Técnicos asignados a la instalación">
+            <h3>Técnicos asignados</h3>
+            <ul class="order-detail-equipment">@for (tecnico of installation.tecnicos; track tecnico.id_empleado) {
+              <li><strong>{{ tecnico.nombres }} {{ tecnico.apellidos }}</strong>
+                <span>{{ tecnico.codigo }} · {{ tecnico.es_encargado ? 'Encargado' : 'Apoyo' }}</span>
+                <p>{{ tecnico.nombre_puesto }} · {{ tecnico.estado }}</p>
+              </li>
+            }</ul>
+          </section>
+          @if (installation.fecha_finalizacion || installation.observaciones_tecnicas || installation.evidencia_fotografica) {
+            <section class="order-detail-section" aria-label="Finalización de la instalación">
+              <h3>Finalización registrada</h3>
+              <p><strong>Fecha:</strong> {{ (installation.fecha_finalizacion | date: 'dd/MM/yyyy HH:mm') || 'No registrada' }}</p>
+              <p><strong>Observaciones técnicas:</strong> {{ installation.observaciones_tecnicas || 'Sin observaciones' }}</p>
+              @if (facadeUrl(installation.evidencia_fotografica); as evidencia) { <img class="installation-detail-image" [src]="evidencia" alt="Evidencia de finalización de la instalación" /> }
+            </section>
+          }
+        </div>
+      }
+      <footer><button class="modal-cancel" type="button" (click)="closeInstallationDetails()">Cerrar</button></footer>
+    </section>
+  </div>
+}
+
+<!-- Detalle persistido de una orden en solo lectura, siempre disponible. -->
+@if (viewedOrder(); as orden) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeOrderDetails()">
+    <section
+      class="start-modal task-detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-detail-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <span>ORDEN DE TRABAJO {{ orden.id_orden }}</span>
+        <h2 id="order-detail-title">{{ orden.titulo }}</h2>
+        <button type="button" aria-label="Cerrar detalle" (click)="closeOrderDetails()">×</button>
+      </header>
+      <!-- Resumen general: rejilla de tres columnas en escritorio que se reorganiza
+           a dos en tablet y a una sola columna apilada en móvil. -->
+      <dl class="task-detail-grid">
+        <div><dt>Cliente:</dt><dd>{{ orden.nombre_cliente }}</dd></div>
+        <div><dt>Teléfono:</dt><dd>{{ viewedOrderClientPhone() || 'No registrado' }}</dd></div>
+        <div><dt>Técnico:</dt><dd>{{ orden.nombre_tecnico }}</dd></div>
+        <div><dt>Tipo de trabajo:</dt><dd>{{ orden.nombre_tipo_trabajo }}</dd></div>
+        <div><dt>Estado:</dt><dd>{{ orden.estado }}</dd></div>
+        <div>
+          <dt>Fecha de recepción:</dt>
+          <dd>{{ orden.fecha_recepcion.slice(0, 10) }}</dd>
+        </div>
+        <!-- La descripción es más extensa: ocupa dos columnas en escritorio. -->
+        <div class="wide"><dt>Descripción:</dt><dd>{{ orden.descripcion }}</dd></div>
+        <div>
+          <dt>Avance del trabajo:</dt>
+          <dd>{{ avanceOrden(orden) }}</dd>
+        </div>
+      </dl>
+
+      <!-- Secciones de detalle (equipo, evaluación, cotización y seguimiento)
+           distribuidas en columnas alineadas que se adaptan al ancho disponible. -->
+      <div class="task-detail-columns">
+        @if (orden.equipo.length) {
+          <section class="order-detail-section" aria-label="Equipo recibido">
+            <h3>Equipo recibido</h3>
+            <ul class="order-detail-equipment">
+              @for (item of orden.equipo; track item.id_equipo) {
+                <li>
+                  <strong>{{ item.tipo_equipo }}</strong>
+                  <span>{{ item.marca || 'Sin marca' }} · {{ item.modelo || 'Sin modelo' }}</span>
+                  <p>{{ item.problema_reportado }}</p>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+        @if (orden.evaluacion; as evaluacion) {
+          <section class="order-detail-section" aria-label="Evaluación técnica">
+            <h3>Evaluación técnica</h3>
+            <p><strong>Diagnóstico:</strong> {{ evaluacion.diagnostico }}</p>
+            <p><strong>Trabajo propuesto:</strong> {{ evaluacion.trabajo_propuesto }}</p>
+            @if (evaluacion.observaciones) {
+              <p><strong>Observaciones:</strong> {{ evaluacion.observaciones }}</p>
+            }
+            @if (evaluacion.materiales.length) {
+              <h4>Materiales / Repuestos</h4>
+              <ul class="order-detail-materials">
+                @for (material of evaluacion.materiales; track material.id_detalle) {
+                  <li>
+                    <span>{{ material.descripcion }}</span>
+                    <small>{{ material.cantidad }} {{ material.unidad || '' }}</small>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+        @if (viewedOrderCotizacion(); as cotizacion) {
+          <section class="order-detail-section" aria-label="Cotización de la orden">
+            <h3>Cotización {{ cotizacion.numero_cotizacion }}</h3>
+            <p><strong>Estado:</strong> {{ cotizacion.estado }}</p>
+            <p><strong>Total:</strong> {{ cotizacion.total | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</p>
+            <p>
+              <strong>Proforma:</strong>
+              {{ cotizacion.tiene_proforma ? 'Generada' : 'No generada' }}
+            </p>
+          </section>
+        }
+        @if (orden.finalizacion; as finalizacion) {
+          <section class="order-detail-section" aria-label="Finalización técnica">
+            <h3>Finalización técnica</h3>
+            <p><strong>Trabajo realizado:</strong> {{ finalizacion.trabajo_realizado }}</p>
+            <p><strong>Resultado:</strong> {{ finalizacion.resultado_solucion }}</p>
+            @if (finalizacion.observaciones_finales) {
+              <p><strong>Observaciones finales:</strong> {{ finalizacion.observaciones_finales }}</p>
+            }
+          </section>
+        } @else if (orden.aprobacion_comercial_pendiente) {
+          <p class="task-locked-message">Finalización pendiente de aprobación comercial</p>
+        }
+      </div>
+      <footer>
+        <button class="modal-confirm" type="button" (click)="closeOrderDetails()">Cerrar</button>
+      </footer>
+    </section>
+  </div>
+}
+
+<!-- Evaluación técnica de la orden en dos pasos: información → resumen → enviar. -->
+@if (orderEvaluationOpen()) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeOrderEvaluation()">
+    <section
+      class="start-modal order-eval-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-eval-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <span>ORDEN DE TRABAJO {{ evaluationOrderId() ?? '' }}</span>
+        <h2 id="order-eval-title">Evaluación técnica</h2>
+        <button type="button" aria-label="Cerrar" (click)="closeOrderEvaluation()">×</button>
+      </header>
+
+      @if (orderEvalStep() === 1) {
+        <div class="order-eval-form">
+          <label class="order-eval-field">
+            <span>Diagnóstico *</span>
+            <textarea
+              [value]="evaluationDiagnostico()"
+              (input)="onOrderEvalField('diagnostico', $event)"
+            ></textarea>
+          </label>
+          <label class="order-eval-field">
+            <span>Trabajo propuesto *</span>
+            <textarea
+              [value]="evaluationTrabajoPropuesto()"
+              (input)="onOrderEvalField('trabajo_propuesto', $event)"
+            ></textarea>
+          </label>
+
+          <section class="order-material-section">
+            <h3>Materiales / Repuestos necesarios</h3>
+            @for (material of orderEvalMateriales(); track $index) {
+              <div class="order-material-row">
+                <label class="material-field wide">
+                  <span>Descripción</span
+                  ><input
+                    type="text"
+                    maxlength="200"
+                    [value]="material.descripcion"
+                    (input)="onOrderMaterialField($index, 'descripcion', $event)"
+                  />
+                </label>
+                <label class="material-field">
+                  <span>Cantidad</span
+                  ><input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    [value]="material.cantidad"
+                    (input)="onOrderMaterialField($index, 'cantidad', $event)"
+                  />
+                </label>
+                <label class="material-field">
+                  <span>Unidad</span
+                  ><input
+                    type="text"
+                    maxlength="30"
+                    [value]="material.unidad"
+                    (input)="onOrderMaterialField($index, 'unidad', $event)"
+                  />
+                </label>
+                <button
+                  class="material-remove"
+                  type="button"
+                  aria-label="Eliminar material"
+                  (click)="removeOrderMaterial($index)"
+                >
+                  Eliminar
+                </button>
+              </div>
+            }
+            @if (!orderEvalMateriales().length) {
+              <p class="material-hint">No se han agregado materiales o repuestos.</p>
+            }
+            <button class="material-add" type="button" (click)="addOrderMaterial()">
+              + Agregar material
+            </button>
+          </section>
+
+          <label class="order-eval-field">
+            <span>Observaciones</span>
+            <textarea
+              [value]="evaluationObservaciones()"
+              (input)="onOrderEvalField('observaciones', $event)"
+            ></textarea>
+          </label>
+        </div>
+      } @else {
+        <section class="order-eval-summary" aria-label="Resumen de la evaluación">
+          <dl>
+            <div>
+              <dt>Diagnóstico</dt>
+              <dd>{{ evaluationDiagnostico() }}</dd>
+            </div>
+            <div>
+              <dt>Trabajo propuesto</dt>
+              <dd>{{ evaluationTrabajoPropuesto() }}</dd>
+            </div>
+            @if (orderEvalMateriales().length) {
+              <div>
+                <dt>Materiales / Repuestos</dt>
+                <dd>
+                  <ul>
+                    @for (material of orderEvalMateriales(); track $index) {
+                      <li>
+                        {{ material.descripcion }} — {{ material.cantidad }}
+                        {{ material.unidad }}
+                      </li>
+                    }
+                  </ul>
+                </dd>
+              </div>
+            }
+            <div>
+              <dt>Observaciones</dt>
+              <dd>{{ evaluationObservaciones() || 'Sin observaciones' }}</dd>
+            </div>
+          </dl>
+        </section>
+      }
+
+      @if (evaluationError()) {
+        <p class="task-locked-message" role="alert">{{ evaluationError() }}</p>
+      }
+
+      <footer>
+        <button
+          class="modal-cancel"
+          type="button"
+          [disabled]="isSavingEvaluation()"
+          (click)="closeOrderEvaluation()"
+        >
+          Cancelar
+        </button>
+        @if (orderEvalStep() === 1) {
+          <button
+            class="modal-confirm"
+            type="button"
+            (click)="goToEvaluationSummary()"
+          >
+            Siguiente
+          </button>
+        } @else {
+          <button class="modal-cancel" type="button" (click)="goBackToEvaluationInfo()">
+            Anterior
+          </button>
+          <button
+            class="modal-confirm"
+            type="button"
+            [disabled]="isSavingEvaluation()"
+            (click)="saveOrderEvaluation()"
+          >
+            {{ isSavingEvaluation() ? 'Enviando...' : 'Guardar y enviar a Cotizaciones' }}
+          </button>
+        }
+      </footer>
+    </section>
+  </div>
+}
+
+<!-- La entrega confirmada por el técnico reutiliza el formulario y endpoint de finalización. -->
+@if (orderFinalizacionOpen(); as idOrden) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeOrderFinalizacion()">
+    <section
+      class="start-modal order-eval-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-finalizacion-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <span>ORDEN DE TRABAJO {{ idOrden }}</span>
+        <h2 id="order-finalizacion-title">Finalizar orden</h2>
+        <button type="button" aria-label="Cerrar" [disabled]="isSavingFinalizacion()" (click)="closeOrderFinalizacion()">×</button>
+      </header>
+      <div class="order-eval-form">
+        <label class="order-eval-field">
+          <span>Trabajo realizado *</span>
+          <textarea
+            [value]="finalizacionTrabajo()"
+            (input)="onFinalizacionField('trabajo', $event)"
+          ></textarea>
+        </label>
+        <label class="order-eval-field">
+          <span>Resultado de la solución *</span>
+          <textarea
+            [value]="finalizacionResultado()"
+            (input)="onFinalizacionField('resultado', $event)"
+          ></textarea>
+        </label>
+        <label class="order-eval-field">
+          <span>Observaciones</span>
+          <textarea
+            [value]="finalizacionObservaciones()"
+            (input)="onFinalizacionField('observaciones', $event)"
+          ></textarea>
+        </label>
+      </div>
+      <label class="task-locked-message">
+        <input type="checkbox" [checked]="entregaConfirmada()" [disabled]="isSavingFinalizacion()" (change)="onEntregaConfirmada($event)" />
+        Confirmo la entrega del teléfono o computadora al cliente.
+      </label>
+      <p class="task-locked-message">Al confirmar la entrega, la orden pasará a Completada. El saldo pendiente no se modifica.</p>
+      @if (finalizacionError()) {
+        <p class="task-locked-message" role="alert">{{ finalizacionError() }}</p>
+      }
+      <footer>
+        <button
+          class="modal-cancel"
+          type="button"
+          [disabled]="isSavingFinalizacion()"
+          (click)="closeOrderFinalizacion()"
+        >
+          Cancelar
+        </button>
+        <button
+          class="modal-confirm"
+          type="button"
+          [disabled]="isSavingFinalizacion() || !entregaConfirmada()"
+          (click)="saveOrderFinalizacion()"
+        >
+          {{ isSavingFinalizacion() ? 'Guardando...' : 'Confirmar entrega y finalizar' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+<!-- Actualizar cotización: trabajo adicional sin precios sobre la cotización vigente. -->
+@if (trabajoAdicionalOpen(); as idCotizacion) {
+  <div class="start-modal-backdrop" role="presentation" (click)="closeTrabajoAdicional()">
+    <section
+      class="start-modal order-eval-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="trabajo-adicional-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <span>COTIZACIÓN {{ idCotizacion }}</span>
+        <h2 id="trabajo-adicional-title">Actualizar cotización</h2>
+        <button type="button" aria-label="Cerrar" (click)="closeTrabajoAdicional()">×</button>
+      </header>
+      <div class="order-eval-form">
+        <!-- La actualización contiene solo materiales reales, sin descripción general obligatoria. -->
+        <section class="order-material-section">
+          <h3>Materiales / Repuestos adicionales</h3>
+          @for (material of trabajoAdicionalMateriales(); track $index) {
+            <div class="order-material-row">
+              <label class="material-field wide">
+                <span>Descripción</span
+                ><input
+                  type="text"
+                  maxlength="200"
+                  [value]="material.descripcion"
+                  (input)="onTrabajoAdicionalMaterialField($index, 'descripcion', $event)"
+                />
+              </label>
+              <label class="material-field">
+                <span>Cantidad</span
+                ><input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  [value]="material.cantidad"
+                  (input)="onTrabajoAdicionalMaterialField($index, 'cantidad', $event)"
+                />
+              </label>
+              <label class="material-field">
+                <span>Unidad</span
+                ><input
+                  type="text"
+                  maxlength="30"
+                  [value]="material.unidad"
+                  (input)="onTrabajoAdicionalMaterialField($index, 'unidad', $event)"
+                />
+              </label>
+              <button
+                class="material-remove"
+                type="button"
+                aria-label="Eliminar material"
+                (click)="removeTrabajoAdicionalMaterial($index)"
+              >
+                Eliminar
+              </button>
+            </div>
+          }
+          @if (!trabajoAdicionalMateriales().length) {
+            <p class="material-hint">No se han agregado materiales o repuestos.</p>
+          }
+          <button class="material-add" type="button" (click)="addTrabajoAdicionalMaterial()">
+            + Agregar material
+          </button>
+        </section>
+      </div>
+      <p class="task-locked-message">
+        La cotización vuelve a revisión comercial conservando lo ya autorizado; el
+        administrador fija los precios y la regenera.
+      </p>
+      @if (trabajoAdicionalError()) {
+        <p class="task-locked-message" role="alert">{{ trabajoAdicionalError() }}</p>
+      }
+      <footer>
+        <button
+          class="modal-cancel"
+          type="button"
+          [disabled]="isSavingTrabajoAdicional()"
+          (click)="closeTrabajoAdicional()"
+        >
+          Cancelar
+        </button>
+        <button
+          class="modal-confirm"
+          type="button"
+          [disabled]="isSavingTrabajoAdicional()"
+          (click)="saveTrabajoAdicional()"
+        >
+          {{ isSavingTrabajoAdicional() ? 'Enviando...' : 'Enviar a revisión' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

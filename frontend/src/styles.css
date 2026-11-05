@@ -46,6 +46,90 @@ app-shell .app-shell {
   min-height: 100%;
 }
 
+/* ==========================================
+   CAPA GLOBAL DE MODALES
+   Los fondos fijos se colocan por encima del sidebar
+   (z-index 30/50) y del encabezado móvil (z-index 20).
+   Al cubrir toda la ventana, el fondo también captura
+   los clics y evita interactuar con la navegación de fondo.
+========================================== */
+app-shell .app-shell-main [class*='-modal-backdrop'],
+app-shell .app-shell-main .modal-backdrop,
+app-shell .app-shell-main .employee-success-backdrop,
+app-shell .app-shell-main .employee-detail-backdrop,
+app-shell .app-shell-main .completion-backdrop,
+app-shell .app-shell-main .evaluation-backdrop,
+app-shell .app-shell-main .notice-backdrop {
+  z-index: 1000;
+}
+
+/* ==========================================
+   TABLAS CON ACCIONES SIEMPRE VISIBLES
+   En tablet, teléfono y escritorio estrecho la última
+   columna permanece fija mientras las demás se desplazan.
+   En 1920px no se aplica para conservar la tabla original.
+========================================== */
+@media (max-width: 1400px) {
+  .actions-sticky {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .actions-sticky th:last-child,
+  .actions-sticky td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background: #ffffff;
+    box-shadow: -8px 0 12px -10px rgba(15, 23, 42, 0.45);
+  }
+
+  .actions-sticky thead th:last-child {
+    background: #f8fafc;
+  }
+
+  .actions-sticky tbody tr:hover td:last-child {
+    background: #fbfdff;
+  }
+}
+
+@media (max-width: 1199px) {
+  .actions-sticky table {
+    min-width: 900px;
+  }
+}
+
+/* Los controles compartidos de búsqueda y filtros mantienen tamaño táctil. */
+@media (max-width: 650px) {
+  .filter-chip {
+    min-height: 44px;
+  }
+
+  .search-box {
+    height: 44px;
+  }
+}
+
+/* Las acciones de fila mantienen un objetivo táctil en tablet y teléfono. */
+@media (max-width: 1199px) {
+  .actions-sticky td:last-child button,
+  .actions-sticky td:last-child a.action-button {
+    min-height: 44px;
+  }
+}
+
+/* En iOS se evita el auto-zoom al enfocar campos con tipografía pequeña. */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 650px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
 button,
 input,
 select {
@@ -157,5 +241,27 @@ select {
   }
   .filter-bar {
     margin-top: 2px;
+  }
+}
+
+/* Los documentos se imprimen sin el marco de navegación. */
+@media print {
+  body.printing-payment-receipt app-shell,
+  body.printing-payment-receipt .app-shell-layout,
+  body.printing-payment-receipt .app-shell-page,
+  body.printing-installation-report app-shell,
+  body.printing-installation-report .app-shell-layout,
+  body.printing-installation-report .app-shell-page {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  body.printing-payment-receipt .app-shell-layout,
+  body.printing-installation-report .app-shell-layout {
+    display: block;
+  }
+  body.printing-payment-receipt app-sidebar,
+  body.printing-installation-report app-sidebar {
+    display: none !important;
   }
 }

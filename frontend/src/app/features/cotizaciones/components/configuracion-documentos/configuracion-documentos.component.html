@@ -1,0 +1,49 @@
+<main class="configuration-page">
+  <header class="configuration-header">
+    <nav aria-label="Ruta de navegación">
+      <a routerLink="/configuracion">Configuración</a><span>/</span>
+      <a routerLink="/configuracion/mantenimiento">Mantenimiento</a><span>/</span>
+      <span aria-current="page">Cotización / Proforma</span>
+    </nav>
+    <div class="title-row">
+      <div><h1>Cotización / Proforma</h1><p>Datos comerciales y contenido publicado en los documentos.</p></div>
+      <span class="version-pill">Versión {{ version() ?? 'nueva' }} · {{ estado() }}</span>
+    </div>
+  </header>
+
+  <section class="configuration-content">
+    @if (cargando()) { <p class="status-message" role="status">Cargando configuración...</p> }
+    @if (successMessage()) { <p class="success-message" role="status">{{ successMessage() }}</p> }
+    @if (errorMessage()) { <p class="error-message" role="alert">{{ errorMessage() }}</p> }
+
+    <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+      <section class="form-card">
+        <div class="section-heading"><h2>Datos comerciales</h2><p>Identificación que aparecerá en el encabezado.</p></div>
+        <div class="fields-grid">
+          <label class="field field-wide"><span>Nombre comercial *</span><input formControlName="nombre_comercial" maxlength="150" /></label>
+          <label class="field"><span>NIT</span><input formControlName="nit" maxlength="20" /></label>
+          <label class="field"><span>Teléfono</span><input formControlName="telefono" maxlength="25" /></label>
+          <label class="field field-wide"><span>Dirección</span><input formControlName="direccion" /></label>
+          <label class="field field-wide"><span>Correo</span><input type="email" formControlName="correo" maxlength="150" /></label>
+        </div>
+        <label class="logo-field"><span>Logotipo</span><input type="file" accept="image/jpeg,image/png,image/webp" (change)="seleccionarLogo($event)" /><small>JPEG, PNG o WEBP. Máximo 5 MB. Si no selecciona otro, se conserva el actual.</small></label>
+      </section>
+
+      <section class="form-card text-card">
+        <div class="section-heading"><h2>Contenido de documentos</h2><p>Escriba un término por línea para cada tipo de documento.</p></div>
+        <div class="text-grid">
+          <label class="field"><span>Términos de cotización</span><textarea rows="7" formControlName="terminos_cotizacion"></textarea></label>
+          <label class="field"><span>Términos de proforma</span><textarea rows="7" formControlName="terminos_proforma"></textarea></label>
+          <label class="field message-field"><span>Mensaje final</span><textarea rows="3" formControlName="mensaje_final"></textarea></label>
+        </div>
+      </section>
+
+      <div class="form-actions"><button type="submit" [disabled]="guardando() || cargando()">{{ guardando() ? 'Guardando...' : 'Guardar configuración' }}</button></div>
+    </form>
+
+    <section class="preview-card">
+      <div class="preview-heading"><div><h2>Vista previa</h2><p>El contenido usa el mismo diseño del documento final.</p></div><div class="preview-tabs"><button type="button" [class.active]="tipoPreview() === 'COTIZACION'" (click)="tipoPreview.set('COTIZACION')">Cotización</button><button type="button" [class.active]="tipoPreview() === 'PROFORMA'" (click)="tipoPreview.set('PROFORMA')">Proforma</button></div></div>
+      <div class="preview-scroll"><app-documento-comercial [documento]="documentoPreview()" [vistaPrevia]="true" /></div>
+    </section>
+  </section>
+</main>

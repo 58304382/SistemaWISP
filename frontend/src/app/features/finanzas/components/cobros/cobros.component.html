@@ -1,0 +1,1518 @@
+@if (!comprobanteOriginal()) {
+  <main class="collections-page">
+    <header class="page-heading">
+      <div class="heading-copy">
+        <span class="heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="6" width="18" height="12" rx="2" />
+            <path d="M7 12h10M9 9h.01M15 15h.01" />
+          </svg>
+        </span>
+        <div>
+          <p>GESTIÓN FINANCIERA</p>
+          <h1>Cobros</h1>
+          <span>Consulte el estado de los cobros por categoría.</span>
+        </div>
+      </div>
+      <a class="back-link" routerLink="/finanzas"> <span aria-hidden="true">‹</span> Finanzas </a>
+    </header>
+
+    <section class="collections-content" aria-label="Gestión de cobros">
+      <div class="summary-grid" aria-label="Resumen de cobros">
+        @for (item of resumen(); track item.estado) {
+          <article class="summary-card" [attr.data-status]="item.estado">
+            <span class="summary-icon" aria-hidden="true">
+              @if (item.estado === 'PENDIENTE') {
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="8" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              } @else if (item.estado === 'VENCIDO') {
+                <svg viewBox="0 0 24 24"><path d="M12 3 21 19H3zM12 9v4M12 16h.01" /></svg>
+              } @else {
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="8" />
+                  <path d="m8 12 2.5 2.5L16 9" />
+                </svg>
+              }
+            </span>
+            <span class="summary-copy">
+              <small>{{ item.etiqueta }}</small>
+              <strong>{{ item.cantidad }} cobros</strong>
+            </span>
+            <strong class="summary-total">{{
+              item.total | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+            }}</strong>
+          </article>
+        }
+      </div>
+
+      <div class="category-tabs" aria-label="Categorías de cobros">
+        @for (categoria of categoriasVisibles(); track categoria.valor) {
+          <button
+            type="button"
+            [attr.aria-pressed]="categoriaActiva() === categoria.valor"
+            [class.active]="categoriaActiva() === categoria.valor"
+            (click)="seleccionarCategoria(categoria.valor)"
+          >
+            {{ categoria.etiqueta }}
+          </button>
+        }
+      </div>
+
+      <!-- Acceso compacto para perfiles que administran Internet sin registrar pagos. -->
+      @if (
+        categoriaActiva() === 'INTERNET' &&
+        !puedeRegistrarPagos(categoriaActiva()) &&
+        (puedeAdministrarVencimientos() || puedeGenerarMensualidades())
+      ) {
+        <div class="internet-standalone-actions">
+          <button type="button" class="new-payment-button" (click)="abrirModalVencimientos()">
+            Generar mensualidades
+          </button>
+        </div>
+      }
+
+      @if (puedeRegistrarPagos(categoriaActiva())) {
+        <section class="list-card" [attr.aria-labelledby]="'collections-table-title'">
+          <div class="list-heading">
+            <div>
+              <p>REGISTROS</p>
+              <h2 id="collections-table-title">Cobros de {{ etiquetaCategoria() }}</h2>
+            </div>
+            <div class="list-heading-actions">
+              <span>{{ cobrosFiltrados().length }} resultados</span>
+              <!-- Acciones principales alineadas en una sola cabecera. -->
+              @if (
+                categoriaActiva() === 'INTERNET' &&
+                (puedeAdministrarVencimientos() || puedeGenerarMensualidades())
+              ) {
+                <button type="button" class="new-payment-button" (click)="abrirModalVencimientos()">
+                  Generar mensualidades
+                </button>
+              }
+              <button type="button" class="new-payment-button" (click)="abrirRegistroCobro()">
+                <span aria-hidden="true">+</span> Registrar pago
+              </button>
+            </div>
+          </div>
+
+          <div class="filters-row">
+            <label class="search-control" for="collections-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m15.5 15.5 5 5" />
+              </svg>
+              <input
+                id="collections-search"
+                type="search"
+                placeholder="Buscar cliente, código o comprobante..."
+                [value]="busqueda()"
+                (input)="actualizarBusqueda($event)"
+              />
+            </label>
+            <label class="filter-control">
+              <span>{{ categoriaActiva() === 'INTERNET' ? 'Período' : 'Mes' }}</span>
+              <input type="month" [value]="filtroPeriodo()" (input)="actualizarPeriodo($event)" />
+            </label>
+            <label class="filter-control">
+              <span>Estado</span>
+              <select [value]="filtroEstado()" (change)="actualizarEstado($event)">
+                <option value="TODOS">Todos</option>
+                @for (estado of estados; track estado.valor) {
+                  <option [value]="estado.valor">{{ estado.etiqueta }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          @if (cargando()) {
+            <div class="feedback feedback-loading" role="status">Cargando cobros...</div>
+          } @else if (errorCarga()) {
+            <div class="feedback feedback-error" role="alert">
+              <strong>No fue posible cargar los cobros.</strong><span>{{ errorCarga() }}</span>
+            </div>
+          } @else {
+            <div class="table-scroll actions-sticky">
+              <table>
+                @if (categoriaActiva() === 'INTERNET') {
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>Plan</th>
+                      <th>Período</th>
+                      <th>Monto</th>
+                      <th>Saldo pendiente</th>
+                      <th>Vencimiento</th>
+                      <th>Estado del servicio</th>
+                      <th>Estado del cobro</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (cobro of cobrosFiltrados(); track cobro.id) {
+                      <tr>
+                        <td data-label="Cliente">
+                          <strong>{{ cobro.cliente }}</strong>
+                        </td>
+                        <td data-label="Plan">
+                          {{ servicioInternetDeCobro(cobro)?.plan?.nombre || '—' }}
+                        </td>
+                        <td data-label="Período">{{ cobro.periodo || '—' }}</td>
+                        <td data-label="Monto">
+                          {{ cobro.monto | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}
+                        </td>
+                        <td data-label="Saldo pendiente">
+                          {{ cobro.saldoPendiente | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}
+                        </td>
+                        <td data-label="Vencimiento">
+                          {{ cobro.vencimiento | date: 'dd/MM/yyyy' }}
+                        </td>
+                        <td data-label="Estado del servicio">
+                          <span class="service-status">{{
+                            servicioInternetDeCobro(cobro)?.estado || '—'
+                          }}</span>
+                        </td>
+                        <td data-label="Estado del cobro">
+                          <span class="status-pill" [attr.data-status]="cobro.estadoCobro">{{
+                            cobro.estadoCobro
+                          }}</span>
+                        </td>
+                        <td data-label="Acciones">
+                          <ng-container
+                            [ngTemplateOutlet]="acciones"
+                            [ngTemplateOutletContext]="{ $implicit: cobro }"
+                          />
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="9" class="empty-state">
+                          <span class="empty-icon" aria-hidden="true">⌕</span
+                          ><strong>No hay cobros de Internet disponibles</strong
+                          ><span>No existen registros reales para los filtros seleccionados.</span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                } @else {
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>
+                        {{
+                          categoriaActiva() === 'INSTALACIONES'
+                            ? 'Código de instalación'
+                            : 'Código de orden'
+                        }}
+                      </th>
+                      <th>Proforma aprobada</th>
+                      <th>Monto autorizado</th>
+                      <th>Total abonado</th>
+                      <th>Saldo pendiente</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (cobro of cobrosFiltrados(); track cobro.id) {
+                      <tr>
+                        <td data-label="Cliente">
+                          <strong>{{ cobro.cliente }}</strong>
+                        </td>
+                        <td data-label="Código">{{ cobro.codigo }}</td>
+                        <td data-label="Proforma aprobada">{{ cobro.proforma || '—' }}</td>
+                        <td data-label="Monto autorizado">
+                          {{ cobro.montoAutorizado | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}
+                        </td>
+                        <td data-label="Total abonado">
+                          {{ cobro.totalAbonado | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}
+                        </td>
+                        <td data-label="Saldo pendiente">
+                          {{ cobro.saldoPendiente | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}
+                        </td>
+                        <td data-label="Estado">
+                          <span class="status-pill" [attr.data-status]="cobro.estadoCobro">{{
+                            cobro.estadoCobro
+                          }}</span>
+                        </td>
+                        <td data-label="Acciones">
+                          <ng-container
+                            [ngTemplateOutlet]="acciones"
+                            [ngTemplateOutletContext]="{ $implicit: cobro }"
+                          />
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="8" class="empty-state">
+                          <span class="empty-icon" aria-hidden="true">⌕</span
+                          ><strong>No hay cobros de {{ etiquetaCategoria() }} disponibles</strong
+                          ><span>No existen registros reales para los filtros seleccionados.</span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                }
+              </table>
+            </div>
+          }
+        </section>
+      }
+    </section>
+  </main>
+}
+
+@if (modalVencimientosAbierto()) {
+  <div class="payment-modal-backdrop" role="presentation" (click)="cerrarModalVencimientos()">
+    <section
+      class="payment-modal due-dates-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="due-dates-modal-title"
+      (click)="$event.stopPropagation()"
+      (document:keydown.escape)="cerrarModalVencimientos()"
+    >
+      <header class="payment-modal-header">
+        <div class="modal-heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="5" width="16" height="15" rx="2" />
+            <path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6" />
+          </svg>
+        </div>
+        <div>
+          <p>SERVICIOS DE INTERNET</p>
+          <h2 id="due-dates-modal-title">Generar mensualidades</h2>
+          <span
+            >Revise los vencimientos y genere el período sin modificar mensualidades
+            existentes.</span
+          >
+        </div>
+        <button
+          type="button"
+          class="modal-close-button"
+          aria-label="Cerrar administración de vencimientos"
+          (click)="cerrarModalVencimientos()"
+        >
+          ×
+        </button>
+      </header>
+      <div class="due-dates-modal-body">
+        <!-- Panel visual del formulario con la misma jerarquía del registro de cobros. -->
+        <section class="due-dates-panel" aria-labelledby="due-dates-list-title">
+          <div class="due-dates-toolbar">
+            <div class="section-heading">
+              <span>01</span>
+              <div>
+                <small>SERVICIOS CONTRATADOS</small>
+                <h3 id="due-dates-list-title">Clientes de Internet</h3>
+              </div>
+            </div>
+            <label class="modal-search" for="due-dates-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m15.5 15.5 5 5" />
+              </svg>
+              <input
+                id="due-dates-search"
+                type="search"
+                placeholder="Buscar cliente o plan"
+                autofocus
+                [value]="busquedaVencimientos()"
+                (input)="actualizarBusquedaVencimientos($event)"
+              />
+            </label>
+          </div>
+          @if (errorDiaVencimiento()) {
+            <div class="feedback feedback-error" role="alert">{{ errorDiaVencimiento() }}</div>
+          }
+          @if (mensajeGeneracion()) {
+            <div class="feedback feedback-success" role="status">{{ mensajeGeneracion() }}</div>
+          }
+          @if (errorGeneracion()) {
+            <div class="feedback feedback-error" role="alert">{{ errorGeneracion() }}</div>
+          }
+          @if (cargandoServiciosInternet()) {
+            <div class="feedback feedback-loading" role="status">
+              Cargando servicios de Internet...
+            </div>
+          } @else if (errorServiciosInternet()) {
+            <div class="feedback feedback-error" role="alert">{{ errorServiciosInternet() }}</div>
+          } @else {
+            <!-- Tabla compacta con encabezados únicos para los servicios contratados. -->
+            <div class="due-dates-table-scroll actions-sticky">
+              <table class="due-dates-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Plan</th>
+                    <th>Mensualidad</th>
+                    <th>Fecha de inicio</th>
+                    <th>Día de pago</th>
+                    <th>Próximo vencimiento</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (servicio of serviciosInternetFiltrados(); track servicio.id_asignacion) {
+                    <tr>
+                      <td>
+                        <strong
+                          >{{ servicio.cliente.nombres }} {{ servicio.cliente.apellidos }}</strong
+                        >
+                      </td>
+                      <td>{{ servicio.plan.nombre }}</td>
+                      <td>
+                        <strong>{{
+                          servicio.costo_mensual | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                        }}</strong>
+                      </td>
+                      <td>{{ servicio.fecha_inicio | date: 'dd/MM/yyyy' : 'UTC' }}</td>
+                      <td>
+                        @if (asignacionVencimientoEdicionId() === servicio.id_asignacion) {
+                          <label class="due-day-editor">
+                            <span class="sr-only">Día de pago</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="31"
+                              step="1"
+                              inputmode="numeric"
+                              [value]="diaVencimientoEdicion()"
+                              [disabled]="guardandoDiaVencimiento()"
+                              (input)="actualizarDiaVencimientoEdicion($event)"
+                            />
+                          </label>
+                        } @else {
+                          <strong>{{ servicio.dia_vencimiento ?? 'Sin configurar' }}</strong>
+                        }
+                      </td>
+                      <td>
+                        <strong>{{
+                          proximoVencimiento(servicio)
+                            ? (proximoVencimiento(servicio) | date: 'dd/MM/yyyy' : 'UTC')
+                            : 'Sin configurar'
+                        }}</strong>
+                      </td>
+                      <td>
+                        <span class="service-status">{{ servicio.estado }}</span>
+                      </td>
+                      <td>
+                        @if (puedeAdministrarVencimientos()) {
+                          <div class="row-actions">
+                            @if (asignacionVencimientoEdicionId() === servicio.id_asignacion) {
+                              <button
+                                type="button"
+                                class="primary-action"
+                                [disabled]="!diaVencimientoValido() || guardandoDiaVencimiento()"
+                                (click)="guardarDiaVencimiento()"
+                              >
+                                {{ guardandoDiaVencimiento() ? 'Guardando...' : 'Guardar' }}
+                              </button>
+                              <button
+                                type="button"
+                                [disabled]="guardandoDiaVencimiento()"
+                                (click)="cancelarEdicionDiaVencimiento()"
+                              >
+                                Cancelar
+                              </button>
+                            } @else {
+                              <button
+                                type="button"
+                                [disabled]="guardandoDiaVencimiento()"
+                                (click)="iniciarEdicionDiaVencimiento(servicio)"
+                              >
+                                {{ servicio.dia_vencimiento === null ? 'Configurar' : 'Editar' }}
+                              </button>
+                            }
+                          </div>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="internet-period-empty">
+                        No se encontraron servicios.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      </div>
+      <!-- Pie visual independiente para conservar visibles el período y la acción principal. -->
+      @if (puedeGenerarMensualidades()) {
+        <footer class="payment-modal-footer due-dates-modal-footer">
+          <p>Seleccione el período que desea generar para los servicios configurados.</p>
+          <div class="monthly-generation-controls modal-generation-controls">
+            <label>
+              <span>Mes y año</span>
+              <input
+                type="month"
+                [value]="periodoGeneracion()"
+                [disabled]="guardandoDiaVencimiento() || generandoMensualidades()"
+                (input)="actualizarPeriodoGeneracion($event)"
+              />
+            </label>
+            <button
+              type="button"
+              class="new-payment-button"
+              [disabled]="guardandoDiaVencimiento() || generandoMensualidades()"
+              (click)="guardarYGenerarMensualidades()"
+            >
+              @if (guardandoDiaVencimiento()) {
+                Guardando vencimiento...
+              } @else if (generandoMensualidades()) {
+                Generando mensualidades...
+              } @else {
+                Guardar y generar mensualidades
+              }
+            </button>
+          </div>
+        </footer>
+      }
+    </section>
+  </div>
+}
+
+<ng-template #acciones let-cobro>
+  <div class="row-actions">
+    @if (cobro.categoria === 'INTERNET') {
+      <button type="button" (click)="abrirHistorialComprobantes(cobro, true)">
+        <span aria-hidden="true">▤</span>
+        {{ cobro.tieneComprobante ? 'Ver comprobante' : 'Comprobantes' }}
+      </button>
+    }
+    @if (cobro.estadoCobro !== 'PAGADO') {
+      <button type="button" class="primary-action" (click)="abrirRegistroCobro(cobro)">
+        <span aria-hidden="true">+</span> Registrar pago
+      </button>
+    }
+  </div>
+</ng-template>
+
+@if (modalRegistroAbierto() && !comprobanteAbierto()) {
+  <div class="payment-modal-backdrop" role="presentation" (click)="cerrarRegistroCobro()">
+    <section
+      class="payment-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="payment-modal-title"
+      (click)="$event.stopPropagation()"
+      (document:keydown.escape)="cerrarRegistroCobro()"
+    >
+      <header class="payment-modal-header">
+        <div class="modal-heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="6" width="18" height="12" rx="2" />
+            <path d="M7 12h10M12 9v6" />
+          </svg>
+        </div>
+        <div>
+          <p>NUEVO MOVIMIENTO</p>
+          <h2 id="payment-modal-title">Registrar pago</h2>
+          <span>Seleccione al cliente, las obligaciones y la información del pago.</span>
+        </div>
+        <button
+          type="button"
+          class="modal-close-button"
+          aria-label="Cerrar registro de cobro"
+          (click)="cerrarRegistroCobro()"
+        >
+          ×
+        </button>
+      </header>
+
+      <div class="payment-modal-body">
+        <aside class="customer-panel" aria-labelledby="customer-panel-title">
+          <div class="section-heading">
+            <span>01</span>
+            <div>
+              <small>CLIENTE</small>
+              <h3 id="customer-panel-title">Buscar cliente</h3>
+            </div>
+          </div>
+          <label class="modal-search" for="payment-customer-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m15.5 15.5 5 5" />
+            </svg>
+            <input
+              id="payment-customer-search"
+              type="search"
+              placeholder="Nombre, código o teléfono"
+              autofocus
+              [value]="busquedaCliente()"
+              (input)="actualizarBusquedaCliente($event)"
+            />
+          </label>
+          <div class="customer-list">
+            @for (cliente of clientesFiltrados(); track cliente.id) {
+              <button
+                type="button"
+                class="customer-option"
+                [class.selected]="clienteSeleccionadoId() === cliente.id"
+                [attr.aria-pressed]="clienteSeleccionadoId() === cliente.id"
+                (click)="seleccionarCliente(cliente.id)"
+              >
+                <span class="customer-avatar">{{ cliente.nombre.charAt(0) }}</span>
+                <span>
+                  <strong>{{ cliente.nombre }}</strong>
+                  <small>{{ cliente.codigo }} · {{ cliente.telefono }}</small>
+                </span>
+                <span class="customer-check" aria-hidden="true">✓</span>
+              </button>
+            } @empty {
+              <p class="customer-empty">No se encontraron clientes.</p>
+            }
+          </div>
+          <p class="visual-data-note">Clientes activos obtenidos del registro real de clientes.</p>
+        </aside>
+
+        <div class="payment-workspace">
+          <section class="payment-overview" aria-label="Resumen del cliente seleccionado">
+            <article>
+              <small>Cliente</small>
+              <strong>{{ clienteRegistro()?.nombre || 'Sin seleccionar' }}</strong>
+            </article>
+            <article>
+              <small>Código</small>
+              <strong>{{ clienteRegistro()?.codigo || '—' }}</strong>
+            </article>
+            <article class="overview-total">
+              <small>Total seleccionado</small>
+              <strong>{{
+                totalSeleccionado() | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+              }}</strong>
+            </article>
+          </section>
+
+          <div class="payment-columns">
+            <section class="obligations-panel" aria-labelledby="obligations-title">
+              <div class="section-heading obligations-heading">
+                <span>02</span>
+                <div>
+                  <small>OBLIGACIONES</small>
+                  <h3 id="obligations-title">Seleccione qué desea cobrar</h3>
+                </div>
+              </div>
+
+              <div class="payment-tabs" aria-label="Categorías del registro">
+                @for (categoria of categoriasVisibles(); track categoria.valor) {
+                  <button
+                    type="button"
+                    [class.active]="categoriaRegistro() === categoria.valor"
+                    [attr.aria-pressed]="categoriaRegistro() === categoria.valor"
+                    (click)="seleccionarCategoriaRegistro(categoria.valor)"
+                  >
+                    {{ categoria.etiqueta }}
+                  </button>
+                }
+              </div>
+
+              @if (categoriaRegistro() === 'ORDENES_TRABAJO') {
+                <div class="project-obligation-list">
+                  @if (cargandoCotizacionesOrden()) {
+                    <div class="obligations-empty">
+                      <span aria-hidden="true">○</span>
+                      <strong>Consultando cotizaciones...</strong>
+                    </div>
+                  } @else if (errorCotizacionesOrden()) {
+                    <div class="obligations-empty">
+                      <span aria-hidden="true">!</span>
+                      <strong>No fue posible cargar las cotizaciones</strong>
+                      <small>{{ errorCotizacionesOrden() }}</small>
+                    </div>
+                  } @else {
+                    @for (cotizacion of cotizacionesOrden(); track cotizacion.id_cotizacion) {
+                      <label
+                        class="project-obligation-row installation-row"
+                        [class.selected]="
+                          cotizacionOrdenSeleccionadaId() === cotizacion.id_cotizacion
+                        "
+                      >
+                        <input
+                          type="checkbox"
+                          [checked]="cotizacionOrdenSeleccionadaId() === cotizacion.id_cotizacion"
+                          (change)="alternarCotizacionOrden(cotizacion.id_cotizacion)"
+                        />
+                        <span class="custom-checkbox" aria-hidden="true">✓</span>
+                        <span
+                          class="project-obligation-icon"
+                          data-kind="ORDENES_TRABAJO"
+                          aria-hidden="true"
+                        >
+                          <svg viewBox="0 0 24 24">
+                            <rect x="5" y="4" width="14" height="16" rx="2" />
+                            <path d="M9 4.5V3h6v1.5M8 9h8M8 13h8M8 17h5" />
+                          </svg>
+                        </span>
+                        <span class="project-obligation-main">
+                          <small>Orden de trabajo</small>
+                          <strong>{{ cotizacion.codigo_orden }}</strong>
+                          <span>{{ cotizacion.numero_cotizacion }}</span>
+                        </span>
+                        <span class="project-reference">
+                          <small>Proforma</small>
+                          <strong>#{{ cotizacion.id_proforma }}</strong>
+                        </span>
+                        <span class="project-amounts">
+                          <span>
+                            <small>Monto</small>
+                            <strong>{{
+                              cotizacion.monto | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                            }}</strong>
+                          </span>
+                          <span>
+                            <small>Total abonado</small>
+                            <strong>{{
+                              cotizacion.total_pagado | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                            }}</strong>
+                          </span>
+                          <span class="pending-balance">
+                            <small>Saldo pendiente</small>
+                            <strong>{{
+                              cotizacion.saldo_pendiente
+                                | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                            }}</strong>
+                          </span>
+                        </span>
+                        <span
+                          class="project-status"
+                          [attr.data-status]="cotizacion.estado_cotizacion"
+                        >
+                          <i aria-hidden="true"></i>{{ cotizacion.estado_cotizacion }}
+                        </span>
+                        <span class="project-selected-mark">
+                          {{
+                            cotizacionOrdenSeleccionadaId() === cotizacion.id_cotizacion
+                              ? 'Seleccionado'
+                              : ''
+                          }}
+                        </span>
+                      </label>
+                    } @empty {
+                      <div class="obligations-empty">
+                        <span aria-hidden="true">○</span>
+                        <strong>Sin cotizaciones aceptadas con proforma</strong>
+                        <small>La orden debe tener cotización ACEPTADA y proforma.</small>
+                      </div>
+                    }
+                  }
+                </div>
+              } @else if (categoriaRegistro() === 'INTERNET') {
+                <ng-template #filaMensualidad let-obligacion>
+                  <label
+                    class="internet-month-row"
+                    [class.selected]="obligacionSeleccionada(obligacion.id)"
+                    [class.paid]="obligacion.estado === 'PAGADO'"
+                  >
+                    <input
+                      type="checkbox"
+                      [checked]="obligacionSeleccionada(obligacion.id)"
+                      [disabled]="obligacion.estado === 'PAGADO'"
+                      (change)="alternarObligacion(obligacion.id)"
+                    />
+                    <span class="custom-checkbox" aria-hidden="true">✓</span>
+                    <span class="internet-month-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <rect x="3" y="5" width="18" height="16" rx="2" />
+                        <path d="M8 3v4M16 3v4M3 10h18" />
+                      </svg>
+                    </span>
+                    <span class="internet-month-main">
+                      <strong>{{ obligacion.periodo }}</strong>
+                      <small>{{ obligacion.plan || '—' }}</small>
+                    </span>
+                    <span class="internet-month-detail">
+                      <small>Monto mensual</small>
+                      <strong>{{
+                        obligacion.monto | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                      }}</strong>
+                    </span>
+                    <span class="internet-month-detail due-date">
+                      <small>Vencimiento</small>
+                      <strong>{{ obligacion.vencimiento || 'Período futuro' }}</strong>
+                    </span>
+                    <span class="internet-status" [attr.data-status]="obligacion.estado">
+                      <i aria-hidden="true"></i
+                      >{{
+                        obligacion.proyectado
+                          ? obligacion.adelantado
+                            ? 'Proyectado'
+                            : 'Mes actual'
+                          : etiquetaEstadoInternet(obligacion.estado) + ' · Persistido'
+                      }}
+                    </span>
+                    <span class="selected-period-mark">
+                      {{ obligacionSeleccionada(obligacion.id) ? 'Elegido' : '' }}
+                    </span>
+                  </label>
+                </ng-template>
+
+                <div class="internet-periods">
+                  <section class="internet-period-group" aria-labelledby="pending-periods-title">
+                    <header>
+                      <span class="period-group-icon due" aria-hidden="true">!</span>
+                      <div>
+                        <h4 id="pending-periods-title">Mensualidades</h4>
+                        <p>Historial reciente y períodos disponibles para cobro.</p>
+                      </div>
+                      <strong>{{ mensualidadesInternet().length }} períodos</strong>
+                    </header>
+                    <div class="internet-month-list">
+                      @for (obligacion of mensualidadesInternet(); track obligacion.id) {
+                        <ng-container
+                          [ngTemplateOutlet]="filaMensualidad"
+                          [ngTemplateOutletContext]="{ $implicit: obligacion }"
+                        />
+                      }
+                    </div>
+                  </section>
+
+                  <section
+                    class="internet-period-group advance-group"
+                    aria-labelledby="advance-periods-title"
+                  >
+                    <header>
+                      <span class="period-group-icon advance" aria-hidden="true">›</span>
+                      <div>
+                        <h4 id="advance-periods-title">Pagos adelantados</h4>
+                        <p>Períodos futuros que el cliente puede pagar anticipadamente.</p>
+                      </div>
+                      <strong>{{ pagosAdelantadosInternet().length }} disponibles</strong>
+                    </header>
+                    <div class="internet-month-list">
+                      @for (obligacion of pagosAdelantadosInternet(); track obligacion.id) {
+                        <ng-container
+                          [ngTemplateOutlet]="filaMensualidad"
+                          [ngTemplateOutletContext]="{ $implicit: obligacion }"
+                        />
+                      } @empty {
+                        <div class="internet-period-empty">
+                          No hay períodos adelantados disponibles.
+                        </div>
+                      }
+                    </div>
+                  </section>
+                </div>
+              } @else if (categoriaRegistro() === 'INSTALACIONES') {
+                <div class="project-obligation-list">
+                  @if (cargandoCotizacionesInstalacion()) {
+                    <div class="obligations-empty">
+                      <span aria-hidden="true">○</span>
+                      <strong>Consultando cotizaciones...</strong>
+                    </div>
+                  } @else if (errorCotizacionesInstalacion()) {
+                    <div class="obligations-empty">
+                      <span aria-hidden="true">!</span>
+                      <strong>No fue posible cargar las cotizaciones</strong>
+                      <small>{{ errorCotizacionesInstalacion() }}</small>
+                    </div>
+                  } @else {
+                    @for (cotizacion of cotizacionesInstalacion(); track cotizacion.id_cotizacion) {
+                      <label
+                        class="project-obligation-row installation-row"
+                        [class.selected]="
+                          cotizacionInstalacionSeleccionadaId() === cotizacion.id_cotizacion
+                        "
+                      >
+                        <input
+                          type="checkbox"
+                          [checked]="
+                            cotizacionInstalacionSeleccionadaId() === cotizacion.id_cotizacion
+                          "
+                          (change)="alternarCotizacionInstalacion(cotizacion.id_cotizacion)"
+                        />
+                        <span class="custom-checkbox" aria-hidden="true">✓</span>
+                        <span
+                          class="project-obligation-icon"
+                          data-kind="INSTALACIONES"
+                          aria-hidden="true"
+                        >
+                          <svg viewBox="0 0 24 24">
+                            <path d="m14 6 4-2 2 2-2 4-3 1-6 6-3-3 6-6zM5 19l-1 1" />
+                          </svg>
+                        </span>
+                        <span class="project-obligation-main">
+                          <small>Instalación</small>
+                          <strong>#{{ cotizacion.id_instalacion ?? '—' }}</strong>
+                          <span>
+                            {{ cotizacion.numero_cotizacion }} ·
+                            {{ cotizacion.estado_instalacion ?? 'Sin programar' }}
+                          </span>
+                        </span>
+                        <span class="project-reference">
+                          <small>Proforma</small>
+                          <strong>#{{ cotizacion.id_proforma }}</strong>
+                        </span>
+                        <span class="project-amounts">
+                          <span>
+                            <small>Monto</small>
+                            <strong>{{
+                              cotizacion.monto | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                            }}</strong>
+                          </span>
+                          <span>
+                            <small>Total abonado</small>
+                            <strong>{{
+                              cotizacion.total_pagado | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                            }}</strong>
+                          </span>
+                          <span class="pending-balance">
+                            <small>Saldo pendiente</small>
+                            <strong>{{
+                              cotizacion.saldo_pendiente
+                                | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                            }}</strong>
+                          </span>
+                        </span>
+                        <span
+                          class="project-status"
+                          [attr.data-status]="cotizacion.estado_cotizacion"
+                        >
+                          <i aria-hidden="true"></i>{{ cotizacion.estado_cotizacion }}
+                        </span>
+                        <span class="project-selected-mark">
+                          {{
+                            cotizacionInstalacionSeleccionadaId() === cotizacion.id_cotizacion
+                              ? 'Seleccionado'
+                              : ''
+                          }}
+                        </span>
+                      </label>
+                    } @empty {
+                      <div class="obligations-empty">
+                        <span aria-hidden="true">○</span>
+                        <strong>Sin cotizaciones de instalación con proforma</strong>
+                        <small>La instalación debe tener cotización ACEPTADA y proforma.</small>
+                      </div>
+                    }
+                  }
+                </div>
+              } @else {
+                <div class="project-obligation-list">
+                  @for (obligacion of obligacionesRegistro(); track obligacion.id) {
+                    <label
+                      class="project-obligation-row"
+                      [class.selected]="obligacionSeleccionada(obligacion.id)"
+                      [class.paid]="obligacion.estado === 'PAGADO'"
+                      [class.installation-row]="categoriaRegistro() === 'INSTALACIONES'"
+                    >
+                      <input
+                        type="checkbox"
+                        [checked]="obligacionSeleccionada(obligacion.id)"
+                        [disabled]="obligacion.estado === 'PAGADO'"
+                        (change)="alternarObligacion(obligacion.id)"
+                      />
+                      <span class="custom-checkbox" aria-hidden="true">✓</span>
+                      <span
+                        class="project-obligation-icon"
+                        [attr.data-kind]="obligacion.tipoInstalacion || categoriaRegistro()"
+                        aria-hidden="true"
+                      >
+                        @if (obligacion.tipoInstalacion === 'Cámaras') {
+                          <svg viewBox="0 0 24 24">
+                            <path d="M4 8h11v8H4zM15 10l5-3v10l-5-3M8 16v3M5 19h6" />
+                          </svg>
+                        } @else if (categoriaRegistro() === 'INSTALACIONES') {
+                          <svg viewBox="0 0 24 24">
+                            <path d="m14 6 4-2 2 2-2 4-3 1-6 6-3-3 6-6zM5 19l-1 1" />
+                          </svg>
+                        } @else {
+                          <svg viewBox="0 0 24 24">
+                            <rect x="5" y="4" width="14" height="16" rx="2" />
+                            <path d="M9 4.5V3h6v1.5M8 9h8M8 13h8M8 17h5" />
+                          </svg>
+                        }
+                      </span>
+                      <span class="project-obligation-main">
+                        <small>{{
+                          categoriaRegistro() === 'INSTALACIONES'
+                            ? 'Instalación'
+                            : 'Orden de trabajo'
+                        }}</small>
+                        <strong>{{ obligacion.codigo }}</strong>
+                        <span>{{ obligacion.concepto }}</span>
+                      </span>
+
+                      <span class="project-reference">
+                        <small>Proforma</small>
+                        <strong>{{ obligacion.proforma || '—' }}</strong>
+                      </span>
+
+                      @if (categoriaRegistro() === 'INSTALACIONES') {
+                        <span
+                          class="installation-kind"
+                          [attr.data-kind]="obligacion.tipoInstalacion"
+                        >
+                          {{ obligacion.tipoInstalacion || '—' }}
+                        </span>
+                      }
+
+                      <span class="project-amounts">
+                        <span>
+                          <small>Monto aprobado</small>
+                          <strong>{{
+                            obligacion.monto | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                          }}</strong>
+                        </span>
+                        <span>
+                          <small>Total abonado</small>
+                          <strong>{{
+                            obligacion.abonos | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                          }}</strong>
+                        </span>
+                        <span class="pending-balance">
+                          <small>Saldo pendiente</small>
+                          <strong>{{
+                            obligacion.saldo | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                          }}</strong>
+                        </span>
+                      </span>
+
+                      <span class="project-status" [attr.data-status]="obligacion.estado">
+                        <i aria-hidden="true"></i>{{ etiquetaEstadoProyecto(obligacion.estado) }}
+                      </span>
+                      <span class="project-selected-mark">
+                        {{ obligacionSeleccionada(obligacion.id) ? 'Seleccionado' : '' }}
+                      </span>
+                    </label>
+                  } @empty {
+                    <div class="obligations-empty">
+                      <span aria-hidden="true">○</span>
+                      <strong>Sin obligaciones en esta categoría</strong>
+                      <small>Seleccione otro cliente o cambie de pestaña.</small>
+                    </div>
+                  }
+                </div>
+              }
+            </section>
+
+            <aside class="payment-details" aria-labelledby="payment-details-title">
+              <div class="section-heading">
+                <span>03</span>
+                <div>
+                  <small>INFORMACIÓN DEL PAGO</small>
+                  <h3 id="payment-details-title">Detalle del cobro</h3>
+                </div>
+              </div>
+
+              <div class="payment-form">
+                @if (!registrandoPendiente()) {
+                  <label>
+                    <span>Método de pago</span>
+                    <select
+                      [value]="metodoPago()"
+                      [disabled]="aplicandoAnticipo()"
+                      (change)="actualizarMetodoPago($event)"
+                    >
+                      @for (metodo of metodosPago(); track metodo.id_metodo_pago) {
+                        <option [value]="metodo.id_metodo_pago">{{ metodo.nombre }}</option>
+                      }
+                    </select>
+                  </label>
+                }
+                @if (
+                  categoriaRegistro() === 'ORDENES_TRABAJO' ||
+                  categoriaRegistro() === 'INSTALACIONES'
+                ) {
+                  <label>
+                    <span>Tipo de pago</span>
+                    <select
+                      [value]="
+                        categoriaRegistro() === 'ORDENES_TRABAJO'
+                          ? tipoPagoOrden()
+                          : tipoPagoInstalacion()
+                      "
+                      [disabled]="aplicandoAnticipo()"
+                      (change)="
+                        categoriaRegistro() === 'ORDENES_TRABAJO'
+                          ? actualizarTipoPagoOrden($event)
+                          : actualizarTipoPagoInstalacion($event)
+                      "
+                    >
+                      @for (tipo of tiposPagoOrden; track tipo.valor) {
+                        <option [value]="tipo.valor">{{ tipo.etiqueta }}</option>
+                      }
+                    </select>
+                  </label>
+                }
+                <div class="payment-form-row">
+                  @if (registrandoPendiente()) {
+                    <!-- La deuda se registra sin capturar dinero ni generar un pago. -->
+                    <p>
+                      Monto recibido:
+                      <strong>{{
+                        montoPago() | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                      }}</strong>
+                    </p>
+                  } @else {
+                    <label>
+                      <span>Monto recibido</span>
+                      <div class="money-input">
+                        <small>Q</small>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          [value]="montoPago()"
+                          [disabled]="aplicandoAnticipo()"
+                          (input)="actualizarMontoPago($event)"
+                        />
+                      </div>
+                    </label>
+                  }
+                  <label>
+                    <span>Fecha</span>
+                    <input type="date" disabled [value]="fechaPago()" />
+                  </label>
+                </div>
+
+                @if (!registrandoPendiente() && requiereReferencia()) {
+                  <label>
+                    <span>Referencia bancaria</span>
+                    <input
+                      type="text"
+                      placeholder="Ej. TRX-849201"
+                      required
+                      [value]="referenciaPago()"
+                      (input)="actualizarReferenciaPago($event)"
+                    />
+                  </label>
+                }
+
+                @if (!registrandoPendiente()) {
+                  <label>
+                    <span>Observaciones</span>
+                    <textarea
+                      rows="3"
+                      placeholder="Agregue una nota opcional..."
+                      [value]="observacionesPago()"
+                      (input)="actualizarObservacionesPago($event)"
+                    ></textarea>
+                  </label>
+                }
+              </div>
+
+              <div class="payment-summary">
+                <div>
+                  <span>Cliente</span>
+                  <strong>{{ clienteRegistro()?.nombre || 'Sin seleccionar' }}</strong>
+                </div>
+                <div>
+                  <span>Categoría</span>
+                  <strong>{{ categoriaRegistroEtiqueta() }}</strong>
+                </div>
+                <div>
+                  <span>Obligaciones seleccionadas</span>
+                  <strong>{{ cantidadSeleccionada() }}</strong>
+                </div>
+                <div>
+                  <span>Total seleccionado</span>
+                  <strong>{{
+                    totalSeleccionado() | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                  }}</strong>
+                </div>
+                <div>
+                  <span>Monto recibido</span>
+                  <strong>{{ montoPago() | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</strong>
+                </div>
+                <div class="remaining-balance">
+                  <span>Saldo restante</span>
+                  <strong>{{
+                    saldoRestante() | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                  }}</strong>
+                </div>
+              </div>
+              @if (mensajeValidacionPago()) {
+                <p class="payment-validation" role="status">{{ mensajeValidacionPago() }}</p>
+              }
+            </aside>
+          </div>
+        </div>
+      </div>
+
+      <footer class="payment-modal-footer">
+        <p>
+          <strong>Registro real:</strong>
+          {{
+            registrandoPendiente()
+              ? 'se conserva la obligación pendiente sin recibir dinero ni generar ingresos en Caja General.'
+              : aplicandoAnticipo()
+                ? 'el anticipo se aplica sin generar otro ingreso en Caja General.'
+                : 'el pago genera automáticamente su ingreso en Caja General.'
+          }}
+        </p>
+        <div>
+          <button type="button" class="cancel-payment-button" (click)="cerrarRegistroCobro()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="confirm-payment-button"
+            [disabled]="!pagoVisualValido()"
+            [title]="
+              registrandoPendiente()
+                ? 'Registrar pendiente'
+                : aplicandoAnticipo()
+                  ? 'Aplicar anticipo'
+                  : 'Registrar pago'
+            "
+            (click)="abrirComprobante()"
+          >
+            {{
+              registrandoPendiente()
+                ? 'Registrar pendiente'
+                : aplicandoAnticipo()
+                  ? 'Aplicar anticipo'
+                  : 'Confirmar pago'
+            }}
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (confirmacionPagoAbierta()) {
+  <div class="receipt-preview-backdrop" role="presentation" (click)="cerrarConfirmacionPago()">
+    <section
+      class="receipt-preview history-preview"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="payment-success-title"
+      (click)="$event.stopPropagation()"
+      (document:keydown.escape)="cerrarConfirmacionPago()"
+    >
+      <header class="receipt-header">
+        <div>
+          <p>COBROS DE INTERNET</p>
+          <h2 id="payment-success-title">Pago registrado exitosamente</h2>
+          <span>El pago está confirmado. Puede consultar o imprimir su comprobante.</span>
+        </div>
+      </header>
+      @if (!comprobanteActual()) {
+        <p class="receipt-error" role="alert">
+          El pago fue registrado, pero la respuesta no incluye un comprobante disponible. Consulte
+          el historial sin volver a registrar el pago.
+        </p>
+      }
+      <footer class="receipt-footer">
+        <div>
+          @if (comprobanteActual()) {
+            <button
+              type="button"
+              class="receipt-download-button"
+              (click)="mostrarComprobanteRegistrado()"
+            >
+              Generar comprobante
+            </button>
+            <button
+              type="button"
+              class="receipt-print-button"
+              (click)="mostrarComprobanteRegistrado(true)"
+            >
+              Imprimir Ticket
+            </button>
+          }
+          <button
+            type="button"
+            class="receipt-close-button"
+            autofocus
+            (click)="cerrarConfirmacionPago()"
+          >
+            Cerrar
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+}
+
+<!-- El mismo ticket aprobado se presenta en la confirmación y en el documento. -->
+<ng-template #ticketTermico>
+  <article class="thermal-ticket">
+    <header class="thermal-company">
+      <strong>{{ comprobanteActual()?.empresa_nombre || 'Multiservicios Tale' }}</strong>
+      <span>{{ comprobanteActual()?.empresa_descripcion }}</span>
+      @if (comprobanteActual()?.empresa_direccion) {
+        <span>{{ comprobanteActual()?.empresa_direccion }}</span>
+      }
+      @if (comprobanteActual()?.empresa_telefono) {
+        <span>Tel. {{ comprobanteActual()?.empresa_telefono }}</span>
+      }
+    </header>
+
+    <div class="thermal-rule"></div>
+    <p class="thermal-document-title">COMPROBANTE DE PAGO</p>
+    <p class="thermal-number">
+      <strong>{{ comprobanteActual()?.numero }}</strong>
+    </p>
+    <p class="thermal-date">{{ comprobanteActual()?.fecha_hora | date: 'dd/MM/yyyy HH:mm' }}</p>
+
+    <dl class="thermal-data">
+      <div>
+        <dt>Cliente</dt>
+        <dd>{{ comprobanteActual()?.cliente_nombre }}</dd>
+      </div>
+      <div>
+        <dt>Plan / velocidad</dt>
+        <dd>{{ comprobanteActual()?.servicio }}</dd>
+      </div>
+      <div>
+        <dt>Método</dt>
+        <dd>{{ comprobanteActual()?.metodo_pago || '—' }}</dd>
+      </div>
+      @if (!comprobanteOriginal() && pagoConfirmado()?.referencia) {
+        <div>
+          <dt>Referencia</dt>
+          <dd>{{ pagoConfirmado()?.referencia }}</dd>
+        </div>
+      }
+    </dl>
+
+    <div class="thermal-rule"></div>
+    <section class="thermal-periods" aria-labelledby="thermal-periods-title">
+      <h4 id="thermal-periods-title">PERÍODOS PAGADOS</h4>
+      @for (concepto of conceptosComprobante(); track $index) {
+        <div class="thermal-line">
+          <span>{{ nombrePeriodoComprobante(concepto.periodo || concepto.descripcion) }}</span>
+          <strong>{{ concepto.monto | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</strong>
+        </div>
+      } @empty {
+        <p class="thermal-empty">El pago no tiene conceptos aplicados.</p>
+      }
+    </section>
+
+    @if (comprobanteActual()?.proxima_fecha_pago) {
+      <div class="thermal-line thermal-next-payment">
+        <span>Próxima fecha de pago</span>
+        <strong>{{ comprobanteActual()?.proxima_fecha_pago | date: 'dd/MM/yyyy' : 'UTC' }}</strong>
+      </div>
+    }
+
+    <div class="thermal-rule"></div>
+    <div class="thermal-totals">
+      <div>
+        <span>Subtotal</span>
+        <strong>{{
+          comprobanteActual()?.subtotal | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+        }}</strong>
+      </div>
+      @if (descuentoVisible()) {
+        <div>
+          <span>Descuento</span>
+          <strong>{{
+            comprobanteActual()?.descuento | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+          }}</strong>
+        </div>
+      }
+      <div class="thermal-total">
+        <span>TOTAL PAGADO</span>
+        <strong>{{
+          comprobanteActual()?.total | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+        }}</strong>
+      </div>
+    </div>
+
+    <p class="thermal-thanks">{{ comprobanteActual()?.agradecimiento }}</p>
+    @if (comprobanteActual()?.nota_fiscal) {
+      <p class="thermal-legal">{{ comprobanteActual()?.nota_fiscal }}</p>
+    }
+  </article>
+</ng-template>
+
+@if (comprobanteAbierto()) {
+  <div class="receipt-preview-backdrop" role="presentation" (click)="cerrarComprobante()">
+    <section
+      class="receipt-preview ticket-58"
+      [class.ticket-58]="anchoTicket() === '58'"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="receipt-preview-title"
+      (click)="$event.stopPropagation()"
+      (document:keydown.escape)="cerrarComprobante()"
+    >
+      <div class="receipt-demo-ribbon">
+        {{ anticipoAplicado() ? 'ANTICIPO APLICADO' : 'PAGO REGISTRADO' }}
+      </div>
+      <header class="receipt-header">
+        <span class="receipt-brand-mark" aria-hidden="true">MT</span>
+        <div>
+          <p>Multiservicios Tale</p>
+          <h2 id="receipt-preview-title">Comprobante de pago</h2>
+          <span>{{ comprobanteActual()?.numero }}</span>
+        </div>
+      </header>
+      <div class="receipt-body"><ng-container [ngTemplateOutlet]="ticketTermico" /></div>
+
+      <footer class="receipt-footer">
+        <p>Ticket térmico de 58 mm.</p>
+        <div>
+          <button
+            type="button"
+            class="receipt-close-button"
+            autofocus
+            (click)="cerrarComprobante()"
+          >
+            Cerrar
+          </button>
+          <button
+            type="button"
+            class="receipt-download-button"
+            [disabled]="descargandoComprobante() || !comprobanteActual()"
+            (click)="descargarComprobanteActual()"
+          >
+            {{ descargandoComprobante() ? 'Descargando...' : '⇩ Descargar PDF' }}
+          </button>
+          <button
+            type="button"
+            class="receipt-print-button"
+            [disabled]="!comprobanteActual()"
+            (click)="imprimirTicket()"
+          >
+            <span aria-hidden="true">▣</span> Imprimir Ticket
+          </button>
+        </div>
+      </footer>
+      @if (errorPago()) {
+        <p class="receipt-error" role="alert">{{ errorPago() }}</p>
+      }
+    </section>
+  </div>
+}
+
+@if (historialAbierto()) {
+  <div class="receipt-preview-backdrop" role="presentation" (click)="cerrarHistorialComprobantes()">
+    <section
+      class="receipt-preview history-preview"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="history-preview-title"
+      (click)="$event.stopPropagation()"
+      (document:keydown.escape)="cerrarHistorialComprobantes()"
+    >
+      <header class="receipt-header">
+        <span class="receipt-brand-mark" aria-hidden="true">MT</span>
+        <div>
+          <p>Multiservicios Tale</p>
+          <h2 id="history-preview-title">Historial de comprobantes</h2>
+          <span>{{ historialCobro()?.cliente }} · {{ historialCobro()?.codigo }}</span>
+        </div>
+      </header>
+      <div class="receipt-body">
+        @if (cargandoHistorial()) {
+          <p class="receipt-empty">Consultando comprobantes...</p>
+        } @else {
+          @if (errorHistorial()) {
+            <p class="receipt-error" role="alert">{{ errorHistorial() }}</p>
+          }
+          <div class="history-list">
+            @for (comprobante of comprobantesHistorial(); track comprobante.id_comprobante) {
+              <article>
+                <div>
+                  <small>{{ comprobante.numero }}</small>
+                  <strong>{{ comprobante.fecha_hora | date: 'dd/MM/yyyy HH:mm' }}</strong>
+                  <span>{{ comprobante.metodo_pago }} · {{ comprobante.responsable }}</span>
+                </div>
+                <strong>{{
+                  comprobante.total | currency: 'GTQ' : 'symbol-narrow' : '1.2-2'
+                }}</strong>
+                <div class="row-actions">
+                  <button
+                    type="button"
+                    class="receipt-download-button"
+                    [disabled]="descargandoComprobante()"
+                    (click)="verComprobanteOriginal(comprobante)"
+                  >
+                    Ver comprobante
+                  </button>
+                  <button
+                    type="button"
+                    class="receipt-download-button"
+                    [disabled]="descargandoComprobante()"
+                    (click)="descargarComprobanteHistorial(comprobante)"
+                  >
+                    ⇩ PDF
+                  </button>
+                  <button
+                    type="button"
+                    class="receipt-download-button"
+                    [disabled]="descargandoComprobante()"
+                    (click)="imprimirComprobanteHistorial(comprobante)"
+                  >
+                    Imprimir Ticket
+                  </button>
+                </div>
+              </article>
+            } @empty {
+              <p class="receipt-empty">Este cobro todavía no tiene comprobantes emitidos.</p>
+            }
+          </div>
+        }
+      </div>
+      <footer class="receipt-footer">
+        <p>Los comprobantes se conservan asociados a cada pago confirmado.</p>
+        <div>
+          <button
+            type="button"
+            class="receipt-close-button"
+            (click)="cerrarHistorialComprobantes()"
+          >
+            Cerrar
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (comprobanteOriginal(); as original) {
+  <main class="receipt-document-page" aria-labelledby="receipt-document-title">
+    <header class="document-navigation">
+      <a href="#" (click)="$event.preventDefault(); cerrarComprobanteOriginal()"
+        >← Volver a Cobros</a
+      >
+      <div>
+        <h1 id="receipt-document-title">Documento Comprobante</h1>
+        <p>Vista preparada para impresión y envío.</p>
+      </div>
+    </header>
+    <div class="document-toolbar">
+      <button
+        type="button"
+        [disabled]="!ticketOriginal() || descargandoComprobante()"
+        (click)="imprimirTicket()"
+      >
+        ⌁ Imprimir
+      </button>
+      <button
+        type="button"
+        [disabled]="!ticketOriginal() || descargandoComprobante()"
+        (click)="descargarComprobanteHistorial(original)"
+      >
+        {{ descargandoComprobante() ? 'Consultando...' : '↓ Descargar PDF' }}
+      </button>
+      <button
+        type="button"
+        class="whatsapp-button"
+        [disabled]="!ticketOriginal()"
+        (click)="abrirWhatsAppComprobante()"
+      >
+        Abrir WhatsApp
+      </button>
+    </div>
+    @if (errorHistorial()) {
+      <p class="document-message" role="alert">{{ errorHistorial() }}</p>
+    }
+    @if (ticketOriginal()) {
+      <ng-container [ngTemplateOutlet]="ticketTermico" />
+    } @else if (descargandoComprobante()) {
+      <p class="document-message" role="status">Consultando comprobante...</p>
+    }
+  </main>
+}

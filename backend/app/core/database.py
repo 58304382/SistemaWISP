@@ -10,7 +10,13 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_engine(settings.database_url, pool_pre_ping=True)
+# READ COMMITTED permite que una consulta posterior a un FOR UPDATE vea el
+# commit de la transacción concurrente que acaba de liberar el bloqueo.
+engine = create_engine(
+    settings.database_url,
+    pool_pre_ping=True,
+    isolation_level="READ COMMITTED",
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

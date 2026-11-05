@@ -390,7 +390,7 @@
 /* ==========================================
    RESPONSIVE
 ========================================== */
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .login-page {
     display: block;
   }
@@ -434,5 +434,13 @@
   }
   .login-heading h2 {
     font-size: 30px;
+  }
+}
+
+/* El control de visibilidad de contraseña mantiene un área táctil cómoda. */
+@media (max-width: 900px) {
+  .password-toggle {
+    width: 44px;
+    height: 44px;
   }
 }

@@ -1,0 +1,182 @@
+/* ==========================================
+   ESTRUCTURA DE MANTENIMIENTO
+========================================== */
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.maintenance-page {
+  min-height: 100%;
+  background: var(--paper);
+}
+
+/* ==========================================
+   ENCABEZADO Y RUTA VISUAL
+========================================== */
+.maintenance-header {
+  padding: 38px clamp(30px, 5vw, 76px) 30px;
+  background: var(--paper);
+}
+
+.maintenance-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.maintenance-breadcrumb a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.maintenance-breadcrumb a:hover {
+  color: #e56900;
+}
+
+.maintenance-breadcrumb span[aria-current='page'] {
+  color: var(--ink);
+}
+
+.maintenance-header h1 {
+  margin: 16px 0 0;
+  color: var(--ink);
+  font-size: 33px;
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+}
+
+.page-description {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ==========================================
+   ACCESOS CIRCULARES
+========================================== */
+.maintenance-content {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  justify-items: center;
+  gap: clamp(38px, 5vw, 78px);
+  width: 100%;
+  max-width: 980px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 70px clamp(30px, 5vw, 76px) 70px;
+}
+
+.maintenance-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 224px;
+  padding: 0;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  cursor: default;
+}
+
+.maintenance-option-link {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.maintenance-option-link:hover .maintenance-icon {
+  transform: translateY(-3px);
+}
+
+.maintenance-icon {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: 224px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: #fff;
+  transition: transform 160ms ease;
+}
+
+.catalogs-maintenance-icon {
+  background: linear-gradient(145deg, #ffb35c 0%, #ff8a1f 45%, #e56900 100%);
+  box-shadow: 0 18px 42px rgba(255, 138, 31, 0.22);
+}
+
+.quotation-maintenance-icon {
+  background: linear-gradient(145deg, #2f9cff 0%, #2387f5 45%, #1260e9 100%);
+  box-shadow: 0 18px 42px rgba(35, 135, 245, 0.2);
+}
+
+.invoice-maintenance-icon {
+  background: linear-gradient(145deg, #35c98a 0%, #20ad70 45%, #138653 100%);
+  box-shadow: 0 18px 42px rgba(32, 173, 112, 0.2);
+}
+
+.maintenance-icon svg {
+  width: 58px;
+  height: 58px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.maintenance-option-label {
+  margin-top: 18px;
+  color: var(--ink);
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* ==========================================
+   ADAPTACION PARA TABLET Y MOVIL
+========================================== */
+@media (max-width: 900px) {
+  .maintenance-content {
+    gap: 34px;
+    padding: 54px clamp(24px, 5vw, 48px) 54px;
+  }
+
+  .maintenance-option,
+  .maintenance-icon {
+    max-width: 180px;
+  }
+
+  .maintenance-icon svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .maintenance-option-label {
+    font-size: 19px;
+  }
+}
+
+@media (max-width: 650px) {
+  .maintenance-header {
+    padding: 28px 21px 22px;
+  }
+
+  .maintenance-content {
+    grid-template-columns: 1fr;
+    gap: 46px;
+    padding: 46px 21px 40px;
+  }
+
+  .maintenance-option,
+  .maintenance-icon {
+    max-width: min(224px, calc(100vw - 42px));
+  }
+}

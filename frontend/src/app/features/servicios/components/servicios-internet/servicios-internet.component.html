@@ -1,0 +1,500 @@
+<div class="internet-page">
+  <header class="page-header">
+    <div>
+      <a routerLink="/servicios">SERVICIOS</a>
+      <p class="breadcrumb"><span>/</span> SERVICIOS DE INTERNET</p>
+      <h1>Gestión de Servicios</h1>
+      <p class="page-description">
+        Administre la conexión, direccionamiento y configuración de los clientes.
+      </p>
+    </div>
+    <div class="demo-banner">
+      <strong>Datos temporales</strong><span>Los cambios no se guardan en esta pantalla</span>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <section class="summary-grid" aria-label="Resumen de servicios">
+      <article>
+        <span>Total servicios</span><strong>{{ servicios().length }}</strong>
+      </article>
+      <article class="active">
+        <span>Servicios activos</span><strong>{{ totalActivos() }}</strong
+        ><small>Con conexión habilitada</small>
+      </article>
+      <article class="pending">
+        <span>Pendientes</span><strong>{{ totalPendientes() }}</strong
+        ><small>Por configurar</small>
+      </article>
+    </section>
+
+    <section class="management-card">
+      <div class="section-heading">
+        <div>
+          <p>ADMINISTRACIÓN</p>
+          <h2>Servicios de Internet</h2>
+        </div>
+        <button class="primary-button" type="button" (click)="abrirNuevo()">
+          <span>+</span> Nuevo Servicio
+        </button>
+      </div>
+
+      <div class="filters">
+        <label class="search-control">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m15.5 15.5 5 5" />
+          </svg>
+          <input
+            type="search"
+            [value]="busqueda()"
+            (input)="actualizarBusqueda($event)"
+            placeholder="Buscar por cliente, código, IP o zona..."
+          />
+        </label>
+        <label
+          ><span>Estado</span
+          ><select [value]="estadoFiltro()" (change)="actualizarEstado($event)">
+            <option>Todos</option>
+            <option>Activo</option>
+            <option>Suspendido</option>
+            <option>Pendiente</option>
+          </select></label
+        >
+        <label
+          ><span>Plan</span
+          ><select [value]="planFiltro()" (change)="actualizarPlan($event)">
+            <option value="0">Todos los planes</option>
+            @for (plan of planes; track plan.id) {
+              <option [value]="plan.id">{{ plan.nombre }}</option>
+            }
+          </select></label
+        >
+        <button class="clear-button" type="button" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+
+      <div class="table-wrap actions-sticky">
+        <table>
+          <thead>
+            <tr>
+              <th>SERVICIO / CLIENTE</th>
+              <th>PLAN</th>
+              <th>CONFIGURACIÓN IPV4</th>
+              <th>ZONA</th>
+              <th>ESTADO</th>
+              <th>ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (servicio of serviciosFiltrados(); track servicio.id) {
+              <tr>
+                <td>
+                  <strong>{{ servicio.cliente }}</strong
+                  ><span
+                    >{{ servicio.codigo }} · Desde
+                    {{ servicio.fechaInicio | date: 'dd/MM/yyyy' }}</span
+                  >
+                </td>
+                <td>
+                  <strong>{{ servicio.plan }}</strong
+                  ><span
+                    >{{ servicio.velocidad }} ·
+                    {{ servicio.precio | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }}</span
+                  >
+                </td>
+                <td>
+                  <code>{{ servicio.ipv4 }}</code
+                  ><span>GW {{ servicio.gateway }}</span>
+                </td>
+                <td>{{ servicio.zona }}</td>
+                <td>
+                  <span
+                    class="status"
+                    [class.suspended]="servicio.estado === 'Suspendido'"
+                    [class.pending]="servicio.estado === 'Pendiente'"
+                    >{{ servicio.estado }}</span
+                  >
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button type="button" (click)="detalle.set(servicio)">Consultar</button
+                    ><button class="edit" type="button" (click)="abrirEdicion(servicio)">
+                      Editar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty">
+                  <strong>No se encontraron servicios</strong
+                  ><span>Pruebe con otros criterios de búsqueda.</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer class="table-footer">
+        Mostrando {{ serviciosFiltrados().length }} de {{ servicios().length }} servicios
+        <span>Los cambios no se guardan</span>
+      </footer>
+    </section>
+  </main>
+</div>
+
+@if (formularioAbierto()) {
+  <div class="modal-backdrop" role="presentation" (click)="cerrarFormulario()">
+    <section
+      class="wizard-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="service-form-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <div>
+          <p>SERVICIOS DE INTERNET / {{ editando() ? 'EDICIÓN' : 'REGISTRO' }}</p>
+          <h2 id="service-form-title">{{ editando() ? 'Editar Servicio' : 'Nuevo Servicio' }}</h2>
+          <span>Complete la información técnica en tres pasos.</span>
+        </div>
+        <button type="button" aria-label="Cerrar" (click)="cerrarFormulario()">×</button>
+      </header>
+
+      <nav class="steps" aria-label="Pasos del formulario">
+        <button
+          type="button"
+          [class.current]="paso() === 1"
+          [class.done]="paso() > 1"
+          (click)="irAlPaso(1)"
+        >
+          <b>1</b><span>Cliente y Plan<small>Datos del servicio</small></span>
+        </button>
+        <i></i>
+        <button
+          type="button"
+          [class.current]="paso() === 2"
+          [class.done]="paso() > 2"
+          (click)="irAlPaso(2)"
+        >
+          <b>2</b><span>Configuración IPv4<small>Direccionamiento</small></span>
+        </button>
+        <i></i>
+        <button type="button" [class.current]="paso() === 3">
+          <b>3</b><span>Router / EdgeOS<small>Acceso y aplicación</small></span>
+        </button>
+      </nav>
+
+      <form [formGroup]="formulario" (ngSubmit)="guardar()">
+        @if (paso() === 1) {
+          <section class="step-panel">
+            <div class="step-title">
+              <span>01</span>
+              <div>
+                <h3>Cliente y Plan</h3>
+                <p>Seleccione el titular y las condiciones comerciales del servicio.</p>
+              </div>
+            </div>
+            <div class="form-grid three-columns">
+              <label class="wide"
+                ><span>Cliente *</span
+                ><select formControlName="clienteId">
+                  <option [ngValue]="0">Seleccione un cliente</option>
+                  @for (cliente of clientes; track cliente.id) {
+                    <option [ngValue]="cliente.id">
+                      {{ cliente.codigo }} · {{ cliente.nombre }}
+                    </option>
+                  }
+                </select>
+                @if (enviado() && formulario.controls.clienteId.invalid) {
+                  <small>Seleccione un cliente.</small>
+                }
+              </label>
+              <label
+                ><span>Plan de Internet *</span
+                ><select formControlName="planId">
+                  <option [ngValue]="0">Seleccione un plan</option>
+                  @for (plan of planes; track plan.id) {
+                    <option [ngValue]="plan.id">{{ formatoPlan(plan) }}</option>
+                  }
+                </select>
+                @if (enviado() && formulario.controls.planId.invalid) {
+                  <small>Seleccione un plan.</small>
+                }
+              </label>
+              <label
+                ><span>Fecha de inicio *</span><input type="date" formControlName="fechaInicio"
+              /></label>
+              <label
+                ><span>Estado *</span
+                ><select formControlName="estado">
+                  <option>Pendiente</option>
+                  <option>Activo</option>
+                  <option>Suspendido</option>
+                </select></label
+              >
+              <label
+                ><span>Zona / Sector *</span
+                ><input type="text" formControlName="zona" placeholder="Ej. San Pedro" />
+                @if (enviado() && formulario.controls.zona.invalid) {
+                  <small>Ingrese la zona.</small>
+                }
+              </label>
+              <label class="wide"
+                ><span>Observaciones</span
+                ><input
+                  type="text"
+                  formControlName="descripcion"
+                  placeholder="Referencia u observaciones del servicio"
+              /></label>
+            </div>
+            @if (clienteSeleccionado(); as cliente) {
+              <div class="selection-card">
+                <span>Cliente seleccionado</span><strong>{{ cliente.nombre }}</strong
+                ><small>{{ cliente.direccion }}</small>
+              </div>
+            }
+            @if (planSeleccionado(); as plan) {
+              <div class="selection-card plan">
+                <span>Resumen del plan</span><strong>{{ plan.velocidad }}</strong
+                ><small
+                  >{{ plan.precio | currency: 'GTQ' : 'symbol-narrow' : '1.2-2' }} mensuales</small
+                >
+              </div>
+            }
+          </section>
+        }
+
+        @if (paso() === 2) {
+          <section class="step-panel">
+            <div class="step-title">
+              <span>02</span>
+              <div>
+                <h3>Configuración IPv4</h3>
+                <p>Defina el direccionamiento asignado al cliente.</p>
+              </div>
+            </div>
+            <div class="demo-note">
+              <strong>Validación local</strong
+              ><span
+                >La disponibilidad se valida únicamente con los datos de esta pantalla. No se
+                consulta la red real.</span
+              >
+            </div>
+            <div class="form-grid ipv4-grid">
+              <label
+                ><span>Dirección IPv4 *</span>
+                <div class="input-action">
+                  <input
+                    type="text"
+                    formControlName="ipv4"
+                    placeholder="10.20.1.20"
+                    (input)="resultadoIp.set('pendiente')"
+                  /><button
+                    type="button"
+                    [disabled]="resultadoIp() === 'procesando'"
+                    (click)="comprobarIp()"
+                  >
+                    {{ resultadoIp() === 'procesando' ? 'Comprobando...' : 'Comprobar' }}
+                  </button>
+                </div>
+                @if (enviado() && formulario.controls.ipv4.invalid) {
+                  <small>Ingrese una dirección IPv4 válida.</small>
+                }
+                @if (resultadoIp() === 'correcto') {
+                  <small class="success">Disponible en los datos actuales.</small>
+                }
+                @if (resultadoIp() === 'ocupada') {
+                  <small>La IP ya está usada en los datos temporales.</small>
+                }
+              </label>
+              <label
+                ><span>Máscara de red *</span><input type="text" formControlName="mascara"
+              /></label>
+              <label
+                ><span>Gateway *</span
+                ><input type="text" formControlName="gateway" placeholder="10.20.1.1"
+              /></label>
+              <label
+                ><span>DNS primario *</span><input type="text" formControlName="dnsPrimario"
+              /></label>
+              <label
+                ><span>DNS secundario</span><input type="text" formControlName="dnsSecundario"
+              /></label>
+            </div>
+          </section>
+        }
+
+        @if (paso() === 3) {
+          <section class="step-panel">
+            <div class="step-title">
+              <span>03</span>
+              <div>
+                <h3>Router / EdgeOS</h3>
+                <p>Configure el destino que recibirá el servicio.</p>
+              </div>
+            </div>
+            <div class="demo-note warning">
+              <strong>Sin conexión real a EdgeOS</strong
+              ><span
+                >Las credenciales no se envían ni se conservan. Las acciones de conexión y
+                configuración solo generan un resultado local de prueba.</span
+              >
+            </div>
+            <div class="form-grid router-grid">
+              <label
+                ><span>Router / Host *</span
+                ><input
+                  type="text"
+                  formControlName="router"
+                  placeholder="edge-sector o 192.168.1.1"
+              /></label>
+              <label
+                ><span>Usuario *</span
+                ><input type="text" formControlName="usuarioRouter" autocomplete="off"
+              /></label>
+              <label
+                ><span>Contraseña *</span
+                ><input type="password" formControlName="claveRouter" autocomplete="new-password" />
+                @if (enviado() && formulario.controls.claveRouter.invalid) {
+                  <small>Ingrese una contraseña temporal.</small>
+                }
+              </label>
+              <label><span>Interfaz *</span><input type="text" formControlName="interfaz" /></label>
+            </div>
+            <div class="simulation-actions">
+              <div>
+                <button
+                  class="outline-button"
+                  type="button"
+                  [disabled]="resultadoConexion() === 'procesando'"
+                  (click)="probarConexion()"
+                >
+                  {{ resultadoConexion() === 'procesando' ? 'Probando...' : 'Simular conexión' }}
+                </button>
+                @if (resultadoConexion() === 'correcto') {
+                  <span class="result ok">Conexión simulada correctamente</span>
+                }
+              </div>
+              <div>
+                <button
+                  class="outline-button accent"
+                  type="button"
+                  [disabled]="
+                    resultadoConexion() !== 'correcto' || resultadoConfiguracion() === 'procesando'
+                  "
+                  (click)="simularConfiguracion()"
+                >
+                  {{
+                    resultadoConfiguracion() === 'procesando'
+                      ? 'Configurando...'
+                      : 'Simular configuración'
+                  }}
+                </button>
+                @if (resultadoConfiguracion() === 'correcto') {
+                  <span class="result ok">Configuración local completada</span>
+                }
+              </div>
+            </div>
+          </section>
+        }
+
+        <footer class="modal-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            (click)="paso() === 1 ? cerrarFormulario() : pasoAnterior()"
+          >
+            {{ paso() === 1 ? 'Cancelar' : 'Anterior' }}</button
+          ><span>Paso {{ paso() }} de 3</span>
+          @if (paso() < 3) {
+            <button class="primary-button" type="button" (click)="siguientePaso()">
+              Continuar
+            </button>
+          } @else {
+            <button class="primary-button" type="submit">
+              {{ editando() ? 'Guardar cambios' : 'Registrar servicio' }}
+            </button>
+          }
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (detalle(); as servicio) {
+  <div class="modal-backdrop" role="presentation" (click)="detalle.set(null)">
+    <section
+      class="detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="detail-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <div>
+          <p>SERVICIO / {{ servicio.codigo }}</p>
+          <h2 id="detail-title">{{ servicio.cliente }}</h2>
+          <span>Información temporal del servicio de Internet.</span>
+        </div>
+        <button type="button" aria-label="Cerrar" (click)="detalle.set(null)">×</button>
+      </header>
+      <div class="detail-grid">
+        <div>
+          <span>Plan</span><strong>{{ servicio.plan }} · {{ servicio.velocidad }}</strong>
+        </div>
+        <div>
+          <span>Estado</span><strong>{{ servicio.estado }}</strong>
+        </div>
+        <div>
+          <span>Zona</span><strong>{{ servicio.zona }}</strong>
+        </div>
+        <div>
+          <span>Dirección IPv4</span><strong>{{ servicio.ipv4 }}</strong>
+        </div>
+        <div>
+          <span>Gateway / Máscara</span
+          ><strong>{{ servicio.gateway }} / {{ servicio.mascara }}</strong>
+        </div>
+        <div>
+          <span>DNS</span><strong>{{ servicio.dnsPrimario }} · {{ servicio.dnsSecundario }}</strong>
+        </div>
+        <div>
+          <span>Router</span><strong>{{ servicio.router }}</strong>
+        </div>
+        <div>
+          <span>Interfaz</span><strong>{{ servicio.interfaz }}</strong>
+        </div>
+        <div>
+          <span>EdgeOS</span
+          ><strong>{{
+            servicio.edgeConfigurado
+              ? 'Configuración demostrativa aplicada'
+              : 'Sin configuración demostrativa'
+          }}</strong>
+        </div>
+      </div>
+      <footer class="modal-actions">
+        <button class="secondary-button" type="button" (click)="detalle.set(null)">Cerrar</button
+        ><button
+          class="primary-button"
+          type="button"
+          (click)="detalle.set(null); abrirEdicion(servicio)"
+        >
+          Editar servicio
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (aviso(); as mensaje) {
+  <div class="modal-backdrop notice">
+    <section class="notice-modal" role="dialog" aria-modal="true">
+      <span>✓</span>
+      <h2>{{ mensaje.titulo }}</h2>
+      <p>{{ mensaje.mensaje }}</p>
+      <button class="primary-button" type="button" (click)="aviso.set(null)">Continuar</button>
+    </section>
+  </div>
+}

@@ -3,10 +3,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NavigationEnd, Router, provideRouter } from '@angular/router';
 import { filter, firstValueFrom, of } from 'rxjs';
 
-import { AuthService } from '../core/services/auth.service';
-import { UsuariosService } from '../core/services/usuarios.service';
+import { AuthService } from './auth/services/auth.service';
+import { UsuariosService } from './usuarios/services/usuarios.service';
 import { InicioComponent } from './inicio/inicio.component';
-import { UsuariosComponent } from './usuarios/usuarios.component';
+import { UsuariosComponent } from './usuarios/components/usuarios/usuarios.component';
 
 describe('Navegación del sidebar', () => {
   let router: Router;

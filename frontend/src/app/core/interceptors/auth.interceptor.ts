@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
 import { API_ENDPOINTS } from '../config/api.config';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../features/auth/services/auth.service';
 
 // ==========================================
 // INTERCEPTOR DE AUTORIZACION Y SESION
@@ -24,7 +24,9 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(authorizedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !isLoginRequest) {
+      // Un 401 solo invalida la sesión si la petición usó el token vigente.
+      // Así, una respuesta antigua de /me no borra un inicio de sesión nuevo.
+      if (error.status === 401 && !isLoginRequest && auth.getToken() === token) {
         auth.clearSession();
         if (router.url !== '/login') {
           void router.navigate(['/login'], {

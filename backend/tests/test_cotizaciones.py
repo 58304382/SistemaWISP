@@ -11,17 +11,18 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.main import app
-from app.models.cotizacion import CotizacionDetalle
-from app.schemas.cotizacion import (
+from app.modules.cotizaciones.models.cotizacion import CotizacionDetalle, Proforma
+from app.modules.cotizaciones.schemas.cotizacion import (
     CotizacionDirectaCreate,
     CotizacionEvaluacionCreate,
     CotizacionUpdate,
     DetalleCotizacionDirectaInput,
     DetalleCotizacionInput,
     ProformaResponse,
+    TrabajoAdicionalCreate,
 )
-from app.services.auth import get_current_user, require_module_access
-from app.services.cotizaciones import (
+from app.modules.auth.services.auth import get_current_user, require_module_access
+from app.modules.cotizaciones.services.cotizaciones import (
     CotizacionConflictError,
     DetalleCotizacionError,
     EliminacionCotizacionError,
@@ -29,6 +30,8 @@ from app.services.cotizaciones import (
     EvaluacionConflictError,
     EvaluacionNoFinalizadaError,
     ProformaConflictError,
+    TrabajoAdicionalEstadoError,
+    TrabajoAdicionalNoAutorizadoError,
     _generar_numero_cotizacion,
     aceptar_cotizacion,
     calcular_totales,
@@ -40,6 +43,7 @@ from app.services.cotizaciones import (
     get_cotizacion,
     list_cotizaciones,
     rechazar_cotizacion,
+    registrar_trabajo_adicional,
     update_cotizacion,
 )
 
@@ -122,9 +126,9 @@ class CotizacionesServiceTests(unittest.TestCase):
         self.assertEqual(primero, "COT-2026-0001")
         self.assertEqual(segundo, "COT-2026-0002")
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0001")
-    @patch("app.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0001")
+    @patch("app.modules.cotizaciones.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
     def test_crea_directa_generada_y_atomica(self, _fecha, _numero, _get) -> None:
         db = MagicMock()
         db.get.return_value = SimpleNamespace(id_cliente=3, estado="Activo")
@@ -146,8 +150,8 @@ class CotizacionesServiceTests(unittest.TestCase):
         db.commit.assert_called_once()
         self.assertEqual(response, {"ok": True})
 
-    @patch("app.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0001")
-    @patch("app.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
+    @patch("app.modules.cotizaciones.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0001")
+    @patch("app.modules.cotizaciones.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
     def test_creacion_compuesta_hace_rollback_si_falla_un_detalle(
         self, _fecha, _numero
     ) -> None:
@@ -162,9 +166,9 @@ class CotizacionesServiceTests(unittest.TestCase):
         db.rollback.assert_called_once()
         db.commit.assert_not_called()
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0002")
-    @patch("app.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0002")
+    @patch("app.modules.cotizaciones.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
     def test_crea_desde_evaluacion_con_cliente_materiales_y_precios_nulos(
         self, _fecha, _numero, _get
     ) -> None:
@@ -201,9 +205,9 @@ class CotizacionesServiceTests(unittest.TestCase):
         self.assertIsNone(detalle.precio_unitario)
         db.commit.assert_called_once()
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0002")
-    @patch("app.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0002")
+    @patch("app.modules.cotizaciones.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
     def test_crea_desde_evaluacion_sin_confirmar_transaccion_externa(
         self, _fecha, _numero, _get
     ) -> None:
@@ -287,18 +291,18 @@ class CotizacionesServiceTests(unittest.TestCase):
         db.rollback.assert_not_called()
         db.commit.assert_not_called()
 
-    @patch("app.services.cotizaciones._cotizacion_response", side_effect=lambda value: value)
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_response", side_effect=lambda value: value)
     def test_lista_cotizaciones(self, _response) -> None:
         db = MagicMock()
         db.scalars.return_value.unique.return_value.all.return_value = ["A", "B"]
         self.assertEqual(list_cotizaciones(db), ["A", "B"])
 
-    @patch("app.services.cotizaciones.get_cotizacion_model", return_value=None)
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion_model", return_value=None)
     def test_obtiene_cotizacion_inexistente(self, _model) -> None:
         self.assertIsNone(get_cotizacion(MagicMock(), 999))
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_edita_en_proceso_y_generada(self, quote_for_update, _get) -> None:
         for estado in ("EN PROCESO", "GENERADA"):
             with self.subTest(estado=estado):
@@ -314,8 +318,8 @@ class CotizacionesServiceTests(unittest.TestCase):
                 )
                 db.commit.assert_called_once()
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_edicion_reemplaza_detalles_y_conserva_fecha_oficial(
         self, quote_for_update, _get
     ) -> None:
@@ -342,8 +346,8 @@ class CotizacionesServiceTests(unittest.TestCase):
         db.execute.assert_called_once()
         self.assertEqual(db.add_all.call_args.args[0][0].descripcion, "Nuevo")
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_patch_completa_precios_y_conserva_en_proceso(
         self, quote_for_update, _get
     ) -> None:
@@ -366,8 +370,8 @@ class CotizacionesServiceTests(unittest.TestCase):
         self.assertEqual(quote.estado, "EN PROCESO")
         db.commit.assert_called_once()
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_guardar_nuevamente_no_genera_evaluacion(
         self, quote_for_update, _get
     ) -> None:
@@ -384,8 +388,8 @@ class CotizacionesServiceTests(unittest.TestCase):
             self.assertEqual(quote.estado, "EN PROCESO")
             db.commit.assert_called_once()
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_genera_evaluacion_completa_explicitamente(
         self, quote_for_update, _get
     ) -> None:
@@ -408,7 +412,32 @@ class CotizacionesServiceTests(unittest.TestCase):
         self.assertIsNotNone(quote.fecha_actualizacion)
         db.commit.assert_called_once()
 
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
+    def test_genera_tambien_cotizaciones_de_orden_de_trabajo(
+        self, quote_for_update, _get
+    ) -> None:
+        """ETAPA 1: una cotización originada en ORDEN_TRABAJO también pasa a
+        GENERADA por el mismo flujo de las de evaluación de visita."""
+        db = MagicMock()
+        quote = cotizacion_simple("EN PROCESO", "ORDEN_TRABAJO")
+        quote_for_update.return_value = quote
+        db.scalars.return_value.all.return_value = [
+            CotizacionDetalle(
+                descripcion="Cambio de fuente",
+                cantidad=Decimal("1.00"),
+                unidad="Unidad",
+                precio_unitario=Decimal("150.00"),
+            )
+        ]
+
+        response = generar_cotizacion_evaluacion(db, 10)
+
+        self.assertEqual(response, {"ok": True})
+        self.assertEqual(quote.estado, "GENERADA")
+        db.commit.assert_called_once()
+
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_no_genera_evaluacion_con_precio_pendiente(
         self, quote_for_update
     ) -> None:
@@ -431,7 +460,7 @@ class CotizacionesServiceTests(unittest.TestCase):
         db.rollback.assert_called_once()
         db.commit.assert_not_called()
 
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_no_genera_directa_ni_estados_no_permitidos(
         self, quote_for_update
     ) -> None:
@@ -456,10 +485,10 @@ class CotizacionesServiceTests(unittest.TestCase):
                 db.commit.assert_not_called()
 
     @patch(
-        "app.services.cotizaciones._prepare_cotizacion_response",
+        "app.modules.cotizaciones.services.cotizaciones._prepare_cotizacion_response",
         side_effect=RuntimeError("fallo"),
     )
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_generar_evaluacion_hace_rollback_ante_fallo(
         self, quote_for_update, _response
     ) -> None:
@@ -482,9 +511,9 @@ class CotizacionesServiceTests(unittest.TestCase):
         db.rollback.assert_called_once()
         db.commit.assert_not_called()
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value=None)
-    @patch("app.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0001")
-    @patch("app.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value=None)
+    @patch("app.modules.cotizaciones.services.cotizaciones._generar_numero_cotizacion", return_value="COT-2026-0001")
+    @patch("app.modules.cotizaciones.services.cotizaciones._fecha_oficial", return_value=date(2026, 9, 30))
     def test_fallo_de_respuesta_antes_del_commit_hace_rollback(
         self, _fecha, _numero, _get
     ) -> None:
@@ -505,7 +534,7 @@ class CotizacionesServiceTests(unittest.TestCase):
         db.rollback.assert_called_once()
         db.commit.assert_not_called()
 
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_bloquea_edicion_de_estados_finales(self, quote_for_update) -> None:
         for estado in ("ACEPTADA", "RECHAZADA", "COMPLETADA"):
             with self.subTest(estado=estado):
@@ -515,8 +544,8 @@ class CotizacionesServiceTests(unittest.TestCase):
                     update_cotizacion(db, 10, CotizacionUpdate())
                 db.rollback.assert_called_once()
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_acepta_solo_generada(self, quote_for_update, _get) -> None:
         db = MagicMock()
         quote_for_update.return_value = cotizacion_simple("GENERADA")
@@ -529,21 +558,23 @@ class CotizacionesServiceTests(unittest.TestCase):
             aceptar_cotizacion(db_invalida, 10)
         db_invalida.rollback.assert_called_once()
 
-    @patch("app.services.cotizaciones.get_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._cotizacion_for_update")
-    def test_rechaza_solo_desde_estados_permitidos(self, quote_for_update, _get) -> None:
-        for estado in ("EN PROCESO", "GENERADA"):
-            db = MagicMock()
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
+    def test_rechaza_solo_desde_generada(self, quote_for_update, _get) -> None:
+        # El rechazo comercial solo procede con la cotización ya emitida (GENERADA).
+        db = MagicMock()
+        quote_for_update.return_value = cotizacion_simple("GENERADA")
+        rechazar_cotizacion(db, 10)
+        self.assertEqual(quote_for_update.return_value.estado, "RECHAZADA")
+
+        for estado in ("EN PROCESO", "ACEPTADA"):
+            db_invalida = MagicMock()
             quote_for_update.return_value = cotizacion_simple(estado)
-            rechazar_cotizacion(db, 10)
-            self.assertEqual(quote_for_update.return_value.estado, "RECHAZADA")
+            with self.assertRaises(EstadoCotizacionError):
+                rechazar_cotizacion(db_invalida, 10)
+            db_invalida.rollback.assert_called_once()
 
-        db_invalida = MagicMock()
-        quote_for_update.return_value = cotizacion_simple("ACEPTADA")
-        with self.assertRaises(EstadoCotizacionError):
-            rechazar_cotizacion(db_invalida, 10)
-
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_elimina_directa_sin_dependencias(self, quote_for_update) -> None:
         db = MagicMock()
         quote_for_update.return_value = cotizacion_simple("GENERADA")
@@ -554,7 +585,7 @@ class CotizacionesServiceTests(unittest.TestCase):
         db.delete.assert_called_once_with(quote_for_update.return_value)
         db.commit.assert_called_once()
 
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_bloquea_eliminacion_de_evaluacion(self, quote_for_update) -> None:
         db = MagicMock()
         quote_for_update.return_value = cotizacion_simple("EN PROCESO", "EVALUACION")
@@ -562,7 +593,7 @@ class CotizacionesServiceTests(unittest.TestCase):
             delete_cotizacion(db, 10)
         db.rollback.assert_called_once()
 
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_bloquea_eliminacion_directa_con_proforma(self, quote_for_update) -> None:
         db = MagicMock()
         quote_for_update.return_value = cotizacion_simple("ACEPTADA")
@@ -571,8 +602,8 @@ class CotizacionesServiceTests(unittest.TestCase):
             delete_cotizacion(db, 10)
         db.rollback.assert_called_once()
 
-    @patch("app.services.cotizaciones.get_proforma_por_cotizacion", return_value={"ok": True})
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones.get_proforma_por_cotizacion", return_value={"ok": True})
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_genera_proforma_solo_desde_aceptada(self, quote_for_update, _get) -> None:
         db = MagicMock()
         quote_for_update.return_value = cotizacion_simple("ACEPTADA")
@@ -584,7 +615,7 @@ class CotizacionesServiceTests(unittest.TestCase):
         self.assertEqual(db.add.call_args.args[0].id_cotizacion, 10)
         db.commit.assert_called_once()
 
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_impide_segunda_proforma_y_estado_incorrecto(self, quote_for_update) -> None:
         db_duplicada = MagicMock()
         quote_for_update.return_value = cotizacion_simple("ACEPTADA")
@@ -597,7 +628,7 @@ class CotizacionesServiceTests(unittest.TestCase):
         with self.assertRaises(EstadoCotizacionError):
             generar_proforma(db_estado, 10)
 
-    @patch("app.services.cotizaciones._cotizacion_for_update")
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
     def test_generacion_de_proforma_hace_rollback_ante_fallo(
         self, quote_for_update
     ) -> None:
@@ -614,6 +645,107 @@ class CotizacionesServiceTests(unittest.TestCase):
     def test_proforma_no_expone_numero_ni_estado_propios(self) -> None:
         self.assertNotIn("numero_proforma", ProformaResponse.model_fields)
         self.assertNotIn("estado", ProformaResponse.model_fields)
+
+
+class TrabajoAdicionalTests(unittest.TestCase):
+    """Trabajo adicional del técnico reutilizando la cotización y la Proforma."""
+
+    def _cotizacion(self, estado: str = "ACEPTADA") -> SimpleNamespace:
+        return SimpleNamespace(
+            id_cotizacion=9,
+            origen="ORDEN_TRABAJO",
+            id_evaluacion_orden=34,
+            estado=estado,
+            porcentaje_descuento=Decimal("0.00"),
+            observaciones=None,
+        )
+
+    def _data(self) -> TrabajoAdicionalCreate:
+        return TrabajoAdicionalCreate(
+            detalles=[
+                DetalleCotizacionInput(
+                    descripcion="Cambio de fuente", cantidad=Decimal("1.00")
+                )
+            ]
+        )
+
+    @patch(
+        "app.modules.cotizaciones.services.cotizaciones._prepare_cotizacion_response",
+        return_value={"ok": True},
+    )
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
+    def test_aceptada_reabre_con_proforma_y_detalle_sin_precio(
+        self, quote_for_update, _response
+    ) -> None:
+        db = MagicMock()
+        quote = self._cotizacion()
+        quote_for_update.return_value = quote
+        db.get.return_value = SimpleNamespace(
+            orden=SimpleNamespace(id_empleado=7, estado="En Proceso")
+        )
+        db.scalar.return_value = None  # sin Proforma previa
+
+        response = registrar_trabajo_adicional(
+            db, 9, self._data(), SimpleNamespace(id_empleado=7)
+        )
+
+        self.assertEqual(response, {"ok": True})
+        self.assertEqual(quote.estado, "EN PROCESO")
+        agregados = [call.args[0] for call in db.add.call_args_list]
+        self.assertTrue(any(isinstance(obj, Proforma) for obj in agregados))
+        detalle = db.add_all.call_args.args[0][0]
+        self.assertIsNone(detalle.precio_unitario)
+        self.assertEqual(detalle.descripcion, "Cambio de fuente")
+        db.commit.assert_called_once()
+        db.rollback.assert_not_called()
+
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
+    def test_rechaza_cuando_no_esta_aceptada(self, quote_for_update) -> None:
+        db = MagicMock()
+        quote_for_update.return_value = self._cotizacion(estado="EN PROCESO")
+        db.get.return_value = SimpleNamespace(
+            orden=SimpleNamespace(id_empleado=7, estado="En Proceso")
+        )
+
+        with self.assertRaises(TrabajoAdicionalEstadoError):
+            registrar_trabajo_adicional(db, 9, self._data(), SimpleNamespace(id_empleado=7))
+
+        db.rollback.assert_called_once()
+        db.commit.assert_not_called()
+
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
+    def test_rechaza_tecnico_no_asignado(self, quote_for_update) -> None:
+        db = MagicMock()
+        quote_for_update.return_value = self._cotizacion()
+        db.get.return_value = SimpleNamespace(
+            orden=SimpleNamespace(id_empleado=8, estado="En Proceso")
+        )
+
+        with self.assertRaises(TrabajoAdicionalNoAutorizadoError):
+            registrar_trabajo_adicional(db, 9, self._data(), SimpleNamespace(id_empleado=7))
+
+        db.rollback.assert_called_once()
+
+    @patch(
+        "app.modules.cotizaciones.services.cotizaciones._prepare_cotizacion_response",
+        return_value={"ok": True},
+    )
+    @patch("app.modules.cotizaciones.services.cotizaciones._cotizacion_for_update")
+    def test_rechazada_con_proforma_permite_nuevo_ciclo(
+        self, quote_for_update, _response
+    ) -> None:
+        db = MagicMock()
+        quote = self._cotizacion(estado="RECHAZADA")
+        quote_for_update.return_value = quote
+        db.get.return_value = SimpleNamespace(
+            orden=SimpleNamespace(id_empleado=7, estado="En Proceso")
+        )
+        db.scalar.return_value = 5  # Proforma previa existente
+
+        registrar_trabajo_adicional(db, 9, self._data(), SimpleNamespace(id_empleado=7))
+
+        self.assertEqual(quote.estado, "EN PROCESO")
+        db.commit.assert_called_once()
 
 
 class CotizacionesSecurityTests(unittest.TestCase):
@@ -640,7 +772,10 @@ class CotizacionesSecurityTests(unittest.TestCase):
             dependency(denegado)
         self.assertEqual(context.exception.status_code, 403)
 
-    @patch("app.services.auth.decode_access_token", side_effect=jwt.InvalidTokenError)
+    @patch(
+        "app.modules.auth.services.auth.decode_access_token",
+        side_effect=jwt.InvalidTokenError,
+    )
     def test_jwt_invalido_produce_401(self, _decode) -> None:
         with self.assertRaises(HTTPException) as context:
             get_current_user(MagicMock(), "token-invalido")

@@ -1,0 +1,733 @@
+<main class="cash-page">
+  <header class="page-heading">
+    <a class="back-link" routerLink="/finanzas">← Finanzas</a>
+    <div class="heading-copy">
+      <span class="heading-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 8V6a2 2 0 0 0-2-2H6a3 3 0 0 0 0 6h14v10H6a3 3 0 0 1-3-3V7M20 12h-5v4h5M17 14h.01" />
+        </svg>
+      </span>
+      <div>
+        <h1>Caja</h1>
+        <span>Controle las entradas, salidas y cierre diario</span>
+      </div>
+    </div>
+    <!-- El indicador abierto solo se muestra con el estado confirmado de la sesión. -->
+    @if (!cargandoSesion() && !errorCarga() && sesion()?.estado === 'Abierta') {
+      <span class="status-pill header-status"><i aria-hidden="true"></i>CAJA ABIERTA</span>
+    } @else if (!cargandoSesion() && sesion()?.estado === 'Cerrada') {
+      <span class="header-status closed-status">CAJA CERRADA</span>
+    }
+  </header>
+
+  @if (cargandoSesion()) {
+    <section class="closed-state" aria-live="polite">
+      <h2>Consultando Caja General</h2>
+      <span>Espere mientras se obtiene el estado actual.</span>
+    </section>
+  } @else if (errorCarga() && !sesion()) {
+    <section class="closed-state error-state" role="alert">
+      <h2>No fue posible cargar Caja General</h2>
+      <span>{{ errorCarga() }}</span>
+      <button type="button" class="primary-button" (click)="cargarSesion()">Reintentar</button>
+    </section>
+  } @else if (!sesion()) {
+    <section class="closed-state">
+      <span class="closed-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M7 4h10l1 7H6l1-7ZM5 11h14v8H5z" /></svg>
+      </span>
+      <p>CAJA SIN SESIÓN ABIERTA</p>
+      <h2>Inicie la jornada de Caja</h2>
+      <span
+        >El saldo inicial será registrado por el backend con su identidad y la fecha del
+        servidor.</span
+      >
+      <button type="button" class="primary-button" (click)="abrirModalApertura()">
+        Abrir Caja General
+      </button>
+    </section>
+  } @else if (sesion(); as sesionActual) {
+    <div class="open-content">
+      @if (mensajeExito()) {
+        <div class="success-message" role="status">
+          <span aria-hidden="true">✓</span>
+          <div>
+            <strong>Operación confirmada</strong>
+            <p>{{ mensajeExito() }}</p>
+          </div>
+          <button type="button" aria-label="Cerrar mensaje" (click)="limpiarMensaje()">×</button>
+        </div>
+      }
+      @if (errorCarga()) {
+        <div class="operation-alert" role="alert">
+          <span>{{ errorCarga() }}</span>
+          <button type="button" (click)="cargarMovimientos()">Reintentar</button>
+        </div>
+      }
+
+      <!-- Encabezado compacto: sesión, estado, responsable y efectivo disponible. -->
+      <section class="compact-header" aria-label="Estado de la sesión">
+        <div class="compact-header-left">
+          <span class="status-indicator" [class.open]="sesionActual.estado === 'Abierta'" [class.closed]="sesionActual.estado === 'Cerrada'"></span>
+          <div>
+            <p>Sesión #{{ sesionActual.id_sesion }}</p>
+            <strong>{{ sesionActual.estado === 'Abierta' ? 'CAJA ABIERTA' : 'CAJA CERRADA' }}</strong>
+          </div>
+        </div>
+        <div class="compact-header-right">
+          <div>
+            <span>Responsable</span>
+            <strong>Empleado #{{ sesionActual.id_empleado }}</strong>
+          </div>
+          <div>
+            <span>Efectivo disponible</span>
+            <strong>{{ sesionActual.efectivo_disponible | currency:'GTQ':'symbol-narrow' }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cuatro tarjetas principales: efectivo disponible, ingresos, egresos y pendiente de entrega. -->
+      <section class="cash-cards" aria-label="Resumen de caja">
+        <article class="card cash-available">
+          <span>Efectivo disponible</span>
+          <strong>{{ sesionActual.efectivo_disponible | currency:'GTQ':'symbol-narrow' }}</strong>
+        </article>
+        <article class="card income-card">
+          <span>Ingresos</span>
+          <strong>{{ resumenSesion() ? (resumenSesion()!.entradas / 100 | currency:'GTQ':'symbol-narrow') : '—' }}</strong>
+        </article>
+        <article class="card expense-card">
+          <span>Egresos</span>
+          <strong>{{ resumenSesion() ? (resumenSesion()!.salidas / 100 | currency:'GTQ':'symbol-narrow') : '—' }}</strong>
+        </article>
+        <article class="card pending-card">
+          <span>Pendiente de entrega</span>
+          <strong>{{ conciliacion() ? (conciliacion()!.pendiente_entrega | currency:'GTQ':'symbol-narrow') : '—' }}</strong>
+        </article>
+      </section>
+
+      <!-- Barra de acciones uniforme: Entrada, Salida, Cierre de cobradores y Cerrar caja. -->
+      <section class="cash-actions" aria-label="Acciones principales de Caja">
+        <button type="button" class="primary-button" [disabled]="!puedeRegistrarMovimiento() || !tieneEntradasManuales() || cerrandoCaja()" (click)="abrirModalMovimiento('Ingreso')">
+          Registrar entrada
+        </button>
+        <button type="button" class="primary-button" [disabled]="!puedeRegistrarMovimiento() || !tieneSalidasManuales() || cerrandoCaja()" (click)="abrirModalMovimiento('Egreso')">
+          Registrar salida
+        </button>
+        <button type="button" class="primary-button" [disabled]="guardandoEntrega() || cerrandoCaja() || cargandoSesion()" (click)="abrirCierreEmpleado()">
+          Cierre de cobros por empleado
+        </button>
+        <button type="button" class="primary-button close-cash-button" [disabled]="!puedeRevisarCierreCaja() || cerrandoCaja() || cargandoSesion()" (click)="abrirModalCierre()">
+          Cerrar caja
+        </button>
+      </section>
+
+      @if (cargandoCatalogos()) {
+        <section class="catalog-warning" role="status">
+          <strong>Consultando catálogos</strong>
+          <span>Se están verificando las categorías y métodos activos en PostgreSQL.</span>
+        </section>
+      } @else if (errorCatalogos()) {
+        <section class="catalog-warning" role="alert">
+          <strong>No fue posible consultar los catálogos</strong>
+          <span>{{ errorCatalogos() }}</span>
+          <button type="button" class="secondary-button" (click)="cargarCatalogos()">
+            Reintentar
+          </button>
+        </section>
+      } @else if (!metodosActivos().length) {
+        <section class="catalog-warning" role="note">
+          <strong>Sin métodos de pago activos</strong>
+          <span>Registre y active al menos un método real antes de crear movimientos.</span>
+        </section>
+      } @else if (!tieneEntradasManuales() && !tieneSalidasManuales()) {
+        <section class="catalog-warning" role="note">
+          <strong>Sin categorías manuales activas</strong>
+          <span>
+            Se requiere Entrada para ingresos o Salida para egresos. Las categorías automáticas no
+            pueden utilizarse manualmente.
+          </span>
+        </section>
+      }
+
+      @if (cargandoCatalogos()) {
+        <section class="catalog-warning" role="status">
+          <strong>Consultando catálogos</strong>
+          <span>Se están verificando las categorías y métodos activos en PostgreSQL.</span>
+        </section>
+      } @else if (errorCatalogos()) {
+        <section class="catalog-warning" role="alert">
+          <strong>No fue posible consultar los catálogos</strong>
+          <span>{{ errorCatalogos() }}</span>
+          <button type="button" class="secondary-button" (click)="cargarCatalogos()">
+            Reintentar
+          </button>
+        </section>
+      } @else if (!metodosActivos().length) {
+        <section class="catalog-warning" role="note">
+          <strong>Sin métodos de pago activos</strong>
+          <span>Registre y active al menos un método real antes de crear movimientos.</span>
+        </section>
+      } @else if (!tieneEntradasManuales() && !tieneSalidasManuales()) {
+        <section class="catalog-warning" role="note">
+          <strong>Sin categorías manuales activas</strong>
+          <span>
+            Se requiere Entrada para ingresos o Salida para egresos. Las categorías automáticas no
+            pueden utilizarse manualmente.
+          </span>
+        </section>
+      }
+
+      <!-- Tabla compacta de movimientos: fecha, concepto, tipo y monto. El detalle completo se conserva en el modal de cierre y en el detalle de movimiento. -->
+      <section class="movements-panel compact-movements" aria-label="Movimientos de la sesión">
+        <div class="panel-heading movements-heading compact-heading">
+          <div>
+            <p>MOVIMIENTOS DE LA SESIÓN</p>
+            <h2>Movimientos recientes</h2>
+          </div>
+          <button type="button" class="primary-button" [disabled]="cerrandoCaja()" (click)="abrirModalCierre()">
+            Ver detalles
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th>Tipo</th>
+                <th>Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (cargandoMovimientos()) {
+                <tr>
+                  <td colspan="4" class="empty-row">Cargando movimientos...</td>
+                </tr>
+              } @else {
+                @for (movimiento of movimientos(); track movimiento.id_movimiento) {
+                  <tr>
+                    <td>{{ movimiento.fecha_hora | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ movimiento.concepto }}</td>
+                    <td><span class="type-pill" [class.expense-type]="movimiento.tipo === 'Egreso'">{{ movimiento.tipo }}</span></td>
+                    <td class="amount" [class.negative]="movimiento.tipo === 'Egreso'">{{ movimiento.tipo === 'Egreso' ? '-' : '+' }}{{ movimiento.monto | currency:'GTQ':'symbol-narrow' }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="empty-row">No hay movimientos registrados.</td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (errorResumen()) {
+          <div class="operation-alert" role="alert"><span>{{ errorResumen() }}</span><button type="button" (click)="cargarResumen()">Reintentar resumen</button></div>
+        } @else if (!resumenSesion()) {
+          <p class="summary-loading" role="status">Consultando movimientos de toda la sesión...</p>
+        }
+      </section>
+    </div>
+  }
+</main>
+
+@if (modalCierreAbierto() && sesion(); as sesionCierre) {
+  <div class="modal-backdrop" role="presentation" (click)="cerrarModalCierre()">
+    <section class="modal-card closing-modal cash-closing-modal" role="dialog" aria-modal="true" aria-labelledby="closing-title" aria-describedby="closing-description" (click)="$event.stopPropagation()" (document:keydown.escape)="cerrarModalCierre()">
+      <header class="cash-closing-header">
+        <div class="cash-closing-heading">
+          <span class="cash-closing-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16v13H4zM8 6V4h8v2M8 11h8M8 15h5" /></svg></span>
+          <div><p>SESIÓN #{{ sesionCierre.id_sesion }} · {{ sesionCierre.fecha_apertura | date:'dd/MM/yyyy HH:mm' }}</p><h2 id="closing-title">Cierre de Caja</h2>
+            <span>Responsable: empleado #{{ sesionCierre.id_empleado }}</span></div>
+        </div>
+        <button type="button" aria-label="Cerrar formulario" [disabled]="cerrandoCaja()" (click)="cerrarModalCierre()">×</button>
+      </header>
+      <p class="visually-hidden" id="closing-description">Revise los movimientos, las entregas y el arqueo antes de cerrar la sesión.</p>
+
+      <div class="cash-closing-content">
+        @if (cargandoConciliacion() || !resumenSesion()) {
+          <div class="cash-closing-status reviewing" role="status"><strong>Revisando la sesión</strong><span>Se están validando movimientos y entregas.</span></div>
+        } @else if (errorConciliacion() || errorResumen()) {
+          <div class="cash-closing-status blocked" role="alert"><strong>No es posible validar el cierre</strong><span>{{ errorConciliacion() || errorResumen() }}</span></div>
+        } @else if ((conciliacion()?.historicos?.length ?? 0) > 0) {
+          <div class="cash-closing-status blocked" role="alert"><strong>Caja con pagos históricos pendientes</strong><span>Existen {{ conciliacion()!.efectivo_sin_clasificar | currency:'GTQ':'symbol-narrow' }} sin clasificación. El cierre permanece bloqueado.</span></div>
+        } @else if (+(conciliacion()?.pendiente_entrega ?? 0) > 0) {
+          <div class="cash-closing-status blocked" role="alert"><strong>Entregas de cobradores pendientes</strong><span>Falta recibir {{ conciliacion()!.pendiente_entrega | currency:'GTQ':'symbol-narrow' }} antes de cerrar.</span></div>
+        } @else {
+          <div class="cash-closing-status ready" role="status"><strong>Caja lista para cerrar</strong><span>No existen entregas pendientes ni pagos históricos sin clasificar.</span></div>
+        }
+
+        <div class="cash-closing-layout">
+          <section class="cash-closing-card movement-summary-card" aria-labelledby="movement-summary-title">
+            <div class="cash-closing-card-title"><span aria-hidden="true">↕</span><h3 id="movement-summary-title">Resumen de movimientos</h3></div>
+            <div class="movement-closing-totals">
+              <div><span>Total de ingresos</span><strong>{{ resumenSesion() ? (resumenSesion()!.entradas / 100 | currency:'GTQ':'symbol-narrow') : '—' }}</strong></div>
+              <div><span>Total de egresos</span><strong>{{ resumenSesion() ? (resumenSesion()!.salidas / 100 | currency:'GTQ':'symbol-narrow') : '—' }}</strong></div>
+            </div>
+            <div class="expected-cash"><span>Saldo esperado en caja</span><strong>{{ efectivoEsperado() !== null ? (efectivoEsperado() | currency:'GTQ':'symbol-narrow') : '—' }}</strong><small>Calculado y validado por el backend</small></div>
+          </section>
+
+          <section class="cash-closing-card collector-deliveries-card" aria-labelledby="collector-deliveries-title">
+            <div class="cash-closing-card-title"><span aria-hidden="true">⇩</span><div><h3 id="collector-deliveries-title">Entregas de cobradores</h3><small>Total recibido: {{ totalRecibidoCobradores() | currency:'GTQ':'symbol-narrow' }}</small></div></div>
+            @if (cargandoEntregasCierreCaja()) {
+              <p class="closing-empty">Consultando entregas...</p>
+            } @else if (errorEntregasCierreCaja()) {
+              <p class="closing-empty error" role="alert">{{ errorEntregasCierreCaja() }}</p>
+            } @else {
+              <div class="collector-delivery-list">
+                @for (entrega of resumenEntregasCierreCaja(); track entrega.id_empleado) {
+                  <article><strong>{{ entrega.empleado }}</strong><span>Efectivo entregado <b>{{ entrega.entregado | currency:'GTQ':'symbol-narrow' }}</b></span><span>Total recibido <b>{{ entrega.recibido | currency:'GTQ':'symbol-narrow' }}</b></span></article>
+                } @empty {
+                  <p class="closing-empty">No hay entregas de cobradores en esta sesión.</p>
+                }
+              </div>
+            }
+          </section>
+        </div>
+
+      <form (submit)="confirmarCierre($event)">
+        <section class="cash-closing-card cash-count-card" aria-labelledby="cash-count-title">
+          <div class="cash-closing-card-title"><span aria-hidden="true">Q</span><h3 id="cash-count-title">Arqueo de caja</h3></div>
+          <div class="cash-count-grid">
+            <div class="cash-count-value"><span>Saldo esperado</span><strong>{{ efectivoEsperado() !== null ? (efectivoEsperado() | currency:'GTQ':'symbol-narrow') : '—' }}</strong></div>
+            <label for="counted-cash"><span>Efectivo contado <i>Obligatorio</i></span><div class="money-input"><b>Q</b><input id="counted-cash" type="number" min="0" max="99999999.99" step="0.01" inputmode="decimal" required autofocus [disabled]="cerrandoCaja() || !puedeCerrarCaja()" [value]="efectivoContado()" (input)="actualizarEfectivoContado($event)" /></div></label>
+            <div class="closing-difference" [class.balanced]="diferenciaCierre() === 0" [class.unbalanced]="diferenciaCierre() !== null && diferenciaCierre() !== 0" aria-live="polite"><span>Diferencia</span><strong>{{ diferenciaCierre() !== null ? (diferenciaCierre() | currency:'GTQ':'symbol-narrow') : '—' }}</strong>@if (diferenciaCierre() !== null) {<small>{{ diferenciaCierre() === 0 ? 'Sin diferencia' : diferenciaCierre()! < 0 ? 'Faltante de efectivo' : 'Sobrante de efectivo' }}</small>}</div>
+          </div>
+          <label class="closing-notes" for="closing-notes"><span>Observaciones <em>Opcional</em></span><textarea id="closing-notes" rows="2" [disabled]="cerrandoCaja()" [value]="observacionesCierre()" (input)="actualizarObservacionesCierre($event)"></textarea></label>
+          @if (errorCierre()) { <p class="form-error" role="alert">{{ errorCierre() }}</p> }
+        </section>
+        <footer>
+          <button type="button" class="secondary-button" [disabled]="cerrandoCaja() || confirmacionCierreAbierta()" (click)="cerrarModalCierre()">Cancelar</button>
+          <button type="submit" class="primary-button" [disabled]="cerrandoCaja() || cargandoSesion() || !puedeCerrarCaja() || !efectivoContadoValido() || efectivoEsperado() === null || confirmacionCierreAbierta()">{{ cerrandoCaja() ? 'Cerrando...' : 'Cerrar caja' }}</button>
+        </footer>
+      </form>
+
+      @if (confirmacionCierreAbierta()) {
+        <section class="cash-confirmation" role="dialog" aria-modal="true" aria-labelledby="cash-confirmation-title">
+          <div class="cash-confirmation-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
+          </div>
+          <h2 id="cash-confirmation-title">¿Cerrar caja?</h2>
+          <p>
+            Sesión <strong>#{{ sesionCierre.id_sesion }}</strong><br />
+            Efectivo contado: <strong>{{ efectivoContado() | currency:'GTQ':'symbol-narrow' }}</strong><br />
+            Saldo esperado: <strong>{{ efectivoEsperado() !== null ? (efectivoEsperado() | currency:'GTQ':'symbol-narrow') : '—' }}</strong><br />
+            Diferencia: <strong>{{ diferenciaCierre() !== null ? (diferenciaCierre() | currency:'GTQ':'symbol-narrow') : '—' }}</strong>
+          </p>
+          @if (errorCierre()) {
+            <p class="form-error" role="alert">{{ errorCierre() }}</p>
+          }
+          <div class="cash-confirmation-actions">
+            <button type="button" class="secondary-button" [disabled]="cerrandoCaja()" (click)="cancelarConfirmacionCierre()">Cancelar</button>
+            <button type="button" class="primary-button" [disabled]="cerrandoCaja() || !puedeCerrarCaja() || !efectivoContadoValido() || efectivoEsperado() === null" (click)="confirmarCierreDefinitivo()">{{ cerrandoCaja() ? 'Cerrando...' : 'Confirmar cierre' }}</button>
+          </div>
+        </section>
+      }
+      </div>
+    </section>
+  </div>
+}
+
+@if (modalAperturaAbierto()) {
+  <div class="modal-backdrop" role="presentation" (click)="cerrarModalApertura()">
+    <section
+      class="modal-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="opening-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <div>
+          <p>INICIO DE JORNADA</p>
+          <h2 id="opening-title">Abrir Caja General</h2>
+        </div>
+        <button type="button" aria-label="Cerrar" (click)="cerrarModalApertura()">×</button>
+      </header>
+      <p class="modal-description">
+        Declare únicamente el efectivo físico disponible al iniciar. La fecha y el responsable se
+        obtienen en el servidor.
+      </p>
+      <form (submit)="confirmarApertura($event)">
+        <div class="form-grid">
+          <label class="wide-field">
+            <span>Saldo inicial (GTQ)</span>
+            <div class="money-input" [class.invalid]="errorOperacion() && !saldoInicialValido()">
+              <b>Q</b>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                placeholder="0.00"
+                [value]="saldoInicial()"
+                (input)="actualizarSaldoInicial($event)"
+                autofocus
+              />
+            </div>
+          </label>
+          @if (errorOperacion()) {
+            <p class="form-error wide-field" role="alert">{{ errorOperacion() }}</p>
+          }
+        </div>
+        <footer>
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="abriendoCaja()"
+            (click)="cerrarModalApertura()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="primary-button"
+            [disabled]="abriendoCaja() || !saldoInicialValido()"
+          >
+            {{ abriendoCaja() ? 'Abriendo...' : 'Confirmar apertura' }}
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (modalMovimientoAbierto()) {
+  <div class="modal-backdrop" role="presentation" (click)="cerrarModalMovimiento()">
+    <section
+      class="modal-card movement-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="movement-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <div>
+          <p>MOVIMIENTO MANUAL</p>
+          <h2 id="movement-title">Registrar entrada o salida</h2>
+        </div>
+        <button type="button" aria-label="Cerrar" (click)="cerrarModalMovimiento()">×</button>
+      </header>
+      <p class="modal-description">
+        Use únicamente Entrada o Salida. Los cobros de Internet, Instalaciones y Órdenes de trabajo
+        se registran desde sus procesos de origen.
+      </p>
+      <form (submit)="confirmarMovimiento($event)">
+        <div class="form-grid movement-form-grid">
+          <label>
+            <span>Tipo</span>
+            <select [value]="tipoMovimiento()" (change)="actualizarTipoMovimiento($event)">
+              <option value="Ingreso" [disabled]="!tieneEntradasManuales()">Entrada</option>
+              <option value="Egreso" [disabled]="!tieneSalidasManuales()">Salida</option>
+            </select>
+          </label>
+          <label>
+            <span>Categoría</span>
+            <select
+              [value]="idCategoriaMovimiento() ?? ''"
+              (change)="actualizarCategoriaMovimiento($event)"
+            >
+              @for (categoria of categoriasCompatibles(); track categoria.id_categoria) {
+                <option [value]="categoria.id_categoria">{{ categoria.nombre }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Método de pago</span>
+            <select
+              [value]="idMetodoMovimiento() ?? ''"
+              (change)="actualizarMetodoMovimiento($event)"
+            >
+              @for (metodo of metodosActivos(); track metodo.id_metodo_pago) {
+                <option [value]="metodo.id_metodo_pago">{{ metodo.nombre }}</option>
+              }
+            </select>
+          </label>
+          <label class="wide-field">
+            <span>Concepto</span>
+            <input
+              type="text"
+              maxlength="250"
+              placeholder="Motivo verificable del movimiento"
+              [value]="conceptoMovimiento()"
+              (input)="actualizarConceptoMovimiento($event)"
+            />
+          </label>
+          <label>
+            <span>Monto (GTQ)</span>
+            <div class="money-input" [class.invalid]="errorOperacion() && !montoMovimientoValido()">
+              <b>Q</b>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                inputmode="decimal"
+                placeholder="0.00"
+                [value]="montoMovimiento()"
+                (input)="actualizarMontoMovimiento($event)"
+              />
+            </div>
+          </label>
+          <label>
+            <span
+              >Referencia
+              @if (requiereReferencia()) {
+                <i>Obligatoria</i>
+              }
+            </span>
+            <input
+              type="text"
+              maxlength="100"
+              placeholder="Número de transferencia o depósito"
+              [value]="referenciaMovimiento()"
+              [disabled]="!requiereReferencia()"
+              (input)="actualizarReferenciaMovimiento($event)"
+            />
+          </label>
+          <label class="wide-field">
+            <span>Observaciones <em>Opcional</em></span>
+            <textarea
+              rows="3"
+              placeholder="Información adicional"
+              [value]="observacionesMovimiento()"
+              (input)="actualizarObservacionesMovimiento($event)"
+            ></textarea>
+          </label>
+          @if (errorOperacion()) {
+            <p class="form-error wide-field" role="alert">{{ errorOperacion() }}</p>
+          }
+        </div>
+        <footer>
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="guardandoMovimiento()"
+            (click)="cerrarModalMovimiento()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="primary-button"
+            [disabled]="guardandoMovimiento() || !formularioMovimientoValido()"
+          >
+            {{ guardandoMovimiento() ? 'Registrando...' : 'Registrar movimiento' }}
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (modalEntregaAbierto()) {
+  <div class="modal-backdrop" role="presentation" (click)="cerrarCierreEmpleado()">
+    <section class="modal-card employee-closing-modal" role="dialog" aria-modal="true"
+      aria-labelledby="employee-closing-title" aria-describedby="employee-closing-description"
+      (click)="$event.stopPropagation()" (document:keydown.escape)="cerrarCierreEmpleado()">
+      <header class="employee-closing-header">
+        <div class="employee-closing-title">
+          <span class="employee-closing-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM7 7V5h10v2M8 12h8M8 15h5" /></svg>
+          </span>
+          <div><p>CONTROL DE RECAUDACIÓN</p><h2 id="employee-closing-title">Cierre de Cobradores</h2>
+            <span id="employee-closing-description">Concilie los cobros de Internet, gastos autorizados y efectivo recibido.</span>
+          </div>
+        </div>
+        <button type="button" aria-label="Cerrar" [disabled]="guardandoEntrega()" (click)="cerrarCierreEmpleado()">×</button>
+      </header>
+
+      <div class="collector-summary" aria-label="Resumen de cobradores">
+        <article><span>Cobradores pendientes</span><strong>{{ empleadosPendientes().length }}</strong></article>
+        <article><span>Cobros por conciliar</span><strong>{{ cantidadCobrosPendientes() }}</strong></article>
+        <article><span>Saldo pendiente</span><strong>{{ totalPendienteCobradores() | currency:'GTQ':'symbol-narrow' }}</strong></article>
+      </div>
+
+      @if (mensajeExito()) {
+        <div class="employee-delivery-message success-message" role="status">
+          <span aria-hidden="true">✓</span><div><strong>Entrega registrada</strong><p>{{ mensajeExito() }}</p></div>
+        </div>
+      }
+      @if (errorEntrega()) { <div class="employee-delivery-message operation-alert" role="alert"><span>{{ errorEntrega() }}</span></div> }
+      @if (errorConciliacion()) { <div class="employee-delivery-message operation-alert" role="alert"><span>{{ errorConciliacion() }}</span></div> }
+      @if (errorEmpleadosEntrega()) { <div class="employee-delivery-message operation-alert" role="alert"><span>{{ errorEmpleadosEntrega() }}</span></div> }
+
+      <form (submit)="confirmarEntrega($event)">
+        <fieldset [disabled]="guardandoEntrega() || cargandoConciliacion()">
+          <section class="collector-section collector-search-section" aria-labelledby="collector-search-title">
+            <div class="collector-section-heading"><div><span>PASO 1</span><h3 id="collector-search-title">Seleccionar cobrador</h3></div></div>
+            <label class="collector-search">
+              <span class="visually-hidden">Buscar por nombre, apellido o código</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.4-4.4M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></svg>
+              <input type="search" placeholder="Buscar por nombre, apellido o código..." autocomplete="off"
+                [value]="busquedaEmpleadoEntrega()" (input)="actualizarBusquedaEmpleadoEntrega($event)" />
+            </label>
+            <div class="collector-list" role="list">
+              @for (empleado of empleadosEntregaFiltrados(); track empleado.id_empleado) {
+                <button type="button" role="listitem" class="collector-card"
+                  [class.selected]="empleadoEntregaId() === empleado.id_empleado"
+                  [attr.aria-pressed]="empleadoEntregaId() === empleado.id_empleado"
+                  (click)="seleccionarEmpleadoEntregaPorId(empleado.id_empleado)">
+                  <span class="collector-avatar" aria-hidden="true">{{ empleado.empleado.charAt(0) }}</span>
+                  <span class="collector-identity"><strong>{{ empleado.empleado }}</strong><small>{{ empleado.codigo }}</small></span>
+                  <span class="collector-balance"><small>Pendiente</small><strong>{{ empleado.pendiente | currency:'GTQ':'symbol-narrow' }}</strong></span>
+                </button>
+              } @empty {
+                <div class="collector-empty" role="status">
+                  <strong>{{ cargandoEmpleadosEntrega() ? 'Cargando empleados' : empleadosEntrega().length ? 'Sin coincidencias' : 'No hay empleados activos' }}</strong>
+                  <span>{{ cargandoEmpleadosEntrega() ? 'Espere mientras se consulta el catálogo.' : empleadosEntrega().length ? 'Pruebe con otro nombre, apellido o código.' : 'No existen empleados elegibles para seleccionar.' }}</span>
+                </div>
+              }
+            </div>
+          </section>
+
+          <section class="collector-section" aria-labelledby="pending-payments-title">
+            <div class="collector-section-heading">
+              <div><span>PASO 2</span><h3 id="pending-payments-title">Cobros de Internet pendientes</h3></div>
+              @if (empleadoReceptorSeleccionado(); as empleado) {
+                <span class="selected-collector">{{ empleado.nombres }} {{ empleado.apellidos }} · {{ empleado.codigo }}</span>
+              }
+            </div>
+            <div class="table-wrap collector-table"><table>
+              <thead><tr><th>Incluir</th><th>Pago / fecha</th><th>Cliente</th><th>Recaudado</th><th>Entregado</th><th>Pendiente</th></tr></thead>
+              <tbody>@for (pago of empleadoEntrega()?.pagos_pendientes ?? []; track pago.id_pago) {
+                <tr [class.payment-selected]="pagosEntrega().has(pago.id_pago)"><td><input type="checkbox" [checked]="pagosEntrega().has(pago.id_pago)" (change)="alternarPagoEntrega(pago.id_pago)" [attr.aria-label]="'Incluir pago ' + pago.id_pago" /></td>
+                  <td><strong>#{{ pago.id_pago }}</strong><small>{{ pago.fecha_hora | date:'dd/MM/yyyy' }}</small></td><td>{{ pago.cliente }}</td>
+                  <td>{{ pago.monto_recaudado | currency:'GTQ':'symbol-narrow' }}</td><td>{{ pago.monto_entregado | currency:'GTQ':'symbol-narrow' }}</td>
+                  <td class="pending-amount">{{ pago.pendiente | currency:'GTQ':'symbol-narrow' }}</td></tr>
+              }
+              @if (!empleadoEntrega()?.pagos_pendientes?.length) {
+                <tr><td colspan="6" class="empty-row">{{ mensajePendientesEntrega() }}</td></tr>
+              }</tbody>
+            </table></div>
+          </section>
+
+          <section class="collector-section" aria-labelledby="expenses-title">
+            <div class="collector-section-heading"><div><span>PASO 3 · OPCIONAL</span><h3 id="expenses-title">Gastos autorizados</h3></div>
+              <button type="button" class="secondary-button" [disabled]="!empleadoEntrega() || !puedeEntregar()" (click)="agregarGastoEntrega()">＋ Agregar gasto</button>
+            </div>
+            @if (!gastosEntrega().length) {
+              <div class="expense-empty"><span aria-hidden="true">▤</span><p>No se han agregado gastos para esta entrega.</p></div>
+            }
+            <div class="expense-list">
+              @for (gasto of gastosEntrega(); track $index; let i = $index) {
+                <div class="expense-row">
+                  <label><span>Motivo del gasto {{ i + 1 }}</span><input maxlength="300" placeholder="Ej. combustible" [value]="gasto.concepto" (input)="actualizarGastoEntrega(i, 'concepto', $event)" /></label>
+                  <label><span>Monto (GTQ)</span><input type="number" min="0.01" step="0.01" inputmode="decimal" [value]="gasto.monto || ''" (input)="actualizarGastoEntrega(i, 'monto', $event)" /></label>
+                  <label><span>Detalle adicional</span><input placeholder="Opcional" [value]="gasto.observaciones ?? ''" (input)="actualizarGastoEntrega(i, 'observaciones', $event)" /></label>
+                  <button type="button" class="remove-expense" [attr.aria-label]="'Quitar gasto ' + (i + 1)" (click)="quitarGastoEntrega(i)">×</button>
+                </div>
+              }
+            </div>
+          </section>
+
+          <section class="collector-section delivery-reconciliation" aria-labelledby="reconciliation-title">
+            <div class="collector-section-heading"><div><span>PASO 4</span><h3 id="reconciliation-title">Conciliación de la entrega</h3></div></div>
+            <div class="delivery-totals">
+              <article><span>Efectivo seleccionado</span><strong>{{ recaudadoEntrega() | currency:'GTQ':'symbol-narrow' }}</strong></article>
+              <article class="expense-total"><span>Gastos</span><strong>− {{ totalGastosEntrega() | currency:'GTQ':'symbol-narrow' }}</strong></article>
+              <article class="expected-total"><span>Efectivo por entregar</span><strong>{{ netoEntrega() | currency:'GTQ':'symbol-narrow' }}</strong></article>
+              <label class="received-total"><span>Efectivo recibido</span><div><b>Q</b><input type="number" min="0" step="0.01" inputmode="decimal" [value]="montoEntrega()" (input)="actualizarDatosEntrega('monto', $event)" /></div></label>
+            </div>
+            <div class="delivery-difference" [class.balanced]="diferenciaEntrega() === 0 && pagosEntrega().size > 0"
+              [class.unbalanced]="diferenciaEntrega() !== 0">
+              <span>Diferencia · recibido − por entregar</span><strong>{{ diferenciaEntrega() | currency:'GTQ':'symbol-narrow' }}</strong>
+              <small>{{ !pagosEntrega().size ? 'Seleccione al menos un cobro pendiente' : diferenciaEntrega() === 0 ? 'Importes conciliados' : diferenciaEntrega() < 0 ? 'Falta efectivo por recibir' : 'Existe efectivo sobrante' }}</small>
+            </div>
+            @if (gastosEntrega().length) {
+              <label class="expense-check"><input type="checkbox" [checked]="autorizarGastosEntrega()" (change)="actualizarDatosEntrega('autorizar', $event)" /><span>Confirmo y autorizo los gastos indicados como encargado de Caja General.</span></label>
+            }
+            <label class="delivery-notes"><span>Observaciones de la entrega <em>Opcional</em></span><textarea rows="2" [value]="observacionesEntrega()" (input)="actualizarDatosEntrega('observaciones', $event)"></textarea></label>
+          </section>
+        </fieldset>
+        <footer class="employee-closing-footer"><button type="button" class="secondary-button" [disabled]="guardandoEntrega()" (click)="limpiarCierreEmpleado()">Limpiar</button>
+          <button type="submit" class="primary-button" [disabled]="!entregaValida()">{{ guardandoEntrega() ? 'Registrando...' : '✓ Registrar entrega' }}</button></footer>
+      </form>
+      <section class="delivery-history" aria-labelledby="delivery-history-title">
+        <div class="collector-section-heading"><div><span>TRAZABILIDAD</span><h3 id="delivery-history-title">Historial de entregas</h3></div>
+          <small>{{ empleadoEntrega() ? 'Cobrador seleccionado' : 'Todos los cobradores de la sesión' }}</small></div>
+        <div class="table-wrap actions-sticky"><table><thead><tr><th>Fecha</th><th>Empleado</th><th>Entregado</th><th>Gastos</th><th>Acciones</th></tr></thead>
+          <tbody>@for (entrega of historialEntregas(); track entrega.id_entrega) {
+            <tr><td>{{ entrega.fecha_hora | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ entrega.empleado }}</td>
+              <td>{{ entrega.monto_entregado | currency:'GTQ':'symbol-narrow' }}</td><td>{{ entrega.gastos_autorizados | currency:'GTQ':'symbol-narrow' }}</td>
+              <td><button type="button" class="secondary-button" (click)="verEntrega(entrega.id_entrega)">▤ Ver detalles</button></td></tr>
+          } @empty { <tr><td colspan="5" class="empty-row">{{ empleadoEntrega() ? 'No hay entregas anteriores para este cobrador.' : 'No hay entregas registradas en esta sesión.' }}</td></tr> }</tbody>
+        </table></div>
+        @if (entregaSeleccionada(); as entrega) {
+          <div class="delivery-detail">
+            <div class="collector-section-heading"><div><span>ENTREGA CONFIRMADA</span><h3>Entrega #{{ entrega.id_entrega }}</h3></div><small>{{ entrega.fecha_hora | date:'dd/MM/yyyy HH:mm' }}</small></div>
+            <p><strong>{{ entrega.empleado }}</strong> entregó {{ entrega.monto_entregado | currency:'GTQ':'symbol-narrow' }} a {{ entrega.responsable_recepcion }}.</p>
+            <p>{{ entrega.observaciones || 'Sin observaciones' }}</p>
+            <div class="table-wrap"><table><thead><tr><th>Pago</th><th>Cliente / origen</th><th>Entregado</th><th>Gastos aplicados</th></tr></thead>
+              <tbody>@for (pago of entrega.pagos; track pago.id_pago) {
+                <tr><td>#{{ pago.id_pago }}</td><td>{{ pago.cliente }} · {{ pago.origen }}</td><td>{{ pago.monto_entregado | currency:'GTQ':'symbol-narrow' }}</td><td>{{ pago.monto_gasto_autorizado | currency:'GTQ':'symbol-narrow' }}</td></tr>
+              }</tbody></table></div>
+            @for (gasto of entrega.gastos; track $index) { <p>{{ gasto.concepto }} · {{ gasto.monto | currency:'GTQ':'symbol-narrow' }} · {{ gasto.observaciones || 'Sin observaciones' }}</p> }
+          </div>
+        }
+      </section>
+    </section>
+  </div>
+}
+
+@if (movimientoSeleccionado(); as movimiento) {
+  <div class="modal-backdrop" role="presentation" (click)="cerrarDetalle()">
+    <section
+      class="modal-card detail-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="detail-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <div>
+          <p>MOVIMIENTO CONFIRMADO</p>
+          <h2 id="detail-title">Movimiento #{{ movimiento.id_movimiento }}</h2>
+        </div>
+        <button type="button" aria-label="Cerrar" (click)="cerrarDetalle()">×</button>
+      </header>
+      <dl>
+        <div>
+          <dt>Fecha y hora</dt>
+          <dd>{{ movimiento.fecha_hora | date: 'dd/MM/yyyy, HH:mm' }}</dd>
+        </div>
+        <div>
+          <dt>Tipo</dt>
+          <dd>{{ movimiento.tipo }}</dd>
+        </div>
+        <div>
+          <dt>Concepto</dt>
+          <dd>{{ movimiento.concepto }}</dd>
+        </div>
+        <div>
+          <dt>Categoría</dt>
+          <dd>{{ movimiento.categoria }}</dd>
+        </div>
+        <div>
+          <dt>Método</dt>
+          <dd>{{ movimiento.metodo_pago || 'Sin método' }}</dd>
+        </div>
+        <div>
+          <dt>Referencia</dt>
+          <dd>{{ movimiento.referencia || 'Sin referencia' }}</dd>
+        </div>
+        <div>
+          <dt>Responsable</dt>
+          <dd>{{ movimiento.responsable }}</dd>
+        </div>
+        <div>
+          <dt>Monto</dt>
+          <dd>{{ movimiento.monto | currency: 'GTQ' : 'symbol-narrow' }}</dd>
+        </div>
+        <div class="wide-field">
+          <dt>Observaciones</dt>
+          <dd>{{ movimiento.observaciones || 'Sin observaciones' }}</dd>
+        </div>
+      </dl>
+      <footer>
+        <button type="button" class="primary-button" (click)="cerrarDetalle()">
+          Cerrar detalle
+        </button>
+      </footer>
+    </section>
+  </div>
+}

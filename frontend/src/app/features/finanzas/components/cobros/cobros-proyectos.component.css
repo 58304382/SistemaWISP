@@ -1,0 +1,106 @@
+/* ==========================================
+   INSTALACIONES Y ORDENES DE TRABAJO
+   ========================================== */
+.project-obligation-list { display: grid; gap: 7px; margin-top: 10px; }
+.project-obligation-row {
+  position: relative; display: grid;
+  grid-template: 'check icon main reference amounts status' auto / auto auto minmax(120px, 1fr) 66px minmax(215px, 1.35fr) auto;
+  align-items: center; gap: 9px; min-height: 64px; padding: 8px 10px;
+  border: 1px solid #dfe7f0; border-radius: 10px; background: #fbfcfe; cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.project-obligation-row.installation-row {
+  grid-template: 'check icon main reference kind amounts status' auto / auto auto minmax(115px, 1fr) 62px auto minmax(210px, 1.3fr) auto;
+}
+.project-obligation-row:hover { border-color: #b8cce6; background: #f7faff; }
+.project-obligation-row:focus-within { outline: 2px solid #3978ca; outline-offset: 2px; }
+.project-obligation-row.selected {
+  border-color: #6c9fdf; background: #eef5ff; box-shadow: inset 3px 0 #2c73d2;
+}
+.project-obligation-row.paid { opacity: 0.7; cursor: default; }
+.project-obligation-row input { position: absolute; opacity: 0; pointer-events: none; }
+.project-obligation-row .custom-checkbox { grid-area: check; }
+.project-obligation-icon {
+  grid-area: icon; display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 8px; color: #326fc2; background: #e8f1fd;
+}
+.project-obligation-icon[data-kind='Cámaras'] { color: #7554bb; background: #f0eafd; }
+.project-obligation-icon[data-kind='ORDENES_TRABAJO'] { color: #a25f21; background: #fff0df; }
+.project-obligation-icon svg {
+  width: 17px; fill: none; stroke: currentColor; stroke-linecap: round;
+  stroke-linejoin: round; stroke-width: 1.7;
+}
+.project-obligation-main { grid-area: main; display: grid; gap: 2px; min-width: 0; }
+.project-obligation-main small,
+.project-reference small,
+.project-amounts small {
+  color: #7b899b; font-size: 7px; font-weight: 700; text-transform: uppercase;
+}
+.project-obligation-main strong { color: #263950; font-size: 10px; }
+.project-obligation-main > span {
+  overflow: hidden; color: #68788d; font-size: 8px; text-overflow: ellipsis; white-space: nowrap;
+}
+.project-reference { grid-area: reference; display: grid; gap: 3px; min-width: 0; }
+.project-reference strong { color: #3e5878; font-size: 9px; }
+.installation-kind {
+  grid-area: kind; justify-self: start; padding: 5px 7px; border-radius: 999px;
+  color: #2669b7; background: #e6f0ff; font-size: 7px; font-weight: 850; white-space: nowrap;
+}
+.installation-kind[data-kind='Cámaras'] { color: #7049ad; background: #eee6fa; }
+.project-amounts {
+  grid-area: amounts; display: grid; grid-template-columns: repeat(3, minmax(62px, 1fr));
+  gap: 5px; min-width: 0;
+}
+.project-amounts > span {
+  display: grid; gap: 3px; padding: 6px 7px; border-left: 1px solid #e3e9f1;
+}
+.project-amounts strong { color: #344960; font-size: 9px; white-space: nowrap; }
+.project-amounts .pending-balance strong { color: #266dc9; font-size: 10px; }
+.project-status {
+  grid-area: status; display: inline-flex; align-items: center; gap: 4px; justify-self: end;
+  padding: 5px 7px; border-radius: 999px; font-size: 7px; font-weight: 850; white-space: nowrap;
+}
+.project-status i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.project-status[data-status='PENDIENTE'] { color: #946117; background: #fff0d3; }
+.project-status[data-status='VENCIDO'] { color: #ae3d3d; background: #fde6e6; }
+.project-status[data-status='PAGADO'] { color: #247451; background: #ddf5e8; }
+.project-selected-mark {
+  position: absolute; top: -5px; right: 10px; min-width: 52px; color: #2a69bc;
+  font-size: 6px; font-weight: 900; text-align: center; text-transform: uppercase;
+}
+
+@media (max-width: 1220px) {
+  .project-obligation-row,
+  .project-obligation-row.installation-row {
+    grid-template:
+      'check icon main reference status' auto
+      '. . kind amounts amounts' auto / auto auto minmax(115px, 1fr) 70px auto;
+  }
+  .project-amounts { margin-top: 2px; }
+}
+@media (max-width: 650px) {
+  .project-obligation-row,
+  .project-obligation-row.installation-row {
+    grid-template:
+      'check icon main status' auto
+      '. . reference reference' auto
+      '. . kind kind' auto
+      '. . amounts amounts' auto / auto auto minmax(110px, 1fr) auto;
+  }
+  .project-reference { display: flex; align-items: center; gap: 5px; }
+  .project-amounts { grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .project-amounts > span:first-child { border-left: 0; }
+}
+@media (max-width: 420px) {
+  .project-obligation-row,
+  .project-obligation-row.installation-row {
+    grid-template:
+      'check main status' auto
+      '. reference reference' auto
+      '. kind kind' auto
+      '. amounts amounts' auto / auto minmax(100px, 1fr) auto;
+  }
+  .project-obligation-icon { display: none; }
+  .project-amounts { grid-template-columns: 1fr; }
+  .project-amounts > span { grid-template-columns: 1fr auto; border-left: 0; border-top: 1px solid #e3e9f1; }
+}

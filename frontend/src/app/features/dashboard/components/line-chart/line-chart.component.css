@@ -1,0 +1,127 @@
+/* ==========================================
+   GRAFICA DE LINEAS
+========================================== */
+:host {
+  display: block;
+}
+
+.chart-shell {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.line-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* La rejilla no compite visualmente con las series. */
+.grid-line {
+  stroke: #e8eef6;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.axis-label {
+  fill: #8491a4;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.axis-label-y {
+  text-anchor: start;
+}
+
+.axis-label-x {
+  text-anchor: middle;
+}
+
+.series-area {
+  opacity: 0.09;
+}
+
+.series-line {
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.legend-item i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.chart-empty {
+  display: grid;
+  min-height: 210px;
+  place-content: center;
+  justify-items: center;
+  padding: 24px;
+  border: 1px dashed #d5deea;
+  border-radius: 10px;
+  color: #7d8a9c;
+  text-align: center;
+  background: #fafcff;
+}
+
+.chart-empty svg {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 10px;
+  fill: none;
+  stroke: #8ea6c8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.chart-empty strong {
+  color: #40506a;
+  font-size: 13px;
+}
+
+.chart-empty span {
+  margin-top: 5px;
+  font-size: 11px;
+}
+
+/* En anchos reducidos la gráfica conserva etiquetas legibles
+   mediante un desplazamiento horizontal contenido. */
+@media (max-width: 1199px) {
+  .chart-shell {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .line-chart {
+    min-width: 560px;
+  }
+
+  .axis-label {
+    font-size: 12px;
+  }
+}
+
+/* En escritorio las etiquetas también ganan legibilidad sin cambiar el layout. */
+.axis-label {
+  font-size: 14px;
+}

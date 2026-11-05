@@ -38,6 +38,7 @@
 ========================================== */
 .configuration-content {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 72px;
   padding: 96px clamp(30px, 5vw, 76px) 60px;
@@ -74,6 +75,16 @@
 .employees-configuration-icon {
   background: linear-gradient(145deg, #35c98a 0%, #20ad70 45%, #138653 100%);
   box-shadow: 0 18px 42px rgba(32, 173, 112, 0.2);
+}
+
+.reports-configuration-icon {
+  background: linear-gradient(145deg, #9b7bea 0%, #7957d5 45%, #5636ad 100%);
+  box-shadow: 0 18px 42px rgba(121, 87, 213, 0.24);
+}
+
+.maintenance-configuration-icon {
+  background: linear-gradient(145deg, #ffb35c 0%, #ff8a1f 45%, #e56900 100%);
+  box-shadow: 0 18px 42px rgba(255, 138, 31, 0.22);
 }
 
 .configuration-icon svg {

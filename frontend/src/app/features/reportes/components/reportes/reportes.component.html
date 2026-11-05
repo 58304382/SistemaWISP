@@ -1,0 +1,214 @@
+<div class="reports-page">
+  <header class="reports-header no-print">
+    <div>
+      <p class="eyebrow">CONFIGURACIÓN</p>
+      <h1>Reportes</h1>
+      <p>Genere documentos administrativos a partir de la información real del sistema.</p>
+    </div>
+  </header>
+
+  <main class="reports-content">
+    <form class="report-filters no-print" [formGroup]="form" (ngSubmit)="generarReporte()">
+      <label>
+        <span>Tipo de reporte</span>
+        <select formControlName="tipo">
+          @for (tipo of tiposReporte; track tipo.codigo) {
+            <option [value]="tipo.codigo" [disabled]="!tipo.disponible">
+              {{ tipo.nombre }}{{ tipo.disponible ? '' : ' — Próximamente' }}
+            </option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Período</span>
+        <select formControlName="periodo">
+          <option value="diario">Diario</option>
+          <option value="semanal">Semanal</option>
+          <option value="mensual">Mensual</option>
+        </select>
+      </label>
+      @if (form.controls.periodo.value === 'mensual') {
+        <label>
+          <span>Mes y año</span>
+          <input type="month" formControlName="mes" />
+        </label>
+      } @else {
+        <label>
+          <span>{{ form.controls.periodo.value === 'semanal' ? 'Fecha de la semana' : 'Fecha' }}</span>
+          <input type="date" formControlName="fecha" />
+        </label>
+      }
+      <button class="primary-button" type="submit" [disabled]="cargando()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 16v-5M12 16V7M16 16v-3" /></svg>
+        {{ cargando() ? 'Generando...' : 'Generar Reporte' }}
+      </button>
+    </form>
+
+    @if (mensaje()) {
+      <div class="report-message no-print" role="alert">{{ mensaje() }}</div>
+    }
+
+    <section class="preview-shell">
+      <div class="preview-toolbar no-print">
+        <div><strong>Vista previa</strong><span>El documento refleja la última generación solicitada.</span></div>
+        <div class="preview-actions">
+          <button type="button" class="secondary-button" [disabled]="!hayReporte() || descargando()" (click)="imprimir()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z" /></svg>Imprimir
+          </button>
+          <button type="button" class="primary-button" [disabled]="!hayReporte() || descargando()" (click)="descargarPdf()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 20h14" /></svg>{{ descargando() ? 'Descargando...' : 'Descargar PDF' }}
+          </button>
+        </div>
+      </div>
+
+      @if (cabecera(); as actual) {
+        <article #vistaPrevia class="report-sheet">
+          <header class="report-document-header">
+            <div class="report-brand-mark"><span></span><span></span><span></span></div>
+            <div><strong>Multiservicios Tale</strong><span>SistemaWISP</span></div>
+            <div class="report-document-title"><h2>{{ actual.titulo }}</h2><span>{{ actual.periodo_descripcion }}</span></div>
+          </header>
+
+          <div class="report-metadata">
+            <div><span>Período</span><strong>{{ actual.periodo_descripcion }}</strong></div>
+            <div><span>Generado</span><strong>{{ formatoFechaHora(actual.fecha_generacion) }}</strong></div>
+            <div><span>Usuario</span><strong>{{ actual.usuario_generador }}</strong></div>
+          </div>
+
+          @if (reporteInstalaciones(); as currentReport) {
+            <div class="report-indicators">
+              <div class="total-indicator"><span>Total instalaciones</span><strong>{{ currentReport.total_instalaciones }}</strong></div>
+              @for (item of currentReport.estados; track item.estado) {
+                <div><span>{{ item.estado }}</span><strong>{{ item.cantidad }}</strong></div>
+              }
+            </div>
+
+            @if (currentReport.instalaciones.length) {
+              <div class="report-table-wrap">
+                <table class="report-table-instalaciones">
+                  <thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo de instalación</th><th>Técnico responsable</th><th>Estado</th><th>Observaciones</th></tr></thead>
+                  <tbody>
+                    @for (item of currentReport.instalaciones; track $index) {
+                      <tr>
+                        <td>{{ formatoFecha(item.fecha) }}</td><td>{{ item.cliente }}</td><td>{{ item.tipo_instalacion || 'No disponible' }}</td><td>{{ item.tecnico_responsable || 'Sin responsable asignado' }}</td><td><span class="state" [class.in-progress]="item.estado === 'En Proceso'" [class.completed]="item.estado === 'Completada'">{{ item.estado }}</span></td><td>{{ item.observaciones || 'Sin observaciones' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="empty-report"><strong>No existen instalaciones en el período seleccionado.</strong><span>Pruebe otro día, semana o mes para consultar información.</span></div>
+            }
+          }
+
+          @if (reporteCotizaciones(); as currentReport) {
+            <div class="report-indicators">
+              <div class="total-indicator"><span>Total cotizaciones</span><strong>{{ currentReport.total_cotizaciones }}</strong></div>
+              <div><span>Pendientes</span><strong>{{ currentReport.pendientes }}</strong></div>
+              <div><span>Aceptadas</span><strong>{{ currentReport.aceptadas }}</strong></div>
+              <div><span>Importe total</span><strong>{{ currentReport.importe_total | currency: 'GTQ' : 'symbol-narrow' }}</strong></div>
+            </div>
+
+            @if (currentReport.cotizaciones.length) {
+              <div class="report-table-wrap">
+                <table class="report-table-auto">
+                  <thead><tr><th>Fecha</th><th>Cliente</th><th>Origen</th><th>Estado</th><th>Referencia</th><th>Importe</th></tr></thead>
+                  <tbody>
+                    @for (item of currentReport.cotizaciones; track item.referencia) {
+                      <tr>
+                        <td>{{ formatoFecha(item.fecha) }}</td><td>{{ item.cliente }}</td><td>{{ item.origen }}</td><td><span class="state" [class.in-progress]="esEnProceso(item.estado)" [class.completed]="esCompletado(item.estado)">{{ item.estado }}</span></td><td>{{ item.referencia }}</td><td>{{ item.importe | currency: 'GTQ' : 'symbol-narrow' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="empty-report"><strong>No existen cotizaciones en el período seleccionado.</strong><span>Pruebe otro día, semana o mes para consultar información.</span></div>
+            }
+          }
+
+          @if (reporteCobros(); as currentReport) {
+            <div class="report-indicators">
+              <div class="total-indicator"><span>Cantidad de pagos</span><strong>{{ currentReport.total_pagos }}</strong></div>
+              <div><span>Total cobrado</span><strong>{{ currentReport.total_cobrado | currency: 'GTQ' : 'symbol-narrow' }}</strong></div>
+              @for (item of currentReport.conceptos; track item.concepto) {
+                <div><span>Por concepto: {{ item.concepto }}</span><strong>{{ item.importe | currency: 'GTQ' : 'symbol-narrow' }}</strong></div>
+              }
+            </div>
+
+            @if (currentReport.cobros.length) {
+              <div class="report-table-wrap">
+                <table class="report-table-auto">
+                  <thead><tr><th>Fecha</th><th>Cliente</th><th>Concepto</th><th>Método de pago</th><th>Referencia</th><th>Importe</th></tr></thead>
+                  <tbody>
+                    @for (item of currentReport.cobros; track $index) {
+                      <tr>
+                        <td>{{ formatoFecha(item.fecha) }}</td><td>{{ item.cliente }}</td><td>{{ item.concepto }}</td><td>{{ item.metodo_pago }}</td><td>{{ item.referencia || 'Sin referencia' }}</td><td>{{ item.importe | currency: 'GTQ' : 'symbol-narrow' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="empty-report"><strong>No existen pagos confirmados en el período seleccionado.</strong><span>Pruebe otro día, semana o mes para consultar información.</span></div>
+            }
+          }
+
+          @if (reporteCaja(); as currentReport) {
+            <div class="report-indicators">
+              <div><span>Saldo inicial</span><strong>{{ currentReport.saldo_inicial | currency: 'GTQ' : 'symbol-narrow' }}</strong></div>
+              <div><span>Entradas</span><strong>{{ currentReport.entradas | currency: 'GTQ' : 'symbol-narrow' }}</strong></div>
+              <div><span>Salidas</span><strong>{{ currentReport.salidas | currency: 'GTQ' : 'symbol-narrow' }}</strong></div>
+              <div class="total-indicator"><span>Saldo esperado</span><strong>{{ currentReport.saldo_esperado | currency: 'GTQ' : 'symbol-narrow' }}</strong></div>
+            </div>
+
+            @if (currentReport.movimientos.length) {
+              <div class="report-table-wrap">
+                <table class="report-table-auto">
+                  <thead><tr><th>Fecha</th><th>Hora</th><th>Tipo</th><th>Concepto</th><th>Método</th><th>Referencia</th><th>Responsable</th><th>Importe</th></tr></thead>
+                  <tbody>
+                    @for (item of currentReport.movimientos; track $index) {
+                      <tr>
+                        <td>{{ formatoFecha(item.fecha) }}</td><td>{{ formatoHora(item.hora) }}</td><td><span class="state" [class.entry]="item.tipo === 'Ingreso'" [class.exit]="item.tipo === 'Egreso'">{{ item.tipo }}</span></td><td>{{ item.concepto }}</td><td>{{ item.metodo_pago || 'Sin método' }}</td><td>{{ item.referencia || 'Sin referencia' }}</td><td>{{ item.responsable }}</td><td>{{ item.importe | currency: 'GTQ' : 'symbol-narrow' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="empty-report"><strong>No existen movimientos de Caja en el período seleccionado.</strong><span>Pruebe otro día, semana o mes para consultar información.</span></div>
+            }
+          }
+
+          @if (reporteSoporte(); as currentReport) {
+            <div class="report-indicators">
+              <div class="total-indicator"><span>Total tickets</span><strong>{{ currentReport.total_tickets }}</strong></div>
+              <div><span>Programados</span><strong>{{ currentReport.programados }}</strong></div>
+              <div><span>En Proceso</span><strong>{{ currentReport.en_proceso }}</strong></div>
+              <div><span>Completados</span><strong>{{ currentReport.completados }}</strong></div>
+            </div>
+
+            @if (currentReport.tickets.length) {
+              <div class="report-table-wrap">
+                <table class="report-table-auto">
+                  <thead><tr><th>Fecha</th><th>Cliente</th><th>Categoría</th><th>Técnico asignado</th><th>Estado</th><th>Resultado del trabajo</th></tr></thead>
+                  <tbody>
+                    @for (item of currentReport.tickets; track $index) {
+                      <tr>
+                        <td>{{ formatoFecha(item.fecha) }}</td><td>{{ item.cliente }}</td><td>{{ item.categoria || 'Sin categoría' }}</td><td>{{ item.tecnico || 'Sin técnico asignado' }}</td><td><span class="state" [class.in-progress]="esEnProceso(item.estado)" [class.completed]="esCompletado(item.estado)">{{ item.estado }}</span></td><td>{{ item.resultado || 'Sin resultado registrado' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="empty-report"><strong>No existen tickets de soporte en el período seleccionado.</strong><span>Pruebe otro día, semana o mes para consultar información.</span></div>
+            }
+          }
+        </article>
+      } @else {
+        <div class="preview-empty no-print"><div class="preview-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 16v-5M12 16V7M16 16v-3" /></svg></div><strong>Genere un reporte para visualizarlo</strong><span>Seleccione el período y la fecha en los filtros superiores.</span></div>
+      }
+    </section>
+  </main>
+</div>

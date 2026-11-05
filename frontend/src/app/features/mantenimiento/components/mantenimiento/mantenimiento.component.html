@@ -1,0 +1,60 @@
+<!-- ========================================
+     ENCABEZADO Y RUTA DE MANTENIMIENTO
+========================================= -->
+<div class="maintenance-page">
+  <header class="maintenance-header">
+    <nav class="maintenance-breadcrumb" aria-label="Ruta de navegación">
+      <a routerLink="/configuracion">Configuración</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">Mantenimiento del Sistema</span>
+    </nav>
+    <h1>Mantenimiento del Sistema</h1>
+    <p class="page-description">Administre catálogos del sistema y configuración de documentos</p>
+  </header>
+
+  <!-- ========================================
+       ACCESO A CATALOGOS DEL SISTEMA
+  ========================================= -->
+  <section class="maintenance-content" aria-label="Accesos de mantenimiento">
+    <a
+      class="maintenance-option maintenance-option-link"
+      routerLink="/configuracion/mantenimiento/catalogos"
+    >
+      <span class="maintenance-icon catalogs-maintenance-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M8 6h13M8 12h13M8 18h13" />
+          <circle cx="3.5" cy="6" r="1" />
+          <circle cx="3.5" cy="12" r="1" />
+          <circle cx="3.5" cy="18" r="1" />
+        </svg>
+      </span>
+      <span class="maintenance-option-label">Catálogos</span>
+    </a>
+
+    <a
+      class="maintenance-option maintenance-option-link"
+      routerLink="/configuracion/mantenimiento/documentos-comerciales"
+    >
+      <span class="maintenance-icon quotation-maintenance-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+          <path d="M14 3v5h5M9 13h6M9 17h6" />
+        </svg>
+      </span>
+      <span class="maintenance-option-label">Cotización / Proforma</span>
+    </a>
+
+    <a
+      class="maintenance-option maintenance-option-link"
+      routerLink="/configuracion/mantenimiento/factura-comprobante"
+    >
+      <span class="maintenance-icon invoice-maintenance-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+          <path d="M9 8h6M9 12h6M9 16h4" />
+        </svg>
+      </span>
+      <span class="maintenance-option-label">Factura / Comprobante</span>
+    </a>
+  </section>
+</div>
