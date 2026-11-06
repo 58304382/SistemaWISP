@@ -1,0 +1,13 @@
+# Dependencias y resultados generados localmente
+node_modules
+dist
+.angular
+
+# Metadatos y configuracion local sin uso durante la compilacion
+.git
+.gitignore
+.vscode
+Dockerfile*
+README.md
+npm-debug.log*
+*.log
