@@ -20,6 +20,10 @@ FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 
+# La imagen oficial procesa esta plantilla al iniciar, cuando Dokploy ya inyecto el entorno.
+ENV NGINX_ENVSUBST_OUTPUT_DIR=/usr/share/nginx/html
+COPY runtime-config.js.template /etc/nginx/templates/runtime-config.js.template
+
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,5 @@
+// Configuracion generada al iniciar el contenedor; la API key proviene de Dokploy.
+window.__SISTEMAWISP_CONFIG__ = {
+  googleMapsApiKey: '${GOOGLE_MAPS_API_KEY}',
+  googleMapsMapId: '1672791b14a349c01c72bfa3',
+};
